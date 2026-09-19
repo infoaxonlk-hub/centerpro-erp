@@ -1,0 +1,1 @@
+supabase/migrations/010_split_purchase_payments.sql
