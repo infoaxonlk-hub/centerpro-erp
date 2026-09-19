@@ -6,6 +6,7 @@ import "./masters.css";
 import "./users.css";
 import "./feedback.css";
 import "./purchase-pos.css";
+import "./purchase-keyboard.css";
 import "./purchases.css";
 
 export const metadata: Metadata = {
