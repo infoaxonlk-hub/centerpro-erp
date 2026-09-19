@@ -1,0 +1,9 @@
+@media print{
+  .app-shell{display:grid!important}
+  body *{visibility:hidden!important}
+  .thermal-receipt,.thermal-receipt *{visibility:visible!important}
+  .thermal-receipt{display:block!important;position:absolute!important;left:0!important;top:0!important;width:74mm!important;margin:0!important;background:#fff!important}
+  .purchase-pos-full{display:block!important;position:static!important;background:#fff!important}
+  .pos-complete,.toast-stack,.sidebar,.topbar{display:none!important}
+  .workspace,.page-content{display:block!important;margin:0!important;padding:0!important;max-width:none!important}
+}
