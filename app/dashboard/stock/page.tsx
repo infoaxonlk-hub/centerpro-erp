@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requirePermission } from "@/lib/access";
 
 export default async function StockPage(){
- const s=await createClient();const {data:{user}}=await s.auth.getUser();if(!user)redirect("/login");
+ const {supabase:s}=await requirePermission("stock");
  const {data:rows}=await s.from("stock_movements").select("id,center_id,location_id,product_id,quality_id,movement_type,quantity,unit_cost,created_at,centers(name,code),locations(name,code),products(name,code),product_qualities(name)").order("created_at");
  const grouped=new Map<string,{center:string;location:string;product:string;quality:string;qty:number;value:number}>();
  for(const r of rows??[]){const c=Array.isArray(r.centers)?r.centers[0]:r.centers;const l=Array.isArray(r.locations)?r.locations[0]:r.locations;const p=Array.isArray(r.products)?r.products[0]:r.products;const q=Array.isArray(r.product_qualities)?r.product_qualities[0]:r.product_qualities;const key=[r.center_id,r.location_id,r.product_id,r.quality_id].join(":");const old=grouped.get(key)??{center:`${c?.code??""} · ${c?.name??""}`,location:`${l?.code??""} · ${l?.name??""}`,product:p?.name??"",quality:q?.name??"",qty:0,value:0};const sign=["purchase_in","transfer_in","adjustment_in"].includes(r.movement_type)?1:-1;old.qty+=sign*Number(r.quantity);old.value+=sign*Number(r.quantity)*Number(r.unit_cost);grouped.set(key,old)}

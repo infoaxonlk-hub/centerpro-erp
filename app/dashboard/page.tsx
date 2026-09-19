@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requirePermission } from "@/lib/access";
 
 const money = new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 0 });
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
+  const {supabase} = await requirePermission("dashboard");
   const [{ count: centers }, { count: purchases }, { data: stock }, { data: cash }] = await Promise.all([
     supabase.from("centers").select("id", { count: "exact", head: true }).eq("is_active", true),
     supabase.from("purchase_orders").select("id", { count: "exact", head: true }).eq("status", "confirmed"),
