@@ -45,9 +45,20 @@ export async function POST(request: Request) {
 }
 
 const updateUserSchema=z.object({id:z.string().uuid(),isActive:z.boolean()});
+const resetPasswordSchema=z.object({id:z.string().uuid(),password:z.string().min(8).max(72)});
 export async function PATCH(request:Request){
   try{
-    const current=await requireAdmin();const input=updateUserSchema.parse(await request.json());const admin=createAdminClient();
+    const current=await requireAdmin();const body=await request.json();const admin=createAdminClient();
+    if("password" in body){
+      const input=resetPasswordSchema.parse(body);
+      const {data:target}=await admin.from("profiles").select("organization_id,role,email").eq("id",input.id).single();
+      if(!target||target.organization_id!==current.organization_id)throw new Error("FORBIDDEN");
+      if(target.role==="super_admin")return NextResponse.json({error:"Use secure email recovery for the Super Admin account"},{status:400});
+      const {error}=await admin.auth.admin.updateUserById(input.id,{password:input.password});if(error)throw error;
+      await admin.from("audit_logs").insert({organization_id:current.organization_id,action:"user_password_reset",entity_type:"profile",entity_id:input.id,after_data:{email:target.email}});
+      return NextResponse.json({ok:true});
+    }
+    const input=updateUserSchema.parse(body);
     const {data:target}=await admin.from("profiles").select("organization_id,role").eq("id",input.id).single();
     if(!target||target.organization_id!==current.organization_id)throw new Error("FORBIDDEN");
     if(target.role==="super_admin")return NextResponse.json({error:"The Super Admin account cannot be deactivated"},{status:400});
