@@ -1,7 +1,7 @@
 "use client";
 import {useState} from "react";import {KeyRound,Plus,UserPlus,X} from "lucide-react";import {notify} from "@/components/feedback";
 type Center={id:string;code:string;name:string};type Access={center_id:string;centers:{name:string;code:string}|{name:string;code:string}[]|null};type User={id:string;email:string|null;full_name:string;phone:string|null;role:string;is_active:boolean;permissions:string[];created_at:string;user_center_access:Access[]};
-const modules=[{id:"dashboard",label:"Dashboard"},{id:"purchases",label:"Purchases"},{id:"stock",label:"Stock"},{id:"cash",label:"Cash & Payments"},{id:"centers",label:"Centers & Locations"},{id:"users",label:"User Management"},{id:"masters",label:"Products & Suppliers"},{id:"audit",label:"Audit History"}];
+const modules=[{id:"dashboard",label:"Dashboard"},{id:"purchases",label:"Purchases"},{id:"stock",label:"Stock"},{id:"cash",label:"Cash & Payments"},{id:"payment_reports",label:"Payment Reports"},{id:"centers",label:"Centers & Locations"},{id:"users",label:"User Management"},{id:"masters",label:"Products & Suppliers"},{id:"audit",label:"Audit History"}];
 export function UsersManager({initialUsers,centers}:{initialUsers:User[];centers:Center[]}){
  const[users,setUsers]=useState(initialUsers);const[show,setShow]=useState(false);const[resetUser,setResetUser]=useState<User|null>(null);const[busy,setBusy]=useState(false);const[error,setError]=useState("");
  async function reload(){const res=await fetch("/api/admin/users",{cache:"no-store"});if(res.ok)setUsers(await res.json())}

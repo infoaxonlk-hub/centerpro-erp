@@ -15,6 +15,7 @@ import "./auth-recovery.css";
 import "./bank-accounts.css";
 import "./purchases.css";
 import "./stock.css";
+import "./payment-reports.css";
 
 export const metadata: Metadata = {
   title: "CollectPro | InfoAxon",

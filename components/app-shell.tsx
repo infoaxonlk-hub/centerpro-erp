@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, Boxes, CircleDollarSign, LayoutDashboard, PackagePlus, ReceiptText, Settings, ShieldCheck, Users } from "lucide-react";
+import { BarChart3, Building2, Boxes, CircleDollarSign, LayoutDashboard, PackagePlus, ReceiptText, Settings, ShieldCheck, Users } from "lucide-react";
 import { logout } from "@/app/login/actions";
 
 const nav = [
@@ -7,6 +7,7 @@ const nav = [
   ["/dashboard/purchases", "Purchases", PackagePlus],
   ["/dashboard/stock", "Stock", Boxes],
   ["/dashboard/cash", "Cash & Payments", CircleDollarSign],
+  ["/dashboard/payment-reports", "Payment Reports", BarChart3],
   ["/dashboard/centers", "Centers & Locations", Building2],
   ["/dashboard/users", "Users", Users],
   ["/dashboard/masters", "Products & Suppliers", Settings],

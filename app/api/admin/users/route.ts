@@ -16,7 +16,7 @@ const createUserSchema = z.object({
   email: z.string().email(), password: z.string().min(8).max(72), fullName: z.string().trim().min(2).max(120),
   phone: z.string().trim().max(30).optional(), role: z.enum(["admin", "center_user"]),
   centerIds: z.array(z.string().uuid()).default([]),
-  permissions: z.array(z.enum(["dashboard","purchases","stock","cash","centers","users","masters","audit"])).default(["dashboard"]),
+  permissions: z.array(z.enum(["dashboard","purchases","stock","cash","payment_reports","centers","users","masters","audit"])).default(["dashboard"]),
 });
 
 export async function GET() {
