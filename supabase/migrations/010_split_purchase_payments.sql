@@ -43,6 +43,7 @@ returns table(
   payment_status text
 )
 language plpgsql security definer set search_path=public as $$
+#variable_conflict use_variable
 declare
   v_org_id uuid; v_po_id uuid; v_po_number text; v_item jsonb; v_allocation jsonb;
   v_product_id uuid; v_quality_id uuid; v_location_id uuid; v_default_location uuid;
@@ -128,4 +129,3 @@ end $$;
 
 revoke all on function public.create_and_confirm_purchase_split(uuid,uuid,text,jsonb,jsonb) from public;
 grant execute on function public.create_and_confirm_purchase_split(uuid,uuid,text,jsonb,jsonb) to authenticated;
-
