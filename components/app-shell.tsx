@@ -18,7 +18,7 @@ export function AppShell({ children, name, role, permissions }: { children: Reac
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="logo"><span>CP</span><div><strong>CollectPro</strong><small>by InfoAxon</small></div></div>
-      <nav>{nav.filter(([href])=>permissions.includes(href==="/dashboard"?"dashboard":href.split("/")[2])).map(([href,label,Icon])=><Link href={href} key={href}><Icon size={18}/><span>{label}</span></Link>)}</nav>
+      <nav>{nav.filter(([href])=>permissions.includes(href==="/dashboard"?"dashboard":href.split("/")[2].replaceAll("-","_"))).map(([href,label,Icon])=><Link href={href} key={href}><Icon size={18}/><span>{label}</span></Link>)}</nav>
       <div className="sidebar-foot"><ReceiptText size={18}/><span>Pilot workspace</span></div>
     </aside>
     <section className="workspace">
