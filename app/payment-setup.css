@@ -1,0 +1,5 @@
+.cheque-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.summary-payment-status{display:grid;gap:4px;margin:14px 0;padding:13px;border-radius:10px;background:#f7f5fc;text-transform:capitalize}
+.summary-payment-status span,.summary-payment-status small{color:var(--muted)}
+.summary-payment-status small{text-transform:none}
+@media(max-width:520px){.cheque-fields{grid-template-columns:1fr}}

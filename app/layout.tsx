@@ -10,6 +10,7 @@ import "./purchase-keyboard.css";
 import "./receipt.css";
 import "./receipt-print-fix.css";
 import "./purchase-pos-accessibility.css";
+import "./payment-setup.css";
 import "./purchases.css";
 
 export const metadata: Metadata = {
