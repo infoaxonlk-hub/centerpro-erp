@@ -23,7 +23,7 @@ export function AppShell({ children, name, role, permissions,notifications,isAdm
       <div className="sidebar-foot"><ReceiptText size={18}/><span>Pilot workspace</span></div>
     </aside>
     <section className="workspace">
-      <header className="topbar"><div><strong>{name}</strong><small>{role.replaceAll("_", " ")}</small></div><div className="topbar-actions">{isAdmin&&<NotificationBell initialNotifications={notifications}/>}<form action={logout}><button className="ghost">Sign out</button></form></div></header>
+      <header className="topbar"><div><strong>{name}</strong><small>{role.replaceAll("_", " ")}</small></div><div className="topbar-actions"><NotificationBell initialNotifications={notifications}/><form action={logout}><button className="ghost">Sign out</button></form></div></header>
       <main className="page-content">{children}</main>
     </section>
   </div>;
