@@ -18,6 +18,7 @@ import "./stock.css";
 import "./payment-reports.css";
 import "./bank-reports.css";
 import "./report-navigation.css";
+import "./cheque-management.css";
 
 export const metadata: Metadata = {
   title: "CollectPro | InfoAxon",

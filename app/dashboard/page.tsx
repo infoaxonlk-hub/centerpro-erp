@@ -1,19 +1,26 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/access";
+import {BellRing, CalendarClock, TriangleAlert} from "lucide-react";
 
 const money = new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 0 });
 
 export default async function DashboardPage() {
-  const {supabase} = await requirePermission("dashboard");
-  const [{ count: centers }, { count: purchases }, { data: stock }, { data: cash }] = await Promise.all([
+  const {supabase,profile} = await requirePermission("dashboard");
+  const isAdmin=["super_admin","admin"].includes(profile.role);
+  const [{ count: centers }, { count: purchases }, { data: stock }, { data: cash },{data:organization},{data:cheques}] = await Promise.all([
     supabase.from("centers").select("id", { count: "exact", head: true }).eq("is_active", true),
     supabase.from("purchase_orders").select("id", { count: "exact", head: true }).eq("status", "confirmed"),
     supabase.from("stock_movements").select("quantity,movement_type"),
     supabase.from("cash_ledger").select("amount,movement_type"),
+    supabase.from("organizations").select("cheque_reminder_days").eq("id",profile.organization_id).single(),
+    isAdmin?supabase.from("payments").select("id,amount,cheque_number,cheque_date,cheque_status,centers(name,code),purchase_orders(po_number,suppliers(name))").eq("method","cheque").in("cheque_status",["pending","deposited"]).order("cheque_date",{ascending:true}):Promise.resolve({data:[]}),
   ]);
   const stockQty = (stock ?? []).reduce((sum, row) => sum + (["purchase_in","transfer_in","adjustment_in"].includes(row.movement_type) ? Number(row.quantity) : -Number(row.quantity)), 0);
   const cashBalance = (cash ?? []).reduce((sum, row) => sum + (["allocation","refund"].includes(row.movement_type) ? Number(row.amount) : -Number(row.amount)), 0);
+  const reminderDays=organization?.cheque_reminder_days??3;
+  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Colombo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const todayMs=new Date(`${today}T00:00:00+05:30`).getTime();
+  const reminders=(cheques??[]).map(row=>({...row,diff:Math.ceil((new Date(`${row.cheque_date}T00:00:00+05:30`).getTime()-todayMs)/86400000)})).filter(row=>row.diff<=reminderDays);
   return <>
     <div className="page-heading"><div><span className="eyebrow dark">OPERATIONS</span><h1>Business overview</h1><p>Live purchasing and inventory position across permitted centers.</p></div><Link className="primary" href="/dashboard/centers">Manage centers</Link></div>
     <section className="metric-grid">
@@ -22,6 +29,7 @@ export default async function DashboardPage() {
       <article className="metric"><span>Stock quantity</span><strong>{stockQty.toLocaleString("en-LK", { maximumFractionDigits: 3 })} kg</strong><small>Movement-ledger balance</small></article>
       <article className="metric"><span>Available center cash</span><strong>{money.format(cashBalance)}</strong><small>Allocations less cash purchases</small></article>
     </section>
-    <section className="panel empty-state"><div className="empty-icon">SC</div><h2>Production workspace ready</h2><p>Create centers and locations, then configure products, qualities, prices and suppliers before entering the first purchase.</p></section>
+    {isAdmin&&<section className="panel dashboard-notifications"><div className="notification-heading"><div><span className="notification-icon"><BellRing/></span><div><h2>Cheque reminders</h2><p>Pending and deposited cheques due within {reminderDays} day(s).</p></div></div><Link href="/dashboard/payment-reports/cheques">View all cheques</Link></div><div className="notification-list">{reminders.slice(0,8).map(row=>{const c=Array.isArray(row.centers)?row.centers[0]:row.centers,po=Array.isArray(row.purchase_orders)?row.purchase_orders[0]:row.purchase_orders,supplier=po?(Array.isArray(po.suppliers)?po.suppliers[0]:po.suppliers):null;return <article className={row.diff<0?"overdue":"upcoming"} key={row.id}>{row.diff<0?<TriangleAlert/>:<CalendarClock/>}<div><b>{row.cheque_number} · {money.format(Number(row.amount))}</b><span>{po?.po_number} · {supplier?.name??"Supplier"} · {c?.code}</span></div><strong>{row.diff<0?`${Math.abs(row.diff)} day(s) overdue`:row.diff===0?"Due today":`Due in ${row.diff} day(s)`}</strong></article>})}{!reminders.length&&<div className="notification-empty"><CheckMark/>No cheques are due within the reminder period.</div>}</div></section>}
   </>;
 }
+function CheckMark(){return <span aria-hidden="true">✓</span>}
