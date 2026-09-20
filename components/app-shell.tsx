@@ -15,7 +15,7 @@ const nav = [
   ["/dashboard/audit", "Audit", ShieldCheck],
 ] as const;
 
-export function AppShell({ children, name, role, permissions,notifications,isAdmin }: { children: React.ReactNode; name: string; role: string; permissions: string[];notifications:AdminNotification[];isAdmin:boolean }) {
+export function AppShell({ children, name, role, permissions,notifications,isAdmin,assignedCenters }: { children: React.ReactNode; name: string; role: string; permissions: string[];notifications:AdminNotification[];isAdmin:boolean;assignedCenters:string[] }) {
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="logo"><span>CP</span><div><strong>CollectPro</strong><small>by InfoAxon</small></div></div>
@@ -23,7 +23,7 @@ export function AppShell({ children, name, role, permissions,notifications,isAdm
       <div className="sidebar-foot"><ReceiptText size={18}/><span>Pilot workspace</span></div>
     </aside>
     <section className="workspace">
-      <header className="topbar"><div><strong>{name}</strong><small>{role.replaceAll("_", " ")}</small></div><div className="topbar-actions"><NotificationBell initialNotifications={notifications}/><form action={logout}><button className="ghost">Sign out</button></form></div></header>
+      <header className="topbar"><div><strong>{name}</strong><small>{role.replaceAll("_", " ")}</small>{!isAdmin&&assignedCenters.length>0&&<span className="current-center">{assignedCenters.length===1?assignedCenters[0]:`${assignedCenters.length} assigned centers`}</span>}</div><div className="topbar-actions"><NotificationBell initialNotifications={notifications}/><form action={logout}><button className="ghost">Sign out</button></form></div></header>
       <main className="page-content">{children}</main>
     </section>
   </div>;
