@@ -8,7 +8,8 @@ export default async function CashPage(){
  const {supabase,profile}=await requirePermission("cash");
  const {data:centers}=await supabase.from("centers").select("id,code,name").eq("is_active",true).order("name");
  const {data:ledger}=await supabase.from("cash_ledger").select("id,center_id,movement_type,amount,reference_type,note,created_at,centers(name,code),profiles(full_name)").order("created_at",{ascending:false}).limit(100);
+ const {data:handovers}=await supabase.from("cash_handovers").select("id,center_id,issued_amount,received_amount,difference_amount,reference,issue_note,response_note,status,issued_at,responded_at,centers(name,code),issuer:profiles!cash_handovers_issued_by_fkey(full_name),receiver:profiles!cash_handovers_received_by_fkey(full_name)").order("issued_at",{ascending:false}).limit(100);
  const [{data:banks},{data:accounts}]=await Promise.all([supabase.from("payment_banks").select("id,code,name").eq("is_active",true).order("name"),supabase.from("bank_accounts").select("id,account_number,account_name,branch_name,branch_code,is_active,payment_banks(code,name)").order("created_at")]);
  const canManage=profile?.role==="admin"||profile?.role==="super_admin";
- return <><CashManager initialLedger={ledger??[]} centers={centers??[]} canIssue={canManage}/><BankAccountsManager organizationId={profile.organization_id} banks={banks??[]} initialAccounts={accounts??[]} canManage={canManage}/></>;
+ return <><CashManager initialLedger={ledger??[]} initialHandovers={handovers??[]} centers={centers??[]} canIssue={canManage}/><BankAccountsManager organizationId={profile.organization_id} banks={banks??[]} initialAccounts={accounts??[]} canManage={canManage}/></>;
 }
