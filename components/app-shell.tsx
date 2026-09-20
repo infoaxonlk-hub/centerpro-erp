@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BarChart3, Building2, Boxes, CircleDollarSign, LayoutDashboard, PackagePlus, ReceiptText, Settings, ShieldCheck, Users } from "lucide-react";
 import { logout } from "@/app/login/actions";
+import {NotificationBell,type AdminNotification} from "@/components/notification-bell";
 
 const nav = [
   ["/dashboard", "Dashboard", LayoutDashboard],
@@ -14,7 +15,7 @@ const nav = [
   ["/dashboard/audit", "Audit", ShieldCheck],
 ] as const;
 
-export function AppShell({ children, name, role, permissions }: { children: React.ReactNode; name: string; role: string; permissions: string[] }) {
+export function AppShell({ children, name, role, permissions,notifications,isAdmin }: { children: React.ReactNode; name: string; role: string; permissions: string[];notifications:AdminNotification[];isAdmin:boolean }) {
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="logo"><span>CP</span><div><strong>CollectPro</strong><small>by InfoAxon</small></div></div>
@@ -22,7 +23,7 @@ export function AppShell({ children, name, role, permissions }: { children: Reac
       <div className="sidebar-foot"><ReceiptText size={18}/><span>Pilot workspace</span></div>
     </aside>
     <section className="workspace">
-      <header className="topbar"><div><strong>{name}</strong><small>{role.replaceAll("_", " ")}</small></div><form action={logout}><button className="ghost">Sign out</button></form></header>
+      <header className="topbar"><div><strong>{name}</strong><small>{role.replaceAll("_", " ")}</small></div><div className="topbar-actions">{isAdmin&&<NotificationBell initialNotifications={notifications}/>}<form action={logout}><button className="ghost">Sign out</button></form></div></header>
       <main className="page-content">{children}</main>
     </section>
   </div>;
