@@ -20,7 +20,7 @@ export function AppShell({ children, name, role, permissions,notifications,isAdm
   const canSee=(href:string)=>permissions.includes(href==="/dashboard"?"dashboard":href==="/dashboard/expenses"?"cash":href.split("/")[2].replaceAll("-","_"));
   return <div className="app-shell">
     <aside className="sidebar">
-      <div className="logo"><span>CP</span><div><strong>CollectPro</strong><small>by InfoAxon</small></div></div>
+      <div className="logo"><span>CP</span><div><strong>CenterPro</strong><small>by InfoAxon</small></div></div>
       <nav>{nav.filter(([href])=>canSee(href)).map(([href,label,Icon])=>href==="/dashboard/payment-reports"?<div className="nav-report-group" key={href}><Link href="/dashboard/payment-reports/all"><Icon size={18}/><span>{label}</span></Link><div className="nav-submenu"><Link href="/dashboard/payment-reports/all">All Payments</Link><Link href="/dashboard/payment-reports/bank">Bank Transactions</Link><Link href="/dashboard/payment-reports/payables">Payable Report</Link><Link href="/dashboard/payment-reports/cheques">Cheque Management</Link></div></div>:<Link href={href} key={href}><Icon size={18}/><span>{label}</span></Link>)}</nav>
       <div className="sidebar-foot"><ReceiptText size={18}/><span>Pilot workspace</span></div>
     </aside>

@@ -2,7 +2,7 @@
 -- Auth user id: 50438cd5-19c0-4a32-b605-672b98ee6a56
 begin;
 with new_org as (
-  insert into public.organizations(name) values ('CollectPro') returning id
+  insert into public.organizations(name) values ('CenterPro') returning id
 ), new_profile as (
   insert into public.profiles(id, organization_id, full_name, role)
   select '50438cd5-19c0-4a32-b605-672b98ee6a56'::uuid, id, 'Viraj Bandara', 'super_admin' from new_org

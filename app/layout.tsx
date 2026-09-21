@@ -22,8 +22,8 @@ import "./cheque-management.css";
 import "./cash-handover.css";
 
 export const metadata: Metadata = {
-  title: "CollectPro | InfoAxon",
-  description: "CollectPro - Spice collection center ERP by InfoAxon Software Solutions",
+  title: "CenterPro | InfoAxon",
+  description: "CenterPro - Spice collection center ERP by InfoAxon Software Solutions",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -1,4 +1,4 @@
-# CollectPro
+# CenterPro
 
 Production-oriented Spice Collection Center ERP by InfoAxon Software Solutions, built with Next.js and Supabase.
 

@@ -6,7 +6,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <main className="login-page">
       <section className="login-panel login-brand">
         <span className="eyebrow">INFOAXON SOFTWARE SOLUTIONS</span>
-        <h1>CollectPro</h1>
+        <h1>CenterPro</h1>
         <p>Spice collection center purchasing, quality pricing, location-wise inventory and cash control in one secure ERP.</p>
         <div className="brand-grid">
           <span>Center operations</span><span>Location stock</span>

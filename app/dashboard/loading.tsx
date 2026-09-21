@@ -1,1 +1,1 @@
-export default function DashboardLoading(){return <div className="route-loading" role="status"><span className="loading-spinner"/><strong>Loading…</strong><small>Please wait while CollectPro prepares this page.</small></div>}
+export default function DashboardLoading(){return <div className="route-loading" role="status"><span className="loading-spinner"/><strong>Loading…</strong><small>Please wait while CenterPro prepares this page.</small></div>}
