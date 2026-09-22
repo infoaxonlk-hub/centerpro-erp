@@ -6,7 +6,7 @@ export type Bank={id:string;account_number:string;branch_name:string;branch_code
 export type Stock={location_id:string;product_id:string;quality_id:string;quantity:number|string};
 export type Line={key:string;product_id:string;quality_id:string;location_id:string;quantity:string;unit_price:number};
 export type Payment={key:string;method:string;amount:string;bank_account_id:string;reference:string;cheque_number:string;cheque_date:string};
-export type Sale={id:string;center_id:string;customer_id:string|null;customer_name:string;sale_number:string;total_amount:number|string;paid_amount:number|string;credit_balance:number|string;payment_status:string;confirmed_at:string;sales_order_lines:{product_name:string;quality_name:string;unit:string;quantity:number|string;line_total:number|string}[];sales_payments:{method:string;amount:number|string}[]};
+export type Sale={id:string;center_id:string;customer_id:string|null;customer_name:string;sale_number:string;total_amount:number|string;paid_amount:number|string;credit_balance:number|string;payment_status:string;confirmed_at:string;sales_order_lines:{product_name:string;quality_name:string;unit:string;quantity:number|string;unit_price:number|string;line_total:number|string}[];sales_payments:{method:string;amount:number|string}[]};
 export const methods={cash:"Cash",bank_transfer:"Bank Transfer",card:"Card",cheque:"Cheque",credit:"Credit"};
 export const money=(n:number)=>new Intl.NumberFormat("en-LK",{style:"currency",currency:"LKR"}).format(n);
 export const cents=(n:number)=>Math.round((n+Number.EPSILON)*100);

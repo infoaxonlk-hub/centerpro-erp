@@ -13,7 +13,7 @@ const newPayment=(amount:number,key="initial"):Payment=>({key,method:"cash",amou
 const qty=(n:number)=>n.toLocaleString("en-LK",{maximumFractionDigits:3});
 const roundedQty=(n:number)=>Math.round(n*1000)/1000;
 
-export function SalesPOS({centers,customers:initialCustomers,products,prices,banks,organizationName="CenterPro",userName}:Props){
+export function SalesPOS({centers,customers:initialCustomers,products,banks,organizationName="CenterPro",userName}:Props){
  const [centerId,setCenterId]=useState(centers[0]?.id??"");
  const [stock,setStock]=useState<Stock[]>([]),[stockReady,setStockReady]=useState(false),[stockError,setStockError]=useState(""),[refresh,setRefresh]=useState(0);
  const [lines,setLines]=useState<Line[]>([]),[search,setSearch]=useState(""),[category,setCategory]=useState("all"),[checkout,setCheckout]=useState(false);
@@ -24,14 +24,14 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
  const center=centers.find(c=>c.id===centerId);
  const locations=(center?.locations??[]).filter(l=>l.is_active&&(center?.allow_multiple_locations||l.is_default));
  const categories=[...new Set(products.map(p=>p.category?.trim()||"Uncategorized"))].sort();
- const priceFor=(qualityId:string)=>Number(prices.find(p=>p.center_id===centerId&&p.quality_id===qualityId)?.price??0);
+
  const available=(qualityId:string,locationId:string)=>Number(stock.find(s=>s.quality_id===qualityId&&s.location_id===locationId)?.quantity??0);
  const used=(qualityId:string,locationId:string)=>lines.filter(l=>l.quality_id===qualityId&&l.location_id===locationId).reduce((n,l)=>n+Number(l.quantity),0);
  const totalCents=lines.reduce((n,l)=>n+cents(Number(l.quantity)*l.unit_price),0);
  const rows=payments.length?payments:[newPayment(totalCents/100)];
  const allocated=rows.reduce((n,p)=>n+cents(Number(p.amount)),0),credit=rows.filter(p=>p.method==="credit").reduce((n,p)=>n+cents(Number(p.amount)),0);
  const difference=totalCents-allocated;
- const invalidLine=(l:Line)=>!l.location_id||!Number.isFinite(Number(l.quantity))||Number(l.quantity)<=0||Math.abs(roundedQty(Number(l.quantity))-Number(l.quantity))>0.0000001||roundedQty(used(l.quality_id,l.location_id))>roundedQty(available(l.quality_id,l.location_id))||cents(Number(l.quantity)*l.unit_price)<=0;
+ const invalidLine=(l:Line)=>!l.location_id||!Number.isFinite(Number(l.quantity))||Number(l.quantity)<=0||Math.abs(roundedQty(Number(l.quantity))-Number(l.quantity))>0.0000001||roundedQty(used(l.quality_id,l.location_id))>roundedQty(available(l.quality_id,l.location_id))||!Number.isFinite(l.unit_price)||l.unit_price<=0||l.unit_price>=1000000000000||Math.abs(l.unit_price*100-Math.round(l.unit_price*100))>0.00001||cents(Number(l.quantity)*l.unit_price)<=0;
  const cartInvalid=lines.some(invalidLine);
  const canCheckout=stockReady&&lines.length>0&&!cartInvalid&&Number.isFinite(totalCents)&&totalCents>0;
  const canConfirm=canCheckout&&difference===0&&rows.every(p=>Number.isFinite(Number(p.amount))&&Number(p.amount)>0)&&(!credit||!!customerId);
@@ -64,11 +64,11 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
  function addProduct(product:Product,qualityId:string){
   const stocked=locations.filter(l=>available(qualityId,l.id)-used(qualityId,l.id)>=0.001);
   const location=stocked.find(l=>l.is_default)??stocked[0];
-  if(!stockReady||!location||!priceFor(qualityId))return;
+  if(!stockReady||!location)return;
   const remaining=roundedQty(available(qualityId,location.id)-used(qualityId,location.id));
   const amount=Math.min(1,remaining),existing=lines.find(l=>l.quality_id===qualityId&&l.location_id===location.id);
   if(existing)setLines(old=>old.map(l=>l.key===existing.key?{...l,quantity:String(roundedQty(Number(l.quantity)+amount))}:l));
-  else setLines(old=>[...old,{key:crypto.randomUUID(),product_id:product.id,quality_id:qualityId,location_id:location.id,quantity:String(amount),unit_price:priceFor(qualityId)}]);
+  else setLines(old=>[...old,{key:crypto.randomUUID(),product_id:product.id,quality_id:qualityId,location_id:location.id,quantity:String(amount),unit_price:0}]);
   setError("");
  }
  function changeLine(key:string,patch:Partial<Line>){setLines(old=>old.map(l=>l.key===key?{...l,...patch}:l));setError("");}
@@ -109,8 +109,8 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
     {stockError?<div className="alert error" role="alert">{stockError} <button className="ghost" onClick={()=>{setStockError("");setStockReady(false);setRefresh(v=>v+1);}}>Retry stock</button></div>:!stockReady&&centerId?<p role="status">Loading center stock…</p>:null}
     {stockReady&&!locations.length&&<p className="alert error">This center needs an active stock location.</p>}
     <div className="pos-product-grid">{filtered.flatMap(p=>p.product_qualities.filter(q=>q.is_active).map(q=>{
-     const remaining=locations.reduce((n,l)=>n+Math.max(0,available(q.id,l.id)-used(q.id,l.id)),0),price=priceFor(q.id);
-     return <button key={q.id} className="pos-product" disabled={!stockReady||!price||remaining<0.001} onClick={()=>addProduct(p,q.id)} aria-label={"Add "+p.name+" "+q.name}><span>{p.code}</span><strong>{p.name}</strong><small>{q.name} · {p.unit_of_measure}</small><b>{price?money(price):"Price not set"}</b><span className={"sales-stock "+(remaining<0.001?"empty":"")}>{stockReady?qty(remaining)+" "+p.unit_of_measure+" available":"Loading stock…"}</span><em>{!price?"Ask admin to set a selling price":remaining<0.001?"Out of stock":<><Plus size={15}/> Add to sale</>}</em></button>;
+     const remaining=locations.reduce((n,l)=>n+Math.max(0,available(q.id,l.id)-used(q.id,l.id)),0);
+     return <button key={q.id} className="pos-product" disabled={!stockReady||remaining<0.001} onClick={()=>addProduct(p,q.id)} aria-label={"Add "+p.name+" "+q.name}><span>{p.code}</span><strong>{p.name}</strong><small>{q.name} · {p.unit_of_measure}</small><b>Enter selling price</b><span className={"sales-stock "+(remaining<0.001?"empty":"")}>{stockReady?qty(remaining)+" "+p.unit_of_measure+" available":"Loading stock…"}</span><em>{remaining<0.001?"Out of stock":<><Plus size={15}/> Add to sale</>}</em></button>;
     }))}{!filtered.some(p=>p.product_qualities.some(q=>q.is_active))&&<p className="product-empty">No products match this search.</p>}</div>
    </section>
    <aside className="pos-cart" aria-label="Sale cart">
@@ -119,9 +119,9 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
      const p=products.find(p=>p.id===l.product_id),invalid=invalidLine(l);return <article className={"pos-cart-line "+(invalid?"sales-invalid":"")} key={l.key}>
       <div className="pos-line-title"><span>{index+1}</span><div><strong>{p?.name}</strong><small>{p?.product_qualities.find(q=>q.id===l.quality_id)?.name}</small></div><button aria-label={"Remove "+p?.name} onClick={()=>setLines(old=>old.filter(x=>x.key!==l.key))}><Trash2/></button></div>
       <label>Stock location<select aria-label={"Location for "+p?.name} value={l.location_id} onChange={e=>changeLine(l.key,{location_id:e.target.value})}>{locations.map(loc=><option key={loc.id} value={loc.id}>{loc.name} · {qty(available(l.quality_id,loc.id))} {p?.unit_of_measure}</option>)}</select></label>
-      <div className="pos-line-values"><label>Quantity ({p?.unit_of_measure})<div className="pos-qty"><button aria-label={"Decrease "+p?.name+" quantity"} onClick={()=>stepQty(l,-1)}><Minus/></button><input aria-label={"Quantity for "+p?.name} type="number" min="0.001" step="0.001" value={l.quantity} onChange={e=>changeLine(l.key,{quantity:e.target.value})}/><button aria-label={"Increase "+p?.name+" quantity"} onClick={()=>stepQty(l,1)}><Plus/></button></div></label><div className="sales-unit-price"><small>Unit price</small><b>{money(l.unit_price)}</b></div></div>
+      <div className="pos-line-values"><label>Quantity ({p?.unit_of_measure})<div className="pos-qty"><button aria-label={"Decrease "+p?.name+" quantity"} onClick={()=>stepQty(l,-1)}><Minus/></button><input aria-label={"Quantity for "+p?.name} type="number" min="0.001" step="0.001" value={l.quantity} onChange={e=>changeLine(l.key,{quantity:e.target.value})}/><button aria-label={"Increase "+p?.name+" quantity"} onClick={()=>stepQty(l,1)}><Plus/></button></div></label><label className="sales-unit-price">Selling price (LKR)<input aria-label={"Selling price for "+p?.name} type="number" min="0.01" max="999999999999.99" step="0.01" value={l.unit_price||""} placeholder="Enter price" onChange={e=>changeLine(l.key,{unit_price:Number(e.target.value)})}/></label></div>
       <div className="pos-line-total"><span>Available {qty(available(l.quality_id,l.location_id))} {p?.unit_of_measure}</span><strong>{money(cents(Number(l.quantity)*l.unit_price)/100)}</strong></div>
-      {invalid&&<p className="sales-line-error">Enter a valid quantity within this location’s available stock.</p>}
+      {invalid&&<p className="sales-line-error">Enter a positive selling price (up to 2 decimals) and a quantity within available stock.</p>}
      </article>;
     })}</div>
     <footer className="pos-cart-footer">{error&&<p className="alert error" role="alert">{error}</p>}<div><span><small>Total quantity</small><b>{unitTotals||"0"}</b></span><span><small>Total amount</small><strong>{money(totalCents/100)}</strong></span></div><button className="primary pos-payment-button" disabled={!canCheckout} onClick={()=>{setError("");setCheckout(true);}}><kbd>F9</kbd> Payment <ArrowRight size={18}/></button></footer>
