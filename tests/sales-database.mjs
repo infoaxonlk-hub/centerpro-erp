@@ -91,8 +91,12 @@ await db.query("update profiles set permissions=array['sales'] where id=$1",[sta
 await db.query("delete from sales_prices where center_id=$1",[center]);
 const customId=await sale([{...line(),unit_price:123.45}],[payment("cash",123.45)]);
 assert.equal(Number((await db.query("select unit_price from sales_order_lines where sales_order_id=$1",[customId])).rows[0].unit_price),123.45);
+assert.equal(Number((await db.query("select price from sales_prices where center_id=$1 and quality_id=$2",[center,quality])).rows[0].price),123.45);
+const rememberedBeforeFailure=Number((await db.query("select price from sales_prices where center_id=$1 and quality_id=$2",[center,quality])).rows[0].price);
+await expectError(()=>sale([{...line(),unit_price:130}],[payment("cash",129)]),"allocations");
+assert.equal(Number((await db.query("select price from sales_prices where center_id=$1 and quality_id=$2",[center,quality])).rows[0].price),rememberedBeforeFailure);
 await expectError(()=>sale([{...line(),unit_price:1.234}],[payment("cash",1.23)]),"selling price");
 await expectError(()=>sale([{...line(),unit_price:-1}],[payment("cash",1)]),"selling price");
 await expectError(()=>sale([{...line(),product_id:randomUUID()}],[payment("cash",100)]),"stock|product");
-console.log("PASS seller-entered price without admin price, stored actual rate and invalid-price rejection");
+console.log("PASS seller-entered price, remembered confirmed default, rollback safety and invalid-price rejection");
 await db.close();console.log("ALL SALES DATABASE TESTS PASSED");

@@ -13,7 +13,7 @@ const newPayment=(amount:number,key="initial"):Payment=>({key,method:"cash",amou
 const qty=(n:number)=>n.toLocaleString("en-LK",{maximumFractionDigits:3});
 const roundedQty=(n:number)=>Math.round(n*1000)/1000;
 
-export function SalesPOS({centers,customers:initialCustomers,products,banks,organizationName="CenterPro",userName}:Props){
+export function SalesPOS({centers,customers:initialCustomers,products,prices,banks,organizationName="CenterPro",userName}:Props){
  const [centerId,setCenterId]=useState(centers[0]?.id??"");
  const [stock,setStock]=useState<Stock[]>([]),[stockReady,setStockReady]=useState(false),[stockError,setStockError]=useState(""),[refresh,setRefresh]=useState(0);
  const [lines,setLines]=useState<Line[]>([]),[search,setSearch]=useState(""),[category,setCategory]=useState("all"),[checkout,setCheckout]=useState(false);
@@ -61,6 +61,10 @@ export function SalesPOS({centers,customers:initialCustomers,products,banks,orga
   if(lines.length&&!window.confirm("Change center and clear this sale?"))return;
   setCenterId(id);setStock([]);setStockReady(false);setStockError("");setLines([]);setPayments([]);setCustomerId("");setNotes("");setError("");setCheckout(false);requestId.current=null;
  }
+ function savedPrice(qualityId:string){
+  const value=Number(prices.find(p=>p.center_id===centerId&&p.quality_id===qualityId)?.price??0);
+  return Number.isFinite(value)&&value>0?Math.round(value*100)/100:0;
+ }
  function addProduct(product:Product,qualityId:string){
   const stocked=locations.filter(l=>available(qualityId,l.id)-used(qualityId,l.id)>=0.001);
   const location=stocked.find(l=>l.is_default)??stocked[0];
@@ -68,7 +72,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,banks,orga
   const remaining=roundedQty(available(qualityId,location.id)-used(qualityId,location.id));
   const amount=Math.min(1,remaining),existing=lines.find(l=>l.quality_id===qualityId&&l.location_id===location.id);
   if(existing)setLines(old=>old.map(l=>l.key===existing.key?{...l,quantity:String(roundedQty(Number(l.quantity)+amount))}:l));
-  else setLines(old=>[...old,{key:crypto.randomUUID(),product_id:product.id,quality_id:qualityId,location_id:location.id,quantity:String(amount),unit_price:0}]);
+  else setLines(old=>[...old,{key:crypto.randomUUID(),product_id:product.id,quality_id:qualityId,location_id:location.id,quantity:String(amount),unit_price:savedPrice(qualityId)}]);
   setError("");
  }
  function changeLine(key:string,patch:Partial<Line>){setLines(old=>old.map(l=>l.key===key?{...l,...patch}:l));setError("");}
@@ -110,7 +114,8 @@ export function SalesPOS({centers,customers:initialCustomers,products,banks,orga
     {stockReady&&!locations.length&&<p className="alert error">This center needs an active stock location.</p>}
     <div className="pos-product-grid">{filtered.flatMap(p=>p.product_qualities.filter(q=>q.is_active).map(q=>{
      const remaining=locations.reduce((n,l)=>n+Math.max(0,available(q.id,l.id)-used(q.id,l.id)),0);
-     return <button key={q.id} className="pos-product" disabled={!stockReady||remaining<0.001} onClick={()=>addProduct(p,q.id)} aria-label={"Add "+p.name+" "+q.name}><span>{p.code}</span><strong>{p.name}</strong><small>{q.name} · {p.unit_of_measure}</small><b>Enter selling price</b><span className={"sales-stock "+(remaining<0.001?"empty":"")}>{stockReady?qty(remaining)+" "+p.unit_of_measure+" available":"Loading stock…"}</span><em>{remaining<0.001?"Out of stock":<><Plus size={15}/> Add to sale</>}</em></button>;
+     const defaultPrice=savedPrice(q.id);
+     return <button key={q.id} className="pos-product" disabled={!stockReady||remaining<0.001} onClick={()=>addProduct(p,q.id)} aria-label={"Add "+p.name+" "+q.name}><span>{p.code}</span><strong>{p.name}</strong><small>{q.name} · {p.unit_of_measure}</small><b>{defaultPrice?"Last price · "+money(defaultPrice):"Enter selling price"}</b><span className={"sales-stock "+(remaining<0.001?"empty":"")}>{stockReady?qty(remaining)+" "+p.unit_of_measure+" available":"Loading stock…"}</span><em>{remaining<0.001?"Out of stock":<><Plus size={15}/> Add to sale</>}</em></button>;
     }))}{!filtered.some(p=>p.product_qualities.some(q=>q.is_active))&&<p className="product-empty">No products match this search.</p>}</div>
    </section>
    <aside className="pos-cart" aria-label="Sale cart">
