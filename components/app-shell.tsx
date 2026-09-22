@@ -6,6 +6,7 @@ import {NotificationBell,type AdminNotification} from "@/components/notification
 const nav = [
   ["/dashboard", "Dashboard", LayoutDashboard],
   ["/dashboard/purchases", "Purchases", PackagePlus],
+  ["/dashboard/sales", "Sales", ReceiptText],
   ["/dashboard/stock", "Stock", Boxes],
   ["/dashboard/cash", "Cash & Payments", CircleDollarSign],
   ["/dashboard/expenses", "Expenses", Wallet],

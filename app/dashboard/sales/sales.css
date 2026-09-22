@@ -1,0 +1,11 @@
+.sales-module input,.sales-module select,.sales-module textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;font:inherit;background:white}
+.sales-module label{display:grid;gap:7px;font-weight:650;font-size:14px}.sales-module small{display:block;color:var(--muted);font-weight:400;line-height:1.6}
+.sales-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}.sales-center{max-width:420px}.sales-fieldset{border:0;padding:0;margin:0;min-width:0}
+.sales-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:20px}.sales-layout>.panel{min-width:0}.sales-fields{display:flex;flex-wrap:wrap;gap:14px;align-items:end}.sales-fields>label{flex:1;min-width:145px}
+.sales-products{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:15px;max-height:65vh;overflow:auto}
+.sales-products button{text-align:left;padding:16px;border-radius:12px;border:1px solid #e2dbf1;background:#faf8ff;color:var(--ink)}
+.sales-module button:disabled{opacity:.5;cursor:not-allowed}.sales-line{padding:16px;background:#faf9fd;border:1px solid var(--line);border-radius:12px;display:grid;gap:10px;margin:12px 0}
+.sales-module .metric-grid{margin-top:20px}.sales-module .panel>h2{margin-top:0}.sales-module .table-panel{overflow:auto}.sales-module button:focus-visible,.sales-module a:focus-visible{outline:3px solid #a78bfa;outline-offset:3px}
+.sale-receipt{background:white;color:#111;max-width:560px;margin:20px auto;padding:24px}.sale-receipt h1,.sale-receipt header{text-align:center}.sale-receipt table{width:100%;font-size:13px;border-collapse:collapse}.sale-receipt td,.sale-receipt th{padding:8px 3px;border-bottom:1px dashed #bbb;text-align:left}.sale-receipt dl{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sale-receipt dd{margin:0;text-align:right}
+@media(max-width:850px){.sales-layout{grid-template-columns:1fr}.sales-products{max-height:300px}}
+@media print{body:has(.sale-receipt) *{visibility:hidden}body:has(.sale-receipt) .sale-receipt,body:has(.sale-receipt) .sale-receipt *{visibility:visible}.sale-receipt{position:absolute;left:0;top:0;width:72mm;max-width:72mm;padding:2mm;margin:0;font-size:11px}.sale-receipt table{font-size:10px}.sale-receipt h1{font-size:20px}.sale-receipt tr{break-inside:avoid}}

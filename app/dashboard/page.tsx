@@ -1,3 +1,4 @@
+import {readCashLedger} from "@/lib/cash-ledger";
 import Link from "next/link";
 import { requirePermission } from "@/lib/access";
 import { BellRing, Building2, CalendarClock, CircleDollarSign, PackagePlus, Settings, ShieldCheck, TriangleAlert, Users, Wallet, Boxes, BarChart3 } from "lucide-react";
@@ -9,6 +10,7 @@ const money = new Intl.NumberFormat("en-LK", {
 });
 
 const appModules = [
+  { href: "/dashboard/sales", permission: "sales", title: "Sales", text: "Sales, customers and receivables", icon: PackagePlus, tone: "green" },
   { href: "/dashboard/purchases", permission: "purchases", title: "Purchases", text: "Create and review purchase orders", icon: PackagePlus, tone: "violet" },
   { href: "/dashboard/stock", permission: "stock", title: "Stock", text: "Location-wise inventory balances", icon: Boxes, tone: "blue" },
   { href: "/dashboard/cash", permission: "cash", title: "Cash & Payments", text: "Cash issues, handovers and bank accounts", icon: CircleDollarSign, tone: "green" },
@@ -42,7 +44,7 @@ export default async function DashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("status", "confirmed"),
     supabase.from("stock_movements").select("quantity,movement_type"),
-    supabase.from("cash_ledger").select("amount,movement_type"),
+    readCashLedger(supabase),
     supabase
       .from("organizations")
       .select("cheque_reminder_days")
@@ -80,7 +82,7 @@ export default async function DashboardPage() {
   const cashBalance = (cash ?? []).reduce(
     (sum, row) =>
       sum +
-      (["allocation", "refund"].includes(row.movement_type)
+      (["allocation", "refund", "sale_receipt"].includes(row.movement_type)
         ? Number(row.amount)
         : -Number(row.amount)),
     0,
@@ -141,7 +143,7 @@ export default async function DashboardPage() {
         <article className="metric">
           <span>Available center cash</span>
           <strong>{money.format(cashBalance)}</strong>
-          <small>Allocations less cash purchases</small>
+          <small>Cash receipts and sales less purchases</small>
         </article>
       </section>
       {isAdmin && (
