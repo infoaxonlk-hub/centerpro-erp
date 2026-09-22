@@ -1,0 +1,30 @@
+.sales-pos-full{height:100dvh;overflow:hidden}
+.sales-pos-full button:disabled{cursor:not-allowed;opacity:.5}
+.sales-pos-full button:focus-visible,.sales-pos-full a:focus-visible,.sales-pos-full input:focus-visible,.sales-pos-full select:focus-visible,.sales-pos-full textarea:focus-visible{outline:3px solid #a78bfa;outline-offset:2px}
+.sales-pos-full .pos-product:disabled:hover{transform:none;box-shadow:none;border-color:var(--line)}
+.sales-pos-full .pos-product-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.sales-pos-full .pos-product .sales-stock{background:#ecfdf3;color:#067647;font-size:12px;font-weight:700}
+.sales-pos-full .pos-product .sales-stock.empty{background:#fef3f2;color:#b42318}
+.sales-pos-full .pos-product small{min-height:0}
+.sales-pos-full .pos-search input{min-width:0}
+.sales-pos-full .sales-invalid{border-color:#f04438}
+.sales-pos-full .sales-line-error{color:#b42318;font-size:12px;margin:8px 0 0}
+.sales-unit-price{display:grid;text-align:right;gap:5px}.sales-unit-price small{color:var(--muted);font-size:12px}.sales-unit-price b{font-size:15px}
+.sales-pos-full .pos-cart-footer>div>span:last-child{text-align:right}
+.sales-pos-full .pos-payment-button{display:flex;align-items:center;justify-content:center;gap:8px}
+.sales-pos-full .pos-line-values{grid-template-columns:minmax(0,1fr) auto}
+.sales-pos-fieldset{border:0;padding:0;margin:0;min-width:0}
+.sales-pos-fieldset>h1{font-size:36px;margin:10px 0}.sales-pos-fieldset>p{color:var(--muted);line-height:1.6;margin-bottom:24px}
+.sales-pos-full .payment-summary{position:sticky;top:0}
+.sales-pos-full .summary-lines{max-height:30vh;overflow:auto}
+.sales-pos-full .sales-add-customer{display:flex;align-items:center;gap:8px;justify-self:start}
+.sales-pos-full .payment-fields input,.sales-pos-full .payment-fields select,.sales-pos-full .payment-fields textarea{width:100%;min-width:0}
+.sales-pos-full .split-payment-grid{min-width:0}
+.sales-pos-full .bank-account-details b{font-size:13px;overflow-wrap:anywhere}
+.sales-pos-full .bank-account-details small{font-size:11px}
+.sales-customer-dialog{width:min(480px,calc(100% - 28px));max-height:90dvh;overflow:auto;border:1px solid var(--line);border-radius:16px;padding:24px;color:var(--ink)}
+.sales-customer-dialog::backdrop{background:rgba(23,21,45,.55)}
+.sales-dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.sales-dialog-heading h2{margin:0}
+.sales-customer-dialog .payment-fields input,.sales-customer-dialog .payment-fields textarea{width:100%;font:inherit}
+@media(max-width:850px){.sales-pos-full{position:fixed;min-height:0}.sales-pos-full .pos-sale-screen{display:flex;flex-direction:column;overflow:auto}.sales-pos-full .pos-products{flex-shrink:0}.sales-pos-full .pos-cart{flex-shrink:0}.sales-pos-full .pos-cart-lines{max-height:45dvh;overflow:auto}.sales-pos-full .pos-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sales-pos-full .pos-product{min-height:175px}.sales-pos-full .payment-summary{position:static}.sales-pos-full .pos-topbar select{min-width:0;max-width:65vw}.sales-pos-full .pos-payment-screen{min-height:0}}
+@media(max-width:520px){.sales-pos-full .pos-topbar label{gap:5px;font-size:12px}.sales-pos-full .pos-topbar kbd{display:none}.sales-pos-fieldset>h1{font-size:28px}.sales-pos-full .summary-total strong{font-size:23px}.sales-pos-full .summary-total{gap:10px}.sales-pos-full .split-payment-heading{flex-wrap:wrap}}

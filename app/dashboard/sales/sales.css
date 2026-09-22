@@ -9,3 +9,4 @@
 .sale-receipt{background:white;color:#111;max-width:560px;margin:20px auto;padding:24px}.sale-receipt h1,.sale-receipt header{text-align:center}.sale-receipt table{width:100%;font-size:13px;border-collapse:collapse}.sale-receipt td,.sale-receipt th{padding:8px 3px;border-bottom:1px dashed #bbb;text-align:left}.sale-receipt dl{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sale-receipt dd{margin:0;text-align:right}
 @media(max-width:850px){.sales-layout{grid-template-columns:1fr}.sales-products{max-height:300px}}
 @media print{body:has(.sale-receipt) *{visibility:hidden}body:has(.sale-receipt) .sale-receipt,body:has(.sale-receipt) .sale-receipt *{visibility:visible}.sale-receipt{position:absolute;left:0;top:0;width:72mm;max-width:72mm;padding:2mm;margin:0;font-size:11px}.sale-receipt table{font-size:10px}.sale-receipt h1{font-size:20px}.sale-receipt tr{break-inside:avoid}}
+.sales-launch-pos{display:inline-flex;align-items:center;text-decoration:none}
