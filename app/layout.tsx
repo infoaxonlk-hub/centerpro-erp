@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./standard-bill.css";
 import "./tables.css";
 import "./entities.css";
 import "./masters.css";

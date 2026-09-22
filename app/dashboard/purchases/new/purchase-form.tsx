@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import {Bill} from "@/components/bill";
+import {DraftBill} from "@/components/draft-bill";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -456,9 +458,8 @@ export function PurchaseForm({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   });
+  const billData = {organization:organizationName,title:"PURCHASE BILL",date:new Date().toLocaleString("en-LK",{timeZone:"Asia/Colombo"}),center:(center?.code??"")+" · "+(center?.name??""),party:suppliers.find(s=>s.id===supplierId)?.name??"Not selected",user:userName,notes,total,lines:lines.map(l=>{const p=products.find(p=>p.id===l.product_id);return {name:p?.name??"",quality:p?.product_qualities.find(q=>q.id===l.quality_id)?.name,quantity:l.quantity,unit:p?.unit_of_measure??"",price:l.actual_price,total:Math.round(l.quantity*l.actual_price*100)/100};})};
   if (done) {
-    const receiptCenter = centers.find((c) => c.id === centerId);
-    const receiptSupplier = suppliers.find((s) => s.id === supplierId);
     return (
       <div className="purchase-pos-full">
         <section className="pos-complete">
@@ -504,92 +505,8 @@ export function PurchaseForm({
             </button>
           </div>
         </section>
-        <section className="thermal-receipt">
-          <header>
-            <h1>{organizationName}</h1>
-          <p>Powered by CenterPro</p>
-            <b>PURCHASE RECEIPT</b>
-          </header>
-          <div className="receipt-details">
-            <span>Bill No</span>
-            <b>: {done.number}</b>
-            <span>Date</span>
-            <b>: {new Date().toLocaleDateString("en-LK")}</b>
-            <span>Created</span>
-            <b>: {new Date().toLocaleString("en-LK")}</b>
-            <span>Center</span>
-            <b>
-              : {receiptCenter?.code} · {receiptCenter?.name}
-            </b>
-            <span>Supplier</span>
-            <b>: {receiptSupplier?.name}</b>
-            <span>Phone</span>
-            <b>: {receiptSupplier?.phone || "—"}</b>
-            <span>User</span>
-            <b>: {userName}</b>
-          </div>
-          <div className="receipt-items">
-            <div className="receipt-table-head">
-              <span>#</span>
-              <span>ITEM</span>
-              <span>AMOUNT</span>
-            </div>
-            {lines.map((line, index) => {
-              const p = products.find((x) => x.id === line.product_id)!;
-              const q = p.product_qualities.find(
-                (x) => x.id === line.quality_id,
-              )!;
-              const location = receiptCenter?.locations.find(
-                (x) => x.id === line.location_id,
-              );
-              return (
-                <div className="receipt-item" key={line.key}>
-                  <span>{index + 1}</span>
-                  <span>
-                    <b>
-                      {p.name}
-                      {q.is_base ? "" : ` · ${q.name}`}
-                    </b>
-                    <small>
-                      {line.quantity} {p.unit_of_measure} ×{" "}
-                      {money(line.actual_price)}
-                      {location ? ` · ${location.name}` : ""}
-                    </small>
-                  </span>
-                  <strong>{money(line.quantity * line.actual_price)}</strong>
-                </div>
-              );
-            })}
-          </div>
-          <div className="receipt-payment-lines">
-            {done.payments.map((line, index) => (
-              <div key={line.key}>
-                <span>
-                  {index + 1}. {line.method.replaceAll("_", " ")}
-                </span>
-                <b>{money(line.amount)}</b>
-              </div>
-            ))}
-          </div>
-          <div className="receipt-totals">
-            <span className="grand-total">
-              TOTAL <b>{money(done.total)}</b>
-            </span>
-            <span>
-              PAID AMOUNT <b>{money(done.paid)}</b>
-            </span>
-            <span>
-              CREDIT BALANCE <b>{money(done.credit)}</b>
-            </span>
-            <strong>
-              Status: {done.status.replaceAll("_", " ").toUpperCase()}
-            </strong>
-          </div>
-          <footer>
-            <b>Thank You</b>
-            <span>Purchase Receipt</span>
-          </footer>
-        </section>
+        <Bill data={{...billData,title:"PURCHASE RECEIPT",number:done.number,total:done.total,paid:done.paid,credit:done.credit,status:done.status,payments:done.payments}}/>
+
       </div>
     );
   }
@@ -1123,6 +1040,7 @@ export function PurchaseForm({
                 <strong>{money(total)}</strong>
               </span>
             </div>
+            <DraftBill data={billData} disabled={busy||!lines.length||!Number.isFinite(total)||total<=0}/>
             <button
               className="primary confirm-payment"
               disabled={busy || Math.abs(allocationDifference) > 0.001}

@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import {DraftBill} from "@/components/draft-bill";
 import {useEffect,useRef,useState} from "react";
 import {ArrowLeft,ArrowRight,Check,Minus,Plus,Search,ShoppingCart,Trash2,UserPlus,X} from "lucide-react";
 import {createClient} from "@/lib/supabase/client";
 import {Bank,Center,Customer,Line,Payment,Price,Product,Stock,cents,methods,money} from "./types";
 import "./sales-pos.css";
 
-type Props={centers:Center[];customers:Customer[];products:Product[];prices:Price[];banks:Bank[]};
+type Props={centers:Center[];customers:Customer[];products:Product[];prices:Price[];banks:Bank[];organizationName?:string;userName?:string};
 const newPayment=(amount:number,key="initial"):Payment=>({key,method:"cash",amount:amount.toFixed(2),bank_account_id:"",reference:"",cheque_number:"",cheque_date:""});
 const qty=(n:number)=>n.toLocaleString("en-LK",{maximumFractionDigits:3});
 const roundedQty=(n:number)=>Math.round(n*1000)/1000;
 
-export function SalesPOS({centers,customers:initialCustomers,products,prices,banks}:Props){
+export function SalesPOS({centers,customers:initialCustomers,products,prices,banks,organizationName="CenterPro",userName}:Props){
  const [centerId,setCenterId]=useState(centers[0]?.id??"");
  const [stock,setStock]=useState<Stock[]>([]),[stockReady,setStockReady]=useState(false),[stockError,setStockError]=useState(""),[refresh,setRefresh]=useState(0);
  const [lines,setLines]=useState<Line[]>([]),[search,setSearch]=useState(""),[category,setCategory]=useState("all"),[checkout,setCheckout]=useState(false);
@@ -144,6 +145,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
    <aside className="payment-summary"><h2>Sales summary</h2><div className="summary-center"><small>Selling center</small><strong>{center?.code} · {center?.name}</strong></div><div className="summary-lines">{lines.map(l=>{const product=products.find(p=>p.id===l.product_id);return <div key={l.key}><span><b>{product?.name}</b><small>{product?.product_qualities.find(q=>q.id===l.quality_id)?.name} · {l.quantity} {product?.unit_of_measure}</small><small>{locations.find(x=>x.id===l.location_id)?.name}</small></span><strong>{money(cents(Number(l.quantity)*l.unit_price)/100)}</strong></div>;})}</div>
     <div className={"allocation-summary "+(difference===0?"balanced":"unbalanced")} aria-live="polite"><span><small>Sale total</small><b>{money(totalCents/100)}</b></span><span><small>Allocated</small><b>{money(allocated/100)}</b></span><span><small>Paid (excl. Credit)</small><b>{money((allocated-credit)/100)}</b></span><span><small>Credit balance</small><b>{money(credit/100)}</b></span><strong>{difference===0?"Allocations balanced":difference>0?money(difference/100)+" remaining":money(-difference/100)+" over-allocated"}</strong></div>
     <div className="summary-total"><span><small>Total quantity</small><b>{unitTotals}</b></span><span><small>Total amount</small><strong>{money(totalCents/100)}</strong></span></div>
+    <DraftBill disabled={busy||!canCheckout} data={{organization:organizationName,title:"SALES BILL",date:new Date().toLocaleString("en-LK",{timeZone:"Asia/Colombo"}),center:(center?.code??"")+" · "+(center?.name??""),party:customers.find(c=>c.id===customerId)?.name??"Walk-in customer",user:userName,notes,total:totalCents/100,lines:lines.map(l=>{const p=products.find(p=>p.id===l.product_id);return {name:p?.name??"",quality:p?.product_qualities.find(q=>q.id===l.quality_id)?.name,quantity:Number(l.quantity),unit:p?.unit_of_measure??"",price:l.unit_price,total:cents(Number(l.quantity)*l.unit_price)/100};})}}/>
     <button form="sales-payment" type="submit" className="primary confirm-payment" disabled={busy||!canConfirm}><Check/>{busy?"Confirming…":"Confirm sale"}</button>
    </aside>
   </div>}
