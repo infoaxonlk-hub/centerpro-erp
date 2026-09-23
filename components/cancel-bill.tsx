@@ -1,0 +1,7 @@
+"use client";
+import {useState} from "react";
+import {createClient} from "@/lib/supabase/client";
+import {notify} from "@/components/feedback";
+export function CancelBill({type,id,disabled=false}:{type:"sale"|"purchase";id:string;disabled?:boolean}){const[open,setOpen]=useState(false),[reason,setReason]=useState(""),[busy,setBusy]=useState(false);
+ async function request(e:React.FormEvent){e.preventDefault();setBusy(true);const{error}=await createClient().rpc("request_bill_cancellation",{p_type:type,p_bill:id,p_reason:reason});setBusy(false);if(error)return notify(error.message,"error");setOpen(false);notify("Cancellation request sent to administrator");window.location.reload()}
+ return <>{!disabled&&<button className="ghost" onClick={()=>setOpen(true)}>Request cancellation</button>}{open&&<div className="dialog-backdrop"><form className="dialog" onSubmit={request}><div className="dialog-head"><div><h2>Request bill cancellation</h2><p>The administrator will review your reason. The bill remains active until approval.</p></div><button type="button" className="icon-btn" onClick={()=>setOpen(false)}>×</button></div><label>Reason<textarea required minLength={4} value={reason} onChange={e=>setReason(e.target.value)}/></label><div className="dialog-actions"><button type="button" className="ghost" onClick={()=>setOpen(false)}>Back</button><button className="primary" disabled={busy}>{busy?"Sending…":"Send request"}</button></div></form></div>}</>}

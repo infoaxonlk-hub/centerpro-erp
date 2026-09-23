@@ -19,7 +19,7 @@ export async function SalesScreen({start="history"}:{start?:"history"|"new"}){
    rows("products","id,code,name,category,unit_of_measure,is_active,product_qualities(id,name,is_active)"),
    rows("sales_prices","center_id,quality_id,price"),
    rows("bank_accounts","id,account_number,branch_name,branch_code,is_active,payment_banks(name,is_active)"),
-   start==="new"?Promise.resolve([]):rows("sales_orders","id,center_id,customer_id,customer_name,sale_number,total_amount,paid_amount,credit_balance,payment_status,confirmed_at,sales_order_lines(product_name,quality_name,unit,quantity,unit_price,line_total),sales_payments(method,amount)")
+   start==="new"?Promise.resolve([]):rows("sales_orders","id,center_id,customer_id,customer_name,sale_number,status,total_amount,paid_amount,credit_balance,payment_status,confirmed_at,sales_order_lines(product_name,quality_name,unit,quantity,unit_price,line_total),sales_payments(method,amount)")
   ]);
  }catch(error){console.error(error);}
  if(!loaded)return <section className="panel"><h1>Sales unavailable</h1><p>Sales data could not be loaded. Confirm migrations 017 and 018 have both been applied, then refresh. No incomplete totals are displayed.</p></section>;

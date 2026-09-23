@@ -1,2 +1,2 @@
-import {PayableScreen} from "../payable-screen";
-export default function PayablesPage(){return <PayableScreen/>}
+import {CreditPayablesPage} from "./credit-page";
+export default function PayablesPage(){return <CreditPayablesPage/>}

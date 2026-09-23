@@ -1,0 +1,11 @@
+"use client";
+import Link from "next/link";
+import {useState} from "react";
+import {createClient} from "@/lib/supabase/client";
+import {notify} from "@/components/feedback";
+type Rel={code:string;name:string}|{code:string;name:string}[]|null;
+type User={full_name:string}|{full_name:string}[]|null;
+type Request={id:string;bill_type:string;bill_id:string;reason:string;status:string;requested_at:string;review_note:string|null;centers:Rel;profiles:User};
+const one=<T,>(v:T|T[]|null)=>Array.isArray(v)?v[0]:v;
+export function BillRequestQueue({requests}:{requests:Request[]}){const[busy,setBusy]=useState("");async function review(id:string,approve:boolean){if(approve&&!window.confirm("Approve cancellation and reverse the bill's stock and cash entries?"))return;setBusy(id);const{error}=await createClient().rpc("review_bill_cancellation",{p_request:id,p_approve:approve,p_note:null});setBusy("");if(error)return notify(error.message,"error");notify(approve?"Cancellation approved":"Request rejected");window.location.reload()}
+ return <><div className="page-heading"><div><span className="eyebrow dark">ADMIN APPROVALS</span><h1>Bill cancellation requests</h1><p>Review center requests separately. An approval checks stock and credit settlements before reversing a bill.</p></div></div><section className="panel table-panel"><table><thead><tr><th>Requested</th><th>Type</th><th>Center</th><th>Requested by</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead><tbody>{requests.map(r=>{const c=one(r.centers),u=one(r.profiles);return<tr key={r.id}><td>{new Date(r.requested_at).toLocaleString("en-LK")}</td><td><Link href={r.bill_type==="sale"?`/dashboard/sales/${r.bill_id}`:`/dashboard/purchases/${r.bill_id}`}>{r.bill_type}</Link></td><td>{c?.code} · {c?.name}</td><td>{u?.full_name}</td><td>{r.reason}</td><td>{r.status}</td><td>{r.status==="pending"?<div style={{display:"flex",gap:6}}><button className="soft" disabled={busy===r.id} onClick={()=>review(r.id,true)}>Approve</button><button className="ghost" disabled={busy===r.id} onClick={()=>review(r.id,false)}>Reject</button></div>:r.review_note??"—"}</td></tr>})}{!requests.length&&<tr><td colSpan={7} className="table-empty">No cancellation requests yet.</td></tr>}</tbody></table></section></>}

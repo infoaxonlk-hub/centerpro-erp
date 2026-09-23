@@ -3,9 +3,11 @@ import {StockView,type StockBalance} from "./stock-view";
 
 export default async function StockPage(){
  const {supabase:s,profile}=await requirePermission("stock");
- const {data:rows}=await s.from("stock_movements").select("id,center_id,location_id,product_id,quality_id,movement_type,quantity,unit_cost,created_at,centers(name,code),locations(name,code),products(name,code,category,unit_of_measure),product_qualities(name)").order("created_at");
+ const rows:Awaited<ReturnType<typeof query>>["data"] extends (infer R)[]|null ? R[] : never=[];
+ function query(){return s.from("stock_movements").select("id,center_id,location_id,product_id,quality_id,movement_type,quantity,unit_cost,created_at,centers(name,code),locations(name,code),products(name,code,category,unit_of_measure),product_qualities(name)").order("created_at").order("id")}
+ for(let offset=0;;offset+=500){const {data,error}=await query().range(offset,offset+499);if(error)throw new Error("Stock could not be loaded: "+error.message);rows.push(...data);if(data.length<500)break}
  const grouped=new Map<string,StockBalance>();
- for(const r of rows??[]){
+ for(const r of rows){
   const c=Array.isArray(r.centers)?r.centers[0]:r.centers;const l=Array.isArray(r.locations)?r.locations[0]:r.locations;const p=Array.isArray(r.products)?r.products[0]:r.products;const q=Array.isArray(r.product_qualities)?r.product_qualities[0]:r.product_qualities;
   const key=[r.center_id,r.location_id,r.product_id,r.quality_id].join(":");
   const old=grouped.get(key)??{key,centerId:r.center_id,center:`${c?.code??""} · ${c?.name??""}`,locationId:r.location_id,location:`${l?.code??""} · ${l?.name??""}`,productId:r.product_id,productCode:p?.code??"",product:p?.name??"",category:p?.category?.trim()||"Uncategorized",quality:q?.name??"",unit:p?.unit_of_measure??"unit",qty:0,value:0};

@@ -1,0 +1,25 @@
+"use client";
+import {useMemo,useState} from "react";
+import Link from "next/link";
+import {createClient} from "@/lib/supabase/client";
+import {notify} from "@/components/feedback";
+
+export type CreditRow={id:string;billId:string;number:string;date:string;center:string;party:string;phone:string;total:number;original:number;outstanding:number;status:string};
+export type CreditBank={id:string;label:string};
+const money=new Intl.NumberFormat("en-LK",{style:"currency",currency:"LKR"});
+export function CreditLedger({type,rows,banks}:{type:"receivable"|"payable";rows:CreditRow[];banks:CreditBank[]}){
+ const [search,setSearch]=useState(""),[selected,setSelected]=useState<CreditRow|null>(null),[amount,setAmount]=useState(""),[method,setMethod]=useState("cash"),[bank,setBank]=useState(""),[reference,setReference]=useState(""),[busy,setBusy]=useState(false);
+ const filtered=useMemo(()=>rows.filter(x=>`${x.number} ${x.party} ${x.phone} ${x.center}`.toLowerCase().includes(search.trim().toLowerCase())),[rows,search]);
+ const due=filtered.reduce((sum,x)=>sum+x.outstanding,0);
+ function open(row:CreditRow){setSelected(row);setAmount(row.outstanding.toFixed(2));setMethod("cash");setBank("");setReference("")}
+ async function submit(e:React.FormEvent){e.preventDefault();if(!selected)return;const value=Number(amount);if(!Number.isFinite(value)||value<=0||value>selected.outstanding)return notify("Enter an amount within the due balance","error");
+  setBusy(true);const args=type==="receivable"?{p_invoice:selected.id,p_amount:value,p_method:method,p_bank_account:bank||null,p_reference:reference}:{p_payable:selected.id,p_amount:value,p_method:method,p_bank_account:bank||null,p_reference:reference};
+  const {error}=await createClient().rpc(type==="receivable"?"receive_invoice_payment":"pay_supplier_credit",args);setBusy(false);
+  if(error)return notify(error.message,"error");notify("Payment recorded successfully");window.location.reload();
+ }
+ return <><div className="page-heading"><div><span className="eyebrow dark">CREDIT CONTROL</span><h1>{type==="receivable"?"Customer receivables":"Supplier payables"}</h1><p>Search by {type==="receivable"?"customer":"supplier"} name, phone number or bill number. Record a partial or full payment against the due balance.</p></div></div>
+ <section className="metric-grid"><article className="metric"><span>Open due balance</span><strong>{money.format(due)}</strong></article><article className="metric"><span>Credit bills shown</span><strong>{filtered.length}</strong></article></section>
+ <section className="panel" style={{padding:20,marginBottom:18}}><label>Search name, phone or bill number<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Type to search…"/></label></section>
+ <section className="panel table-panel"><table><thead><tr><th>Date</th><th>Bill</th><th>Center</th><th>{type==="receivable"?"Customer":"Supplier"}</th><th>Phone</th><th className="number">Credit</th><th className="number">Due</th><th>Action</th></tr></thead><tbody>{filtered.map(x=><tr key={x.id}><td>{new Date(x.date).toLocaleDateString("en-LK")}</td><td><Link href={type==="receivable"?`/dashboard/sales/${x.billId}`:`/dashboard/purchases/${x.billId}`}>{x.number}</Link></td><td>{x.center}</td><td>{x.party}</td><td>{x.phone||"—"}</td><td className="number">{money.format(x.original)}</td><td className="number"><b>{money.format(x.outstanding)}</b></td><td>{x.outstanding>0?<button className="soft" onClick={()=>open(x)}>Add payment</button>:<span className="status active">Cleared</span>}</td></tr>)}{!filtered.length&&<tr><td colSpan={8} className="table-empty">No credit bills match your search.</td></tr>}</tbody></table></section>
+ {selected&&<div className="dialog-backdrop"><form className="dialog" onSubmit={submit}><div className="dialog-head"><div><h2>Record payment</h2><p>{selected.number} · {selected.party} · Due {money.format(selected.outstanding)}</p></div><button type="button" className="icon-btn" onClick={()=>setSelected(null)}>×</button></div><div className="form-grid"><label>Amount (LKR)<input type="number" min="0.01" max={selected.outstanding} step="0.01" required value={amount} onChange={e=>setAmount(e.target.value)}/></label><label>Method<select value={method} onChange={e=>setMethod(e.target.value)}><option value="cash">Cash</option><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select></label>{method!=="cash"&&<label>Active bank account<select required value={bank} onChange={e=>setBank(e.target.value)}><option value="">Select account</option>{banks.map(b=><option key={b.id} value={b.id}>{b.label}</option>)}</select></label>}<label>Reference<input value={reference} onChange={e=>setReference(e.target.value)} placeholder="Optional reference"/></label></div><div className="dialog-actions"><button type="button" className="ghost" onClick={()=>setSelected(null)}>Cancel</button><button className="primary" disabled={busy}>{busy?"Saving…":"Record payment"}</button></div></form></div>}</>;
+}
