@@ -262,7 +262,9 @@ export function PurchaseForm({
   const allocationDifference = Number((total - allocated).toFixed(2));
   async function confirm() {
     let message = "";
-    if (!supplierId) message = "Select a supplier.";
+    const needsSupplier = paymentLines.some((line) => line.method !== "cash");
+    if (needsSupplier && !supplierId)
+      message = "Select a supplier when using a payment method other than Cash.";
     else if (!paymentLines.length) message = "Add at least one payment line.";
     else if (
       paymentLines.some(
@@ -294,7 +296,7 @@ export function PurchaseForm({
     if (message) {
       setError(message);
       notify(message, "error");
-      supplierRef.current?.focus();
+      if (needsSupplier && !supplierId) supplierRef.current?.focus();
       return;
     }
     setBusy(true);
@@ -320,7 +322,7 @@ export function PurchaseForm({
       "create_and_confirm_purchase_split",
       {
         target_center: centerId,
-        target_supplier: supplierId,
+        target_supplier: supplierId || null,
         purchase_notes: notes,
         purchase_lines: lines.map(
           ({
@@ -458,7 +460,7 @@ export function PurchaseForm({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   });
-  const billData = {organization:organizationName,title:"PURCHASE BILL",date:new Date().toLocaleString("en-LK",{timeZone:"Asia/Colombo"}),center:(center?.code??"")+" · "+(center?.name??""),party:suppliers.find(s=>s.id===supplierId)?.name??"Not selected",user:userName,notes,total,lines:lines.map(l=>{const p=products.find(p=>p.id===l.product_id);return {name:p?.name??"",quality:p?.product_qualities.find(q=>q.id===l.quality_id)?.name,quantity:l.quantity,unit:p?.unit_of_measure??"",price:l.actual_price,total:Math.round(l.quantity*l.actual_price*100)/100};})};
+  const billData = {organization:organizationName,title:"PURCHASE BILL",date:new Date().toLocaleString("en-LK",{timeZone:"Asia/Colombo"}),center:(center?.code??"")+" · "+(center?.name??""),party:suppliers.find(s=>s.id===supplierId)?.name??"Cash purchase",user:userName,notes,total,lines:lines.map(l=>{const p=products.find(p=>p.id===l.product_id);return {name:p?.name??"",quality:p?.product_qualities.find(q=>q.id===l.quality_id)?.name,quantity:l.quantity,unit:p?.unit_of_measure??"",price:l.actual_price,total:Math.round(l.quantity*l.actual_price*100)/100};})};
   if (done) {
     return (
       <div className="purchase-pos-full">
@@ -787,7 +789,7 @@ export function PurchaseForm({
             {error && <div className="alert error">{error}</div>}
             <div className="payment-fields">
               <label>
-                Supplier
+                Supplier <small>{paymentLines.some((line) => line.method !== "cash") ? "(required)" : "(optional for Cash-only purchase)"}</small>
                 <select
                   ref={supplierRef}
                   value={supplierId}
