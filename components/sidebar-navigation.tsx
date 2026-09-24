@@ -43,7 +43,16 @@ const sections: NavSection[] = [
   {
     label: "Operations",
     items: [
-      { href: "/dashboard/purchases", label: "Purchases", permission: "purchases", icon: PackagePlus },
+      {
+        href: "/dashboard/purchases",
+        label: "Purchases",
+        permission: "purchases",
+        icon: PackagePlus,
+        children: [
+          { href: "/dashboard/purchases", label: "Order List" },
+          { href: "/dashboard/purchases/new", label: "New Purchase" },
+        ],
+      },
       {
         href: "/dashboard/sales",
         label: "Sales",
