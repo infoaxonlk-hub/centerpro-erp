@@ -21,6 +21,7 @@ import "./bank-reports.css";
 import "./report-navigation.css";
 import "./cheque-management.css";
 import "./cash-handover.css";
+import "./cash-topups.css";
 
 export const metadata: Metadata = {
   title: "CenterPro | InfoAxon",
