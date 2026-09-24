@@ -1,0 +1,11 @@
+import Link from "next/link";
+import {notFound} from "next/navigation";
+import {Bill} from "@/components/bill";
+import {CancelBill} from "@/components/cancel-bill";
+import {requirePermission} from "@/lib/access";
+import {PrintButton} from "@/app/dashboard/sales/print-button";
+import "@/app/dashboard/sales/sales.css";
+const one=<T,>(v:T|T[]|null)=>Array.isArray(v)?v[0]:v;
+export default async function PurchaseBill({params}:{params:Promise<{id:string}>}){const {id}=await params;if(!/^[0-9a-f-]{36}$/i.test(id))notFound();const {supabase:s}=await requirePermission("purchases");
+ const {data:r,error}=await s.from("purchase_orders").select("id,po_number,center_id,status,total_amount,paid_amount,credit_balance,payment_status,notes,confirmed_at,centers(name,code),organizations(name),suppliers(name),purchase_order_lines(quantity,actual_price,line_total,products(name,unit_of_measure),product_qualities(name)),payments(method,amount,reference)").eq("id",id).maybeSingle();if(error)throw new Error(error.message);if(!r)notFound();const c=one(r.centers),o=one(r.organizations),p=one(r.suppliers);
+ return <><nav className="bill-actions"><Link className="ghost" href="/dashboard/purchases">← Purchases</Link><PrintButton/><CancelBill type="purchase" id={id} disabled={r.status==="cancelled"}/>{Number(r.credit_balance)>0&&<Link className="primary" href="/dashboard/payment-reports/payables">Pay credit</Link>}</nav><Bill data={{organization:o?.name??"CenterPro",title:r.status==="cancelled"?"CANCELLED PURCHASE BILL":"PURCHASE BILL",number:r.po_number,date:new Date(r.confirmed_at??"").toLocaleString("en-LK",{timeZone:"Asia/Colombo"}),center:`${c?.code??""} · ${c?.name??""}`,party:p?.name??"—",total:Number(r.total_amount),paid:Number(r.paid_amount),credit:Number(r.credit_balance),status:r.status==="cancelled"?"cancelled":r.payment_status,notes:r.notes??undefined,lines:r.purchase_order_lines.map(l=>{const product=one(l.products),quality=one(l.product_qualities);return{name:product?.name??"—",quality:quality?.name,quantity:Number(l.quantity),unit:product?.unit_of_measure??"",price:Number(l.actual_price),total:Number(l.line_total)}}),payments:r.payments.map(x=>({method:x.method,amount:Number(x.amount),details:x.reference??undefined}))}}/></>}
