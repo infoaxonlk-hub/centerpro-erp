@@ -128,6 +128,7 @@ export function PurchaseForm({
     status: string;
     payments: PaymentLine[];
   } | null>(null);
+  const [receiptLanguage, setReceiptLanguage] = useState<"en" | "si">("en");
   const [selectedProduct, setSelectedProduct] = useState(0);
   const [selectedLine, setSelectedLine] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -473,6 +474,7 @@ export function PurchaseForm({
           </p>
           <strong>{money(done.total)}</strong>
           <div>
+            <div className="bill-language receipt-language" aria-label="Receipt language"><button type="button" className={receiptLanguage === "en" ? "active" : ""} onClick={() => setReceiptLanguage("en")}>English</button><button type="button" className={receiptLanguage === "si" ? "active" : ""} onClick={() => setReceiptLanguage("si")}>සිංහල</button></div>
             <button
               className="ghost print-receipt-button"
               onClick={() => window.print()}
@@ -507,7 +509,7 @@ export function PurchaseForm({
             </button>
           </div>
         </section>
-        <Bill data={{...billData,title:"PURCHASE RECEIPT",number:done.number,total:done.total,paid:done.paid,credit:done.credit,status:done.status,payments:done.payments}}/>
+        <Bill data={{...billData,title:"PURCHASE RECEIPT",number:done.number,total:done.total,paid:done.paid,credit:done.credit,status:done.status,payments:done.payments,language:receiptLanguage}}/>
 
       </div>
     );
