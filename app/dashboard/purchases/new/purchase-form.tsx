@@ -149,6 +149,7 @@ export function PurchaseForm({
   const centerRef = useRef<HTMLSelectElement>(null);
   const supplierRef = useRef<HTMLSelectElement>(null);
   const cartRef = useRef<HTMLElement>(null);
+  const startFreshAfterQueue = useRef(false);
   const draftKey = `purchase:${scopeId}`;
   useEffect(() => {
     const update = () => setIsOnline(navigator.onLine);
@@ -160,11 +161,18 @@ export function PurchaseForm({
   const center = centers.find((c) => c.id === centerId);
   useEffect(() => {
     let live = true;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("new") === "1") {
+      startFreshAfterQueue.current = true;
+      url.searchParams.delete("new");
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+    const startFresh = startFreshAfterQueue.current;
     void Promise.all([
-        loadPosDraft<{centerId:string;supplierId:string;paymentLines:PaymentLine[];notes:string;lines:Line[];checkout:boolean}>(draftKey),
+        startFresh ? Promise.resolve(null) : loadPosDraft<{centerId:string;supplierId:string;paymentLines:PaymentLine[];notes:string;lines:Line[];checkout:boolean}>(draftKey),
       listPosTasks(scopeId, "purchase"),
     ])
-      .then(([draft, tasks]) => { if (live && draft) { setCenterId(draft.centerId); setSupplierId(draft.supplierId); setPaymentLines(draft.paymentLines); setNotes(draft.notes); setLines(draft.lines); setCheckout(draft.checkout); } if (live && tasks.length) { requestId.current = tasks[0].requestId; setOfflineQueued(true); setPendingTotal(Number(tasks[0].payload.total ?? 0)); const failed=tasks.find(task => task.lastError); setOfflineQueueError(failed?.lastError ?? ""); setOfflineNeedsCorrection(Boolean(failed?.needsCorrection)); } })
+      .then(([draft, tasks]) => { if (live && draft) { setCenterId(draft.centerId); setSupplierId(draft.supplierId); setPaymentLines(draft.paymentLines); setNotes(draft.notes); setLines(draft.lines); setCheckout(draft.checkout); } if (live && tasks.length && !startFresh) { requestId.current = tasks[0].requestId; setOfflineQueued(true); setPendingTotal(Number(tasks[0].payload.total ?? 0)); const failed=tasks.find(task => task.lastError); setOfflineQueueError(failed?.lastError ?? ""); setOfflineNeedsCorrection(Boolean(failed?.needsCorrection)); } })
       .catch(() => {})
       .finally(() => { if (live) setDraftReady(true); });
     return () => { live = false; };
@@ -182,7 +190,7 @@ export function PurchaseForm({
         const completed = await syncPosTasks(createClient(), scopeId, "purchase");
         if (!active) return;
         for (const { task, id } of completed) {
-          if (task.requestId === requestId.current || offlineQueued) {
+          if (task.requestId === requestId.current) {
             await clearPosDraft(draftKey).catch(() => {});
             window.location.assign(`/dashboard/purchases/${id}`);
             return;
@@ -579,7 +587,7 @@ export function PurchaseForm({
     setError("The server did not post this purchase. Review the details and confirm again.");
   }
   const billData = {organization:organizationName,title:"PURCHASE BILL",date:new Date().toLocaleString("en-LK",{timeZone:"Asia/Colombo"}),center:(center?.code??"")+" · "+(center?.name??""),party:suppliers.find(s=>s.id===supplierId)?.name??"Cash purchase",user:userName,notes,total,lines:lines.map(l=>{const p=products.find(p=>p.id===l.product_id);return {name:p?.name??"",quality:p?.product_qualities.find(q=>q.id===l.quality_id)?.name,quantity:l.quantity,unit:p?.unit_of_measure??"",price:l.actual_price,total:Math.round(l.quantity*l.actual_price*100)/100};})};
-  if (offlineQueued) return <div className="purchase-pos-full"><header className="pos-topbar"><Link href="/dashboard/purchases" className="pos-back"><ArrowLeft/><span>Purchases</span></Link><div className="pos-brand"><b>CenterPro</b><small>Purchase POS</small></div><OfflinePosStatus scopeId={scopeId} kind="purchase"/></header><main className="pos-offline-pending"><article><CloudOff size={48}/><h1>Purchase saved · waiting to sync</h1><p>This purchase is stored on this device. It has <strong>not</strong> changed stock or cash yet. When the connection returns, CenterPro will validate and post it.</p><strong>{money(pendingTotal)}</strong>{offlineQueueError&&<p className="alert error" role="alert">Sync needs attention: {offlineQueueError}</p>}<p>Keep this device and account available until the status shows synced. Server stock and cash balances are checked when posting.</p>{offlineNeedsCorrection&&<button className="ghost" onClick={()=>void editPendingPurchase()}>Review and edit saved purchase</button>} <button className="primary" onClick={()=>window.dispatchEvent(new Event("centerpro-pos-queue"))}><RefreshCw size={17}/> Try sync now</button> <Link className="ghost" href="/dashboard/purchases">Purchase history</Link></article></main></div>;
+  if (offlineQueued) return <div className="purchase-pos-full"><header className="pos-topbar"><Link href="/dashboard/purchases" className="pos-back"><ArrowLeft/><span>Purchases</span></Link><div className="pos-brand"><b>CenterPro</b><small>Purchase POS</small></div><OfflinePosStatus scopeId={scopeId} kind="purchase"/></header><main className="pos-offline-pending"><article><CloudOff size={48}/><h1>Purchase saved · waiting to sync</h1><p>This purchase is stored on this device. It has <strong>not</strong> changed stock or cash yet. When the connection returns, CenterPro will validate and post it.</p><strong>{money(pendingTotal)}</strong>{offlineQueueError&&<p className="alert error" role="alert">Sync needs attention: {offlineQueueError}</p>}<p>Keep this device and account available until the status shows synced. Server stock and cash balances are checked when posting.</p>{offlineNeedsCorrection&&<button className="ghost" onClick={()=>void editPendingPurchase()}>Review and edit saved purchase</button>} <button className="primary" onClick={()=>window.dispatchEvent(new Event("centerpro-pos-queue"))}><RefreshCw size={17}/> Try sync now</button> <button className="ghost" onClick={()=>window.location.assign("/dashboard/purchases/new?new=1")}>New purchase</button> <Link className="ghost" href="/dashboard/purchases">Purchase history</Link></article></main></div>;
   if (done) {
     return (
       <div className="purchase-pos-full">
