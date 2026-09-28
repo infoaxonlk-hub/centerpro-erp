@@ -3,23 +3,27 @@
 import Link from "next/link";
 import {DraftBill} from "@/components/draft-bill";
 import {useEffect,useRef,useState} from "react";
-import {ArrowLeft,ArrowRight,Check,Minus,Plus,Search,ShoppingCart,Trash2,UserPlus,X} from "lucide-react";
+import {ArrowLeft,ArrowRight,Check,CloudOff,Minus,Plus,Search,ShoppingCart,Trash2,UserPlus,X} from "lucide-react";
 import {createClient} from "@/lib/supabase/client";
+import {OfflinePosStatus} from "@/components/offline-pos-status";
+import {clearPosDraft,deletePosTask,enqueuePosTask,loadCachedStock,loadPosDraft,listPosTasks,saveCachedStock,savePosDraft,syncPosTasks,type OfflinePosTask} from "@/lib/offline-pos";
 import {Bank,Center,Customer,Line,Payment,Price,Product,Stock,cents,methods,money} from "./types";
 import "./sales-pos.css";
 
-type Props={centers:Center[];customers:Customer[];products:Product[];prices:Price[];banks:Bank[];organizationName?:string;userName?:string};
+type Props={centers:Center[];customers:Customer[];products:Product[];prices:Price[];banks:Bank[];organizationName?:string;userName?:string;scopeId:string};
 const newPayment=(amount:number,key="initial"):Payment=>({key,method:"cash",amount:amount.toFixed(2),bank_account_id:"",reference:"",cheque_number:"",cheque_date:""});
 const qty=(n:number)=>n.toLocaleString("en-LK",{maximumFractionDigits:3});
 const roundedQty=(n:number)=>Math.round(n*1000)/1000;
 
-export function SalesPOS({centers,customers:initialCustomers,products,prices,banks,organizationName="CenterPro",userName}:Props){
+export function SalesPOS({centers,customers:initialCustomers,products,prices,banks,organizationName="CenterPro",userName,scopeId}:Props){
  const [centerId,setCenterId]=useState(centers[0]?.id??"");
  const [stock,setStock]=useState<Stock[]>([]),[stockReady,setStockReady]=useState(false),[stockError,setStockError]=useState(""),[refresh,setRefresh]=useState(0);
  const [lines,setLines]=useState<Line[]>([]),[search,setSearch]=useState(""),[category,setCategory]=useState("all"),[checkout,setCheckout]=useState(false);
  const [payments,setPayments]=useState<Payment[]>([]),[customerId,setCustomerId]=useState(""),[customers,setCustomers]=useState(initialCustomers),[notes,setNotes]=useState("");
  const [error,setError]=useState(""),[busy,setBusy]=useState(false),[customerBusy,setCustomerBusy]=useState(false),[customerError,setCustomerError]=useState(""),[customerOpen,setCustomerOpen]=useState(false);
+ const [draftReady,setDraftReady]=useState(false),[offlineQueued,setOfflineQueued]=useState(false),[pendingTotal,setPendingTotal]=useState(0),[offlineQueueError,setOfflineQueueError]=useState(""),[offlineNeedsCorrection,setOfflineNeedsCorrection]=useState(false),[isOnline,setIsOnline]=useState(true);
  const requestId=useRef<string|null>(null),submitLock=useRef(false),customerLock=useRef(false);
+ const syncLock=useRef(false),draftKey=`sale:${scopeId}`;
  const searchRef=useRef<HTMLInputElement>(null),centerRef=useRef<HTMLSelectElement>(null),paymentForm=useRef<HTMLFormElement>(null),customerDialog=useRef<HTMLDialogElement>(null),customerNameRef=useRef<HTMLInputElement>(null);
  const center=centers.find(c=>c.id===centerId);
  const locations=(center?.locations??[]).filter(l=>l.is_active&&(center?.allow_multiple_locations||l.is_default));
@@ -39,10 +43,31 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
  const filtered=products.filter(p=>(category==="all"||(p.category?.trim()||"Uncategorized")===category)&&[p.name,p.code,...p.product_qualities.map(q=>q.name)].join(" ").toLowerCase().includes(search.trim().toLowerCase()));
 
  useEffect(()=>{
+  let live=true;
+  void Promise.all([loadPosDraft<{centerId:string;lines:Line[];payments:Payment[];customerId:string;notes:string;checkout:boolean}>(draftKey),listPosTasks(scopeId,"sale")]).then(([draft,tasks])=>{
+   if(live&&draft){setCenterId(draft.centerId);setLines(draft.lines);setPayments(draft.payments);setCustomerId(draft.customerId);setNotes(draft.notes);setCheckout(draft.checkout);}
+   if(live&&tasks.length){requestId.current=tasks[0].requestId;setOfflineQueued(true);setPendingTotal(Number(tasks[0].payload.totalCents??0)/100);const failed=tasks.find(task=>task.lastError);setOfflineQueueError(failed?.lastError??"");setOfflineNeedsCorrection(Boolean(failed?.needsCorrection));}
+  }).catch(()=>{}).finally(()=>{if(live)setDraftReady(true);});
+  return()=>{live=false;};
+ },[draftKey,scopeId]);
+ useEffect(()=>{if(!draftReady||offlineQueued)return;void savePosDraft(draftKey,{centerId,lines,payments,customerId,notes,checkout}).catch(()=>{});},[draftReady,offlineQueued,draftKey,centerId,lines,payments,customerId,notes,checkout]);
+ useEffect(()=>{const update=()=>setIsOnline(navigator.onLine);update();window.addEventListener("online",update);window.addEventListener("offline",update);return()=>{window.removeEventListener("online",update);window.removeEventListener("offline",update);};},[]);
+ useEffect(()=>{
+  let active=true;
+  const syncPending=async()=>{
+   if(!draftReady||!navigator.onLine||syncLock.current)return;syncLock.current=true;
+   try{const completed=await syncPosTasks(createClient(),scopeId,"sale");if(!active)return;for(const {task,id} of completed){if(task.requestId===requestId.current||offlineQueued){await clearPosDraft(draftKey).catch(()=>{});window.location.assign("/dashboard/sales/"+id);return;}}const tasks=await listPosTasks(scopeId,"sale");if(active){const failed=tasks.find(task=>task.lastError);setOfflineQueueError(failed?.lastError??"");setOfflineNeedsCorrection(Boolean(failed?.needsCorrection));}}
+   finally{syncLock.current=false;}
+  };
+  window.addEventListener("online",syncPending);window.addEventListener("centerpro-pos-queue",syncPending);void syncPending();
+  return()=>{active=false;window.removeEventListener("online",syncPending);window.removeEventListener("centerpro-pos-queue",syncPending);};
+ },[scopeId,draftKey,offlineQueued,draftReady]);
+
+ useEffect(()=>{
   let cancelled=false;if(!centerId)return;
-  async function load(){try{const {data,error}=await createClient().rpc("sales_stock",{p_center:centerId});if(cancelled)return;if(error){setStockError(error.message);return;}setStock(data??[]);setStockReady(true);}catch{if(!cancelled)setStockError("Unable to load stock. Check your connection and retry.");}}
+  async function load(){const cacheKey=`${scopeId}:${centerId}`;const cached=await loadCachedStock<Stock[]>(cacheKey).catch(()=>null);if(cancelled)return;if(cached&&!navigator.onLine){setStock(cached);setStockReady(true);setStockError("");return;}try{const {data,error}=await createClient().rpc("sales_stock",{p_center:centerId});if(cancelled)return;if(error){if(cached){setStock(cached);setStockReady(true);setStockError("Showing saved stock. Final stock is checked when the sale syncs.");return;}setStockError(error.message);return;}setStock(data??[]);setStockReady(true);void saveCachedStock(cacheKey,data??[]).catch(()=>{});}catch{if(!cancelled){if(cached){setStock(cached);setStockReady(true);setStockError("Showing saved stock. Final stock is checked when the sale syncs.");}else setStockError("Stock is unavailable offline. Open this sales POS while connected once to save a stock snapshot.");}}}
   void load();return()=>{cancelled=true};
- },[centerId,refresh]);
+ },[centerId,refresh,scopeId]);
  useEffect(()=>{
   function keydown(e:KeyboardEvent){
    if(busy||customerOpen||e.altKey||e.ctrlKey||e.metaKey)return;
@@ -83,14 +108,22 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
   e.preventDefault();if(submitLock.current)return;
   if(!canConfirm){setError("Check stock, customer and payment allocations before confirming.");return;}
   submitLock.current=true;setBusy(true);setError("");
+  const task:OfflinePosTask={requestId:requestId.current??=crypto.randomUUID(),scopeId,kind:"sale",createdAt:new Date().toISOString(),payload:{centerId,customerId,notes,lines:lines.map(l=>({...l,quantity:Number(l.quantity)})),payments:rows.map(p=>({...p,amount:Number(p.amount)})),totalCents}};
+  const queueForLater=async(message?:string)=>{try{await enqueuePosTask(task);await clearPosDraft(draftKey);setOfflineQueueError(message??"");setPendingTotal(totalCents/100);setOfflineQueued(true);window.dispatchEvent(new Event("centerpro-pos-queue"));}catch(storageError){const text=storageError instanceof Error?storageError.message:"This device could not save the offline sale.";setError(text);submitLock.current=false;setBusy(false);}};
+  if(!navigator.onLine){await queueForLater();setBusy(false);return;}
   try{
-   requestId.current??=crypto.randomUUID();
-   const {data,error}=await createClient().rpc("confirm_center_sale",{p_request:requestId.current,p_center:centerId,p_customer:customerId||null,p_notes:notes,p_lines:lines.map(l=>({...l,quantity:Number(l.quantity)})),p_payments:rows.map(p=>({...p,amount:Number(p.amount)}))});
+   const {data,error}=await createClient().rpc("confirm_center_sale",{p_request:task.requestId,p_center:centerId,p_customer:customerId||null,p_notes:notes,p_lines:task.payload.lines,p_payments:task.payload.payments});
    if(error)throw new Error(error.message);
+   await deletePosTask(task.requestId).catch(()=>{});await clearPosDraft(draftKey).catch(()=>{});
    // Reload the stored receipt and cash/stock state after the atomic posting.
    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
    window.location.assign("/dashboard/sales/"+data);
-  }catch(e){setError(e instanceof Error?e.message:"Sale could not be saved. Please retry.");submitLock.current=false;setBusy(false);}
+  }catch(e){const message=e instanceof Error?e.message:"Sale could not be saved. Please retry.";if(!navigator.onLine||/failed to fetch|network|timeout|load failed/i.test(message)){await queueForLater(message);setBusy(false);return;}setError(message);submitLock.current=false;setBusy(false);}
+ }
+ async function editPendingSale(){
+  const tasks=await listPosTasks(scopeId,"sale");const task=tasks.find(item=>item.requestId===requestId.current)??tasks[0];if(!task?.needsCorrection)return;
+  const saved=task.payload as {centerId:string;customerId:string;notes:string;lines:Array<Line>;payments:Array<Payment&{amount:number|string}>};
+  await deletePosTask(task.requestId);requestId.current=null;setCenterId(saved.centerId);setCustomerId(saved.customerId??"");setNotes(saved.notes??"");setLines(saved.lines.map(line=>({...line,quantity:String(line.quantity)})));setPayments(saved.payments.map(payment=>({...payment,amount:String(payment.amount)})));setCheckout(true);setOfflineQueueError("");setOfflineNeedsCorrection(false);setOfflineQueued(false);setError("The server did not post this sale. Review the details and confirm again.");
  }
  async function addCustomer(e:React.FormEvent<HTMLFormElement>){
   e.preventDefault();if(customerLock.current)return;customerLock.current=true;setCustomerBusy(true);setCustomerError("");
@@ -99,12 +132,15 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
   catch(e){setCustomerError(e instanceof Error?e.message:"Customer could not be saved.");}finally{setCustomerBusy(false);customerLock.current=false;}
  }
 
+ if(offlineQueued)return <div className="purchase-pos-full sales-pos-full"><header className="pos-topbar"><Link href="/dashboard/sales" className="pos-back"><ArrowLeft/><span>Sales</span></Link><div className="pos-brand"><b>CenterPro</b><small>Sales POS</small></div><OfflinePosStatus scopeId={scopeId} kind="sale"/></header><main className="pos-offline-pending"><article><CloudOff size={48}/><h1>Sale saved · waiting to sync</h1><p>This sale is stored on this device. It has <strong>not</strong> reduced stock, recorded payment or created an invoice yet. CenterPro will check current stock, selling prices and payment details when connected.</p><strong>{money(pendingTotal)}</strong>{offlineQueueError&&<p className="alert error" role="alert">Sync needs attention: {offlineQueueError}</p>}<p>Keep this device and account available until the bill opens after syncing.</p>{offlineNeedsCorrection&&<button className="ghost" onClick={()=>void editPendingSale()}>Review and edit saved sale</button>} <button className="primary" onClick={()=>window.dispatchEvent(new Event("centerpro-pos-queue"))}>Try sync now</button> <Link className="ghost" href="/dashboard/sales">Sales workspace</Link></article></main></div>;
  return <div className="purchase-pos-full sales-pos-full">
   <header className="pos-topbar">
    <Link href="/dashboard/sales" className="pos-back" onClick={exit}><ArrowLeft/><span>Sales</span></Link>
    <div className="pos-brand"><b>CenterPro</b><small>Sales POS</small></div>
    <label><kbd>F4</kbd> Center<select ref={centerRef} aria-label="Sales center" value={centerId} disabled={busy||checkout||customerOpen} onChange={e=>changeCenter(e.target.value)}>{centers.map(c=><option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>
+   <OfflinePosStatus scopeId={scopeId} kind="sale"/>
   </header>
+  {!isOnline&&<div className="pos-offline-warning" role="status">Offline: this screen uses the last saved stock snapshot. A sale is only final after server stock and payment validation.</div>}
   {!checkout?<div className="pos-sale-screen">
    <section className="pos-products" aria-label="Sales products">
     <div className="pos-search"><Search aria-hidden="true"/><input ref={searchRef} autoFocus aria-label="Search products" placeholder="Search products, code or quality…" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button aria-label="Clear search" onClick={()=>{setSearch("");searchRef.current?.focus();}}><X/></button>}<kbd>F2</kbd></div>
@@ -135,7 +171,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
    <form id="sales-payment" ref={paymentForm} onSubmit={confirm} className="payment-card">
     <fieldset disabled={busy} className="sales-pos-fieldset"><button type="button" className="payment-back" onClick={()=>setCheckout(false)}><ArrowLeft/>Back to products</button><span className="eyebrow dark">FINAL STEP</span><h1>Split sales payment</h1><p>Allocate the sale total across your payment methods.</p>
     {error&&<div className="alert error" role="alert">{error}</div>}
-    <div className="payment-fields"><label>Customer<select aria-label="Sale customer" value={customerId} required={credit>0} onChange={e=>setCustomerId(e.target.value)}><option value="">Walk-in customer (no credit)</option>{customers.filter(c=>c.center_id===centerId).map(c=><option key={c.id} value={c.id}>{c.name}{c.phone?" · "+c.phone:""}</option>)}</select></label><button type="button" className="ghost sales-add-customer" onClick={()=>{setCustomerError("");setCustomerOpen(true);}}><UserPlus size={17}/>Add customer</button>
+    <div className="payment-fields"><label>Customer<select aria-label="Sale customer" value={customerId} required={credit>0} onChange={e=>setCustomerId(e.target.value)}><option value="">Walk-in customer (no credit)</option>{customers.filter(c=>c.center_id===centerId).map(c=><option key={c.id} value={c.id}>{c.name}{c.phone?" · "+c.phone:""}</option>)}</select></label><button type="button" className="ghost sales-add-customer" disabled={!isOnline} title={!isOnline?"Connect to add a customer":""} onClick={()=>{setCustomerError("");setCustomerOpen(true);}}><UserPlus size={17}/>Add customer</button>
     {credit>0&&!customerId&&<p className="alert error">Select or add a customer for Credit.</p>}
     <div className="split-payments"><div className="split-payment-heading"><strong>Payment allocations</strong><button type="button" className="ghost" disabled={rows.length>=20||difference<=0} onClick={()=>setPayments([...rows,newPayment(Math.max(0,difference)/100,crypto.randomUUID())])}><Plus size={17}/>Add line</button></div>
     {rows.map((p,index)=>{const account=banks.find(b=>b.id===p.bank_account_id);return <section className="split-payment-line" key={p.key}><div className="split-payment-title"><b>Payment {index+1}</b>{rows.length>1&&<button type="button" aria-label={"Remove payment "+(index+1)} onClick={()=>setPayments(rows.filter(row=>row.key!==p.key))}><Trash2 size={16}/></button>}</div><div className="split-payment-grid">

@@ -52,6 +52,7 @@ export default async function NewPurchasePage() {
       bankAccounts={bankAccounts ?? []}
       organizationName={organization?.name ?? "CenterPro"}
       userName={profile.full_name}
+      scopeId={profile.id}
     />
   );
 }

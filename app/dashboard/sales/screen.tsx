@@ -26,6 +26,6 @@ export async function SalesScreen({start="history"}:{start?:"history"|"new"}){
  const {data:organization}=await s.from("organizations").select("name").limit(1).maybeSingle();
  const [centers,customers,products,prices,accounts,sales]=loaded;
  const banks=(accounts as (Bank&{is_active:boolean})[]).map(a=>({...a,payment_banks:Array.isArray(a.payment_banks)?a.payment_banks[0]:a.payment_banks})).filter(a=>a.is_active&&a.payment_banks?.is_active);
- if(start==="new")return <SalesPOS organizationName={organization?.name??"CenterPro"} userName={profile.full_name} centers={(centers as (Center&{is_active:boolean})[]).filter(c=>c.is_active)} customers={customers as Customer[]} products={(products as (Product&{is_active:boolean})[]).filter(p=>p.is_active)} prices={prices as Price[]} banks={banks}/>;
+ if(start==="new")return <SalesPOS scopeId={profile.id} organizationName={organization?.name??"CenterPro"} userName={profile.full_name} centers={(centers as (Center&{is_active:boolean})[]).filter(c=>c.is_active)} customers={customers as Customer[]} products={(products as (Product&{is_active:boolean})[]).filter(p=>p.is_active)} prices={prices as Price[]} banks={banks}/>;
  return <SalesManager start={start} centers={(centers as (Center&{is_active:boolean})[]).filter(c=>c.is_active)} customers={customers as Customer[]} sales={sales as Sale[]}/>;
 }

@@ -7,9 +7,11 @@ import {
   ArrowLeft,
   Check,
   CircleCheck,
+  CloudOff,
   Minus,
   Plus,
   Printer,
+  RefreshCw,
   Search,
   ShoppingCart,
   Trash2,
@@ -17,6 +19,8 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { notify } from "@/components/feedback";
+import { OfflinePosStatus } from "@/components/offline-pos-status";
+import { clearPosDraft, deletePosTask, enqueuePosTask, loadPosDraft, listPosTasks, savePosDraft, syncPosTasks, type OfflinePosTask } from "@/lib/offline-pos";
 type Location = {
   id: string;
   code: string;
@@ -90,6 +94,7 @@ export function PurchaseForm({
   bankAccounts,
   organizationName,
   userName,
+  scopeId,
 }: {
   centers: Center[];
   suppliers: Supplier[];
@@ -98,6 +103,7 @@ export function PurchaseForm({
   bankAccounts: BankAccount[];
   organizationName: string;
   userName: string;
+  scopeId: string;
 }) {
   const [centerId, setCenterId] = useState(centers[0]?.id ?? "");
   const [supplierId, setSupplierId] = useState("");
@@ -131,10 +137,65 @@ export function PurchaseForm({
   const [receiptLanguage, setReceiptLanguage] = useState<"en" | "si">("en");
   const [selectedProduct, setSelectedProduct] = useState(0);
   const [selectedLine, setSelectedLine] = useState(0);
+  const [draftReady, setDraftReady] = useState(false);
+  const [offlineQueued, setOfflineQueued] = useState(false);
+  const [pendingTotal, setPendingTotal] = useState(0);
+  const [offlineQueueError, setOfflineQueueError] = useState("");
+  const [offlineNeedsCorrection, setOfflineNeedsCorrection] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const requestId = useRef<string | null>(null);
+  const syncLock = useRef(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const centerRef = useRef<HTMLSelectElement>(null);
   const supplierRef = useRef<HTMLSelectElement>(null);
+  const draftKey = `purchase:${scopeId}`;
+  useEffect(() => {
+    const update = () => setIsOnline(navigator.onLine);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => { window.removeEventListener("online", update); window.removeEventListener("offline", update); };
+  }, []);
   const center = centers.find((c) => c.id === centerId);
+  useEffect(() => {
+    let live = true;
+    void Promise.all([
+        loadPosDraft<{centerId:string;supplierId:string;paymentLines:PaymentLine[];notes:string;lines:Line[];checkout:boolean}>(draftKey),
+      listPosTasks(scopeId, "purchase"),
+    ])
+      .then(([draft, tasks]) => { if (live && draft) { setCenterId(draft.centerId); setSupplierId(draft.supplierId); setPaymentLines(draft.paymentLines); setNotes(draft.notes); setLines(draft.lines); setCheckout(draft.checkout); } if (live && tasks.length) { requestId.current = tasks[0].requestId; setOfflineQueued(true); setPendingTotal(Number(tasks[0].payload.total ?? 0)); const failed=tasks.find(task => task.lastError); setOfflineQueueError(failed?.lastError ?? ""); setOfflineNeedsCorrection(Boolean(failed?.needsCorrection)); } })
+      .catch(() => {})
+      .finally(() => { if (live) setDraftReady(true); });
+    return () => { live = false; };
+  }, [draftKey, scopeId]);
+  useEffect(() => {
+    if (!draftReady || done || offlineQueued) return;
+    void savePosDraft(draftKey, { centerId, supplierId, paymentLines, notes, lines, checkout }).catch(() => {});
+  }, [draftReady, done, offlineQueued, draftKey, centerId, supplierId, paymentLines, notes, lines, checkout]);
+  useEffect(() => {
+    let active = true;
+    const syncPending = async () => {
+      if (!draftReady || !navigator.onLine || syncLock.current) return;
+      syncLock.current = true;
+      try {
+        const completed = await syncPosTasks(createClient(), scopeId, "purchase");
+        if (!active) return;
+        for (const { task, id } of completed) {
+          if (task.requestId === requestId.current || offlineQueued) {
+            await clearPosDraft(draftKey).catch(() => {});
+            window.location.assign(`/dashboard/purchases/${id}`);
+            return;
+          }
+        }
+        const tasks = await listPosTasks(scopeId, "purchase");
+        if (active) { const failed=tasks.find(task => task.lastError); setOfflineQueueError(failed?.lastError ?? ""); setOfflineNeedsCorrection(Boolean(failed?.needsCorrection)); }
+      } finally { syncLock.current = false; }
+    };
+    window.addEventListener("online", syncPending);
+    window.addEventListener("centerpro-pos-queue", syncPending);
+    void syncPending();
+    return () => { active = false; window.removeEventListener("online", syncPending); window.removeEventListener("centerpro-pos-queue", syncPending); };
+  }, [scopeId, draftKey, offlineQueued, draftReady]);
   const activeProducts = products.filter((p) =>
     p.product_qualities.some((q) => q.is_active),
   );
@@ -319,37 +380,74 @@ export function PurchaseForm({
         cheque_date: cheque_date || null,
       }),
     );
-    const { data, error } = await createClient().rpc(
-      "create_and_confirm_purchase_split",
-      {
-        target_center: centerId,
-        target_supplier: supplierId || null,
-        purchase_notes: notes,
-        purchase_lines: lines.map(
-          ({
-            product_id,
-            quality_id,
-            location_id,
-            quantity,
-            actual_price,
-          }) => ({
-            product_id,
-            quality_id,
-            location_id,
-            quantity,
-            actual_price,
-          }),
-        ),
-        payment_allocations: payload,
+    const task: OfflinePosTask = {
+      requestId: requestId.current ??= crypto.randomUUID(),
+      scopeId,
+      kind: "purchase",
+      createdAt: new Date().toISOString(),
+      payload: {
+        centerId,
+        supplierId: supplierId || null,
+        notes,
+        lines: lines.map(({ product_id, quality_id, location_id, quantity, actual_price }) => ({ product_id, quality_id, location_id, quantity, actual_price })),
+        payments: payload,
+        total: Number(total.toFixed(2)),
       },
-    );
+    };
+    setBusy(false);
+    const queueForLater = async (message?: string) => {
+      try {
+        await enqueuePosTask(task);
+        await clearPosDraft(draftKey);
+        setOfflineQueueError(message ?? "");
+        setOfflineNeedsCorrection(false);
+        setPendingTotal(Number(total.toFixed(2)));
+        setOfflineQueued(true);
+        window.dispatchEvent(new Event("centerpro-pos-queue"));
+        notify("Purchase saved on this device. It will post when the connection is back.");
+      } catch (storageError) {
+        const text = storageError instanceof Error ? storageError.message : "This device could not save the offline purchase.";
+        setError(text);
+        notify(text, "error");
+      }
+    };
+    if (!navigator.onLine) {
+      await queueForLater();
+      return;
+    }
+    setBusy(true);
+    let data: unknown;
+    let error: { message: string } | null;
+    try {
+      const result = await createClient().rpc("confirm_queued_purchase", {
+        p_request: task.requestId,
+        target_center: task.payload.centerId,
+        target_supplier: task.payload.supplierId,
+        purchase_notes: task.payload.notes,
+        purchase_lines: task.payload.lines,
+        payment_allocations: task.payload.payments,
+      });
+      data = result.data;
+      error = result.error;
+    } catch (rpcError) {
+      setBusy(false);
+      const text = rpcError instanceof Error ? rpcError.message : "Purchase could not reach the server.";
+      if (!navigator.onLine || /failed to fetch|network|timeout|load failed/i.test(text)) { await queueForLater(text); return; }
+      setError(text);
+      notify(text, "error");
+      return;
+    }
     setBusy(false);
     if (error) {
+      const isConnectionError = !navigator.onLine || /failed to fetch|network|timeout|load failed/i.test(error.message);
+      if (isConnectionError) { await queueForLater(error.message); return; }
       setError(error.message);
       notify(error.message, "error");
       return;
     }
     const row = Array.isArray(data) ? data[0] : data;
+    await deletePosTask(task.requestId).catch(() => {});
+    await clearPosDraft(draftKey).catch(() => {});
     setDone({
       number: row.purchase_number,
       total: Number(row.purchase_total),
@@ -461,56 +559,76 @@ export function PurchaseForm({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   });
+  async function editPendingPurchase() {
+    const tasks = await listPosTasks(scopeId, "purchase");
+    const task = tasks.find(item => item.requestId === requestId.current) ?? tasks[0];
+    if (!task?.needsCorrection) return;
+    const saved = task.payload as { centerId:string; supplierId:string|null; notes:string|null; lines:Array<{product_id:string;quality_id:string;location_id:string;quantity:number;actual_price:number}>; payments:Array<{method:PaymentMethod;amount:number;bank_account_id:string|null;reference:string|null;cheque_number:string|null;cheque_date:string|null}> };
+    await deletePosTask(task.requestId);
+    requestId.current = null;
+    setCenterId(saved.centerId);
+    setSupplierId(saved.supplierId ?? "");
+    setNotes(saved.notes ?? "");
+    setLines(saved.lines.map(line => ({ ...line, key: makeKey() })));
+    setPaymentLines(saved.payments.map(line => ({ ...line, key: makeKey(), bank_account_id: line.bank_account_id ?? "", reference: line.reference ?? "", cheque_number: line.cheque_number ?? "", cheque_date: line.cheque_date ?? "" })));
+    setCheckout(true);
+    setOfflineQueueError("");
+    setOfflineNeedsCorrection(false);
+    setOfflineQueued(false);
+    setError("The server did not post this purchase. Review the details and confirm again.");
+  }
   const billData = {organization:organizationName,title:"PURCHASE BILL",date:new Date().toLocaleString("en-LK",{timeZone:"Asia/Colombo"}),center:(center?.code??"")+" · "+(center?.name??""),party:suppliers.find(s=>s.id===supplierId)?.name??"Cash purchase",user:userName,notes,total,lines:lines.map(l=>{const p=products.find(p=>p.id===l.product_id);return {name:p?.name??"",quality:p?.product_qualities.find(q=>q.id===l.quality_id)?.name,quantity:l.quantity,unit:p?.unit_of_measure??"",price:l.actual_price,total:Math.round(l.quantity*l.actual_price*100)/100};})};
+  if (offlineQueued) return <div className="purchase-pos-full"><header className="pos-topbar"><Link href="/dashboard/purchases" className="pos-back"><ArrowLeft/><span>Purchases</span></Link><div className="pos-brand"><b>CenterPro</b><small>Purchase POS</small></div><OfflinePosStatus scopeId={scopeId} kind="purchase"/></header><main className="pos-offline-pending"><article><CloudOff size={48}/><h1>Purchase saved · waiting to sync</h1><p>This purchase is stored on this device. It has <strong>not</strong> changed stock or cash yet. When the connection returns, CenterPro will validate and post it.</p><strong>{money(pendingTotal)}</strong>{offlineQueueError&&<p className="alert error" role="alert">Sync needs attention: {offlineQueueError}</p>}<p>Keep this device and account available until the status shows synced. Server stock and cash balances are checked when posting.</p>{offlineNeedsCorrection&&<button className="ghost" onClick={()=>void editPendingPurchase()}>Review and edit saved purchase</button>} <button className="primary" onClick={()=>window.dispatchEvent(new Event("centerpro-pos-queue"))}><RefreshCw size={17}/> Try sync now</button> <Link className="ghost" href="/dashboard/purchases">Purchase history</Link></article></main></div>;
   if (done) {
     return (
       <div className="purchase-pos-full">
-        <section className="pos-complete">
-          <CircleCheck size={70} />
-          <h1>Purchase confirmed</h1>
-          <p>
-            {done.number} was posted to stock and the applicable payment,
-            payable, cash and audit ledgers.
-          </p>
-          <strong>{money(done.total)}</strong>
-          <div>
-            <div className="bill-language receipt-language" aria-label="Receipt language"><button type="button" className={receiptLanguage === "en" ? "active" : ""} onClick={() => setReceiptLanguage("en")}>English</button><button type="button" className={receiptLanguage === "si" ? "active" : ""} onClick={() => setReceiptLanguage("si")}>සිංහල</button></div>
-            <button
-              className="ghost print-receipt-button"
-              onClick={() => window.print()}
-            >
-              <Printer size={18} />
-              Print receipt
-            </button>
-            <Link className="ghost" href="/dashboard/purchases">
-              Purchase history
-            </Link>
-            <button
-              className="primary"
-              onClick={() => {
-                setDone(null);
-                setCheckout(false);
-                setLines([]);
-                setSupplierId("");
-                setPaymentLines([
-                  {
-                    key: makeKey(),
-                    method: "cash",
-                    amount: 0,
-                    bank_account_id: "",
-                    reference: "",
-                    cheque_number: "",
-                    cheque_date: "",
-                  },
-                ]);
-              }}
-            >
-              New purchase
-            </button>
-          </div>
-        </section>
-        <Bill data={{...billData,title:"PURCHASE RECEIPT",number:done.number,total:done.total,paid:done.paid,credit:done.credit,status:done.status,payments:done.payments,language:receiptLanguage}}/>
-
+        <main className="purchase-complete-layout">
+          <section className="pos-complete">
+            <CircleCheck size={70} />
+            <h1>Purchase confirmed</h1>
+            <p>
+              {done.number} was posted to stock and the applicable payment,
+              payable, cash and audit ledgers.
+            </p>
+            <strong>{money(done.total)}</strong>
+            <div>
+              <div className="bill-language receipt-language" aria-label="Receipt language"><button type="button" className={receiptLanguage === "en" ? "active" : ""} onClick={() => setReceiptLanguage("en")}>English</button><button type="button" className={receiptLanguage === "si" ? "active" : ""} onClick={() => setReceiptLanguage("si")}>සිංහල</button></div>
+              <button
+                className="ghost print-receipt-button"
+                onClick={() => window.print()}
+              >
+                <Printer size={18} />
+                Print receipt
+              </button>
+              <Link className="ghost" href="/dashboard/purchases">
+                Purchase history
+              </Link>
+              <button
+                className="primary"
+                onClick={() => {
+                  setDone(null);
+                  setCheckout(false);
+                  setLines([]);
+                  setSupplierId("");
+                  setPaymentLines([
+                    {
+                      key: makeKey(),
+                      method: "cash",
+                      amount: 0,
+                      bank_account_id: "",
+                      reference: "",
+                      cheque_number: "",
+                      cheque_date: "",
+                    },
+                  ]);
+                }}
+              >
+                New purchase
+              </button>
+            </div>
+          </section>
+          <Bill data={{...billData,title:"PURCHASE RECEIPT",number:done.number,total:done.total,paid:done.paid,credit:done.credit,status:done.status,payments:done.payments,language:receiptLanguage}}/>
+        </main>
       </div>
     );
   }
@@ -541,7 +659,9 @@ export function PurchaseForm({
             ))}
           </select>
         </label>
+        <OfflinePosStatus scopeId={scopeId} kind="purchase" />
       </header>
+      {!isOnline&&<div className="pos-offline-warning" role="status">Offline: purchases can be saved on this device and will post only after server validation when connected.</div>}
       {!checkout ? (
         <main className="pos-sale-screen">
           <section className="pos-products">

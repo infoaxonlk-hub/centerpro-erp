@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { OfflinePosLink } from "@/components/offline-pos-link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -130,12 +131,10 @@ export function SidebarNavigation({ permissions, isAdmin }: { permissions: strin
                     <div className="nav-submenu">
                       {item.children.map((child) => {
                         const childActive = pathname === child.href;
-                        return (
-                          <Link className={childActive ? "active" : ""} href={child.href} key={child.href} aria-current={childActive ? "page" : undefined}>
-                            <span className="nav-sub-dot" />
-                            <span>{child.label}</span>
-                          </Link>
-                        );
+                        const content = <><span className="nav-sub-dot" /><span>{child.label}</span></>;
+                        return child.href === "/dashboard/purchases/new"
+                          ? <OfflinePosLink className={childActive ? "active" : ""} href={child.href} key={child.href}>{content}</OfflinePosLink>
+                          : <Link className={childActive ? "active" : ""} href={child.href} key={child.href} aria-current={childActive ? "page" : undefined}>{content}</Link>;
                       })}
                     </div>
                   )}
