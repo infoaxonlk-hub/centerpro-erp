@@ -17,6 +17,7 @@ import {
   Settings,
   ShieldCheck,
   ShoppingCart,
+  Trash2,
   Users,
   Wallet,
 } from "lucide-react";
@@ -26,6 +27,7 @@ type NavItem = {
   label: string;
   permission?: string;
   adminOnly?: boolean;
+  centerUserOrStock?: boolean;
   icon: LucideIcon;
   children?: { href: string; label: string }[];
 };
@@ -66,6 +68,7 @@ const sections: NavSection[] = [
         { href: "/dashboard/stock", label: "Stock explorer" },
         { href: "/dashboard/stock/transfers", label: "Internal transfers" },
       ] },
+      { href: "/dashboard/stock/scrap", label: "Scrap stock", centerUserOrStock: true, icon: Trash2 },
     ],
   },
   {
@@ -113,7 +116,7 @@ function isActive(pathname: string, href: string) {
 
 export function SidebarNavigation({ permissions, isAdmin }: { permissions: string[]; isAdmin: boolean }) {
   const pathname = usePathname();
-  const canSee = (item: NavItem) => item.adminOnly ? isAdmin : !item.permission || permissions.includes(item.permission);
+  const canSee = (item: NavItem) => item.adminOnly ? isAdmin : item.centerUserOrStock ? (!isAdmin || permissions.includes("stock")) : !item.permission || permissions.includes(item.permission);
 
   return (
     <nav className="sidebar-nav" aria-label="Main navigation">
