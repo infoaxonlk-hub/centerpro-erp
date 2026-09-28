@@ -21,6 +21,7 @@ const labels: Record<string, string> = {
   users: "Users & Access",
   audit: "Audit Log",
   "bill-requests": "Cancel Requests",
+  returns: "Return Requests",
   receivables: "Customer Receivables",
   new: "New",
 };

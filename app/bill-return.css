@@ -1,0 +1,25 @@
+.return-request-dialog{width:min(760px,calc(100vw - 28px));max-height:min(90vh,900px);overflow:auto}
+.return-request-lines{margin:10px 0 16px;border:1px solid var(--line);border-radius:12px;overflow:auto}
+.return-request-head,.return-request-line{display:grid;grid-template-columns:minmax(0,1fr) 120px 130px;align-items:center;gap:12px;padding:11px 14px}
+.return-request-head{background:#f8f7fb;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.return-request-line{border-top:1px solid var(--line)}
+.return-request-line>span:first-child{display:grid;gap:3px;min-width:0}
+.return-request-line small{color:var(--muted)}
+.return-request-line input{width:100%;min-width:0;padding:9px;border:1px solid var(--line);border-radius:8px;font:inherit}
+.return-request-total{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:10px;background:#f6f3fc}
+.return-request-dialog>label{display:grid;gap:7px;font-size:14px;font-weight:700}
+.return-request-dialog textarea{min-height:80px;padding:11px;border:1px solid var(--line);border-radius:9px;font:inherit;resize:vertical}
+.return-queue{display:grid;gap:14px}
+.return-card{min-width:0;margin-top:0}
+.return-card-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.return-card-heading h2{margin:7px 0 4px;font-size:20px}
+.return-card-heading p{margin:0;color:var(--muted);font-size:13px}
+.return-card .table-panel{overflow:auto;margin-top:14px}
+.return-reason{margin:15px 0;color:var(--muted)}
+.return-card-footer{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:14px}
+.return-card-footer>div:first-child{display:grid;gap:4px;color:var(--muted);font-size:13px}
+.return-card-footer strong{color:var(--ink);font-size:18px}
+.return-card-footer small{line-height:1.5}
+.return-card-actions{display:flex;gap:8px;flex-wrap:wrap}
+.status.pending{background:#fff4ce;color:#805b00}
+@media(max-width:650px){.return-request-head,.return-request-line{grid-template-columns:minmax(0,1fr) 76px 92px;gap:8px;padding:10px}.return-request-line input{padding:8px 5px}.return-card-heading,.return-card-footer{align-items:stretch;flex-direction:column}.return-card-actions{width:100%}.return-card-actions button{flex:1}.return-card-heading .ghost{align-self:flex-start}}

@@ -13,6 +13,7 @@ import {
   FileCheck2,
   LayoutDashboard,
   PackagePlus,
+  RotateCcw,
   Settings,
   ShieldCheck,
   ShoppingCart,
@@ -95,6 +96,7 @@ const sections: NavSection[] = [
     label: "Administration",
     items: [
       { href: "/dashboard/bill-requests", label: "Cancel Requests", adminOnly: true, icon: FileCheck2 },
+      { href: "/dashboard/returns", label: "Return Requests", adminOnly: true, icon: RotateCcw },
       { href: "/dashboard/audit", label: "Audit Log", permission: "audit", icon: ShieldCheck },
     ],
   },
