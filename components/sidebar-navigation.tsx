@@ -62,7 +62,10 @@ const sections: NavSection[] = [
         icon: ShoppingCart,
         children: [{ href: "/dashboard/sales/receivables", label: "Customer Receivables" }],
       },
-      { href: "/dashboard/stock", label: "Inventory / Stock", permission: "stock", icon: Boxes },
+      { href: "/dashboard/stock", label: "Inventory / Stock", permission: "stock", icon: Boxes, children: [
+        { href: "/dashboard/stock", label: "Stock explorer" },
+        { href: "/dashboard/stock/transfers", label: "Internal transfers" },
+      ] },
     ],
   },
   {
