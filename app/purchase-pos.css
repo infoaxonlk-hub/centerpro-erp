@@ -40,3 +40,13 @@
 @media(max-width:1100px){.purchase-complete-layout{grid-template-columns:minmax(260px,.8fr) minmax(320px,1.2fr);gap:16px;padding:16px}.purchase-complete-layout .pos-complete{padding:28px 20px}}
 @media(max-width:850px){.purchase-complete-layout{grid-template-columns:minmax(0,1fr);align-content:start;justify-items:center;gap:14px;padding:16px;overflow-y:auto}.purchase-complete-layout .pos-complete{max-width:650px}.purchase-complete-layout>.standard-bill{max-height:none;overflow:visible;margin:0 auto}}
 @media(max-width:520px){.purchase-complete-layout{padding:12px}.purchase-complete-layout .pos-complete{padding:24px 16px}.purchase-complete-layout .pos-complete h1{font-size:27px}.purchase-complete-layout>.standard-bill{padding:18px}}
+
+/* On phones, keep a cart shortcut visible while browsing purchase items. */
+.pos-mobile-cart-jump{display:none}
+@media(max-width:850px){
+  .pos-mobile-cart-jump{position:sticky;top:8px;z-index:30;width:100%;min-height:48px;margin:10px 0 2px;padding:9px 13px;display:flex;align-items:center;gap:9px;border:1px solid #d8ccfc;border-radius:12px;background:#fff;color:var(--brand-dark);box-shadow:0 6px 18px #17152d18;text-align:left;font-weight:800}
+  .pos-mobile-cart-jump svg{width:20px;height:20px;flex:0 0 auto}
+  .pos-mobile-cart-jump span{flex:1;min-width:0}
+  .pos-mobile-cart-jump strong{white-space:nowrap}
+  .pos-cart{scroll-margin-top:12px}
+}

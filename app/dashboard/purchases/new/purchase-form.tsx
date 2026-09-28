@@ -148,6 +148,7 @@ export function PurchaseForm({
   const searchRef = useRef<HTMLInputElement>(null);
   const centerRef = useRef<HTMLSelectElement>(null);
   const supplierRef = useRef<HTMLSelectElement>(null);
+  const cartRef = useRef<HTMLElement>(null);
   const draftKey = `purchase:${scopeId}`;
   useEffect(() => {
     const update = () => setIsOnline(navigator.onLine);
@@ -684,6 +685,18 @@ export function PurchaseForm({
                 </button>
               )}
             </div>
+            {lines.length > 0 && (
+              <button
+                type="button"
+                className="pos-mobile-cart-jump"
+                aria-label={`Go to purchase cart, ${qty} items, ${money(total)}`}
+                onClick={() => cartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              >
+                <ShoppingCart aria-hidden="true" />
+                <span>Cart · {qty} {qty === 1 ? "item" : "items"}</span>
+                <strong>{money(total)}</strong>
+              </button>
+            )}
             <div className="pos-categories">
               <button
                 className={category === "all" ? "active" : ""}
@@ -736,7 +749,7 @@ export function PurchaseForm({
               )}
             </div>
           </section>
-          <aside className="pos-cart">
+          <aside className="pos-cart" ref={cartRef}>
             <div className="pos-cart-head">
               <div>
                 <kbd>F6</kbd>
