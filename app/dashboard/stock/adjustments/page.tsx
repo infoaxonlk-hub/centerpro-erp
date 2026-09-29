@@ -4,7 +4,7 @@ import {AdjustmentForm} from "./adjustment-form";
 import "../stock-chart.css";
 
 export default async function AdjustmentsPage(){
- const {supabase:s}=await requirePermission("stock");
+ const {supabase:s}=await requirePermission("stock_adjustment");
  const [{data:centers,error:ce},{data:products,error:pe}]=await Promise.all([
   s.from("centers").select("id,code,name,locations(id,code,name,is_active)").eq("is_active",true).order("name"),
   s.from("products").select("id,code,name,unit_of_measure,product_qualities(id,name,is_active)").eq("is_active",true).order("name")

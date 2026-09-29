@@ -29,7 +29,7 @@ type NavItem = {
   adminOnly?: boolean;
   centerUserOrStock?: boolean;
   icon: LucideIcon;
-  children?: { href: string; label: string }[];
+  children?: { href: string; label: string; permission?: string }[];
 };
 
 type NavSection = {
@@ -67,7 +67,7 @@ const sections: NavSection[] = [
       { href: "/dashboard/stock", label: "Inventory / Stock", permission: "stock", icon: Boxes, children: [
         { href: "/dashboard/stock", label: "Stock explorer" },
         { href: "/dashboard/stock/transfers", label: "Internal transfers" },
-        { href: "/dashboard/stock/adjustments", label: "Stock adjustment" },
+        { href: "/dashboard/stock/adjustments", label: "Stock adjustment", permission: "stock_adjustment" },
         { href: "/dashboard/stock/movements", label: "Product movements" },
       ] },
       { href: "/dashboard/stock/scrap", label: "Scrap stock", centerUserOrStock: true, icon: Trash2 },
@@ -97,7 +97,7 @@ const sections: NavSection[] = [
     items: [
       { href: "/dashboard/centers", label: "Centers & Locations", permission: "centers", icon: Building2 },
       { href: "/dashboard/masters", label: "Products & Suppliers", permission: "masters", icon: Settings },
-      { href: "/dashboard/users", label: "Users & Access", permission: "users", icon: Users },
+      { href: "/dashboard/users", label: "Users & Access", permission: "users", adminOnly: true, icon: Users },
     ],
   },
   {
@@ -118,7 +118,7 @@ function isActive(pathname: string, href: string) {
 
 export function SidebarNavigation({ permissions, isAdmin }: { permissions: string[]; isAdmin: boolean }) {
   const pathname = usePathname();
-  const canSee = (item: NavItem) => item.adminOnly ? isAdmin : item.centerUserOrStock ? (!isAdmin || permissions.includes("stock")) : !item.permission || permissions.includes(item.permission);
+  const canSee = (item: NavItem) => (!item.adminOnly||isAdmin) && (item.centerUserOrStock ? (!isAdmin||permissions.includes("stock")) : !item.permission||permissions.includes(item.permission));
 
   return (
     <nav className="sidebar-nav" aria-label="Main navigation">
@@ -139,7 +139,7 @@ export function SidebarNavigation({ permissions, isAdmin }: { permissions: strin
                   </Link>
                   {item.children && active && (
                     <div className="nav-submenu">
-                      {item.children.map((child) => {
+                      {item.children.filter(child=>!child.permission||permissions.includes(child.permission)).map((child) => {
                         const childActive = pathname === child.href;
                         const content = <><span className="nav-sub-dot" /><span>{child.label}</span></>;
                         return child.href === "/dashboard/purchases/new"

@@ -15,5 +15,5 @@ export default async function StockPage(){
  }
  const stock=[...grouped.values()].filter(x=>Math.abs(x.qty)>.0001).sort((a,b)=>a.category.localeCompare(b.category)||a.product.localeCompare(b.product)||a.center.localeCompare(b.center)||a.location.localeCompare(b.location));
  const movements:StockMovementForFSN[]=rows.filter(r=>r.movement_type==="sale_out"||(r.movement_type==="adjustment_in"&&["sales_return","sale_cancellation"].includes(r.reference_type))).map(r=>({centerId:r.center_id,locationId:r.location_id,productId:r.product_id,qualityId:r.quality_id,kind:r.movement_type==="sale_out"?"sale":"return",quantity:Number(r.quantity),date:r.created_at,referenceId:r.reference_id}));
- return <StockView initialStock={stock} fsnMovements={movements} isAdmin={["super_admin","admin"].includes(profile.role)}/>;
+ return <StockView initialStock={stock} fsnMovements={movements} isAdmin={["super_admin","admin"].includes(profile.role)} canAdjust={profile.role==="super_admin"||profile.permissions.includes("stock_adjustment")}/>;
 }
