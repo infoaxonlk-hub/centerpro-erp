@@ -1,5 +1,5 @@
-import {readCashLedger} from "@/lib/cash-ledger";
-import { CashManager } from "./cash-manager";
+﻿import {readCashLedger} from "@/lib/cash-ledger";
+
 import { BankAccountsManager } from "./bank-accounts-manager";
 import {CashTopups} from "./topups";
 import {UnifiedCash} from "./unified-cash";
@@ -21,5 +21,6 @@ export default async function CashPage(){
  const expenseBalances=await Promise.all((centers??[]).map(c=>supabase.rpc("center_expense_cash_balance",{target_center:c.id})));
  const expenseAvailable=expenseBalances.reduce((sum,result)=>sum+Number(result.data??0),0);
  const purchaseAvailable=(ledger??[]).reduce((sum,row)=>sum+(["allocation","refund","sale_receipt"].includes(row.movement_type)?Number(row.amount):-Number(row.amount)),0);
- return <><div className="page-heading"><div><span className="eyebrow dark">FUNDS CONTROL</span><h1>Cash & Payments</h1><p>Admin cash float, combined center handovers and center receipts.</p></div></div><UnifiedCash isAdmin={canManage} centers={centers??[]} issues={issues??[]} cashIns={cashIns??[]} available={Number(floatResult.data??0)} purchaseAvailable={purchaseAvailable} expenseAvailable={expenseAvailable}/><CashManager initialLedger={ledger??[]} initialHandovers={handovers??[]} centers={centers??[]} canIssue={canManage}/><CashTopups centers={centers??[]} rows={topups??[]} isAdmin={canManage}/><BankAccountsManager organizationId={profile.organization_id} banks={banks??[]} initialAccounts={accounts??[]} canManage={canManage}/></>;
+ return <><div className="page-heading"><div><span className="eyebrow dark">FUNDS CONTROL</span><h1>Cash & Payments</h1><p>Admin cash float, combined center handovers and center receipts.</p></div></div><UnifiedCash isAdmin={canManage} centers={centers??[]} issues={issues??[]} cashIns={cashIns??[]} available={Number(floatResult.data??0)} purchaseAvailable={purchaseAvailable} expenseAvailable={expenseAvailable}/><CashTopups centers={centers??[]} rows={topups??[]} isAdmin={canManage}/><BankAccountsManager organizationId={profile.organization_id} banks={banks??[]} initialAccounts={accounts??[]} canManage={canManage}/></>;
 }
+
