@@ -67,6 +67,8 @@ const sections: NavSection[] = [
       { href: "/dashboard/stock", label: "Inventory / Stock", permission: "stock", icon: Boxes, children: [
         { href: "/dashboard/stock", label: "Stock explorer" },
         { href: "/dashboard/stock/transfers", label: "Internal transfers" },
+        { href: "/dashboard/stock/adjustments", label: "Stock adjustment" },
+        { href: "/dashboard/stock/movements", label: "Product movements" },
       ] },
       { href: "/dashboard/stock/scrap", label: "Scrap stock", centerUserOrStock: true, icon: Trash2 },
     ],
