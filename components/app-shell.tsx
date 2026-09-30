@@ -17,7 +17,7 @@ export function AppShell({ children, name, role, permissions, notifications, isA
       <div className="sidebar-foot"><ReceiptText size={18}/><span>Pilot workspace</span></div>
     </aside>
     <section className="workspace">
-      <header className="topbar"><div><strong>{name}</strong><small>{role.replaceAll("_", " ")}</small>{!isAdmin&&assignedCenters.length>0&&<span className="current-center">{assignedCenters.length===1?assignedCenters[0]:`${assignedCenters.length} assigned centers`}</span>}</div><div className="topbar-actions"><NotificationBell initialNotifications={notifications}/><form action={logout}><ActionSubmit label="Sign out" pendingLabel="Signing out…" className="ghost" /></form></div></header>
+      <header className="topbar"><div><strong>{name}</strong><small>{role.replaceAll("_", " ")}</small>{!isAdmin&&assignedCenters.length>0&&<span className="current-center">{assignedCenters.length===1?assignedCenters[0]:`${assignedCenters.length} assigned centers`}</span>}</div><div className="topbar-actions"><NotificationBell initialNotifications={notifications}/><span id="appearance-settings-slot" /><form action={logout}><ActionSubmit label="Sign out" pendingLabel="Signing out…" className="ghost" /></form></div></header>
       {demoNotice&&<div className="demo-notice" role="status"><strong>DEMO</strong><span>{demoNotice.message} {daysLeft>0?`${daysLeft} day${daysLeft===1?"":"s"} remaining.`:daysLeft===0?"Ends today.":"Demo period ended."}</span><small>End date: {demoNotice.endDate}</small></div>}
       <ContextNavigation />
       <main className="page-content">{children}</main>
