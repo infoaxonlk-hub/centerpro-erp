@@ -12,3 +12,9 @@ html[data-theme=dark]{color-scheme:dark;--ink:#eeedf7;--muted:#aba9bd;--line:#39
 
 /* Brief feedback for app cards and submenu changes. */
 .launcher-tile{transition:transform 120ms ease,opacity 120ms ease}.launcher-tile:active{transform:scale(.96)}.launcher-enter{animation:launcher-reveal 220ms ease-out both}.launcher-enter .launcher-tile{animation:launcher-reveal 240ms ease-out backwards}.launcher-enter .launcher-tile:nth-child(2){animation-delay:25ms}.launcher-enter .launcher-tile:nth-child(3){animation-delay:50ms}.launcher-enter .launcher-tile:nth-child(n+4){animation-delay:75ms}.module-cards a{transition:transform 120ms ease,background 120ms ease}.module-cards a:active{transform:scale(.97)}@keyframes launcher-reveal{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}@media(prefers-reduced-motion:reduce){.launcher-enter,.launcher-enter .launcher-tile{animation:none}.launcher-tile,.module-cards a,.launcher-icon{transition:none}.launcher-tile:active,.module-cards a:active{transform:none}}
+
+/* Keep app-launcher cards visually grouped like the sidebar navigation. */
+.launcher-section{margin:0 0 28px}.launcher-section>h2{margin:0 0 8px;padding:0 8px;color:var(--brand-dark);font-size:14px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}.launcher-section .launcher-grid{padding:0}
+
+/* Keep app-launcher cards visually grouped like the sidebar navigation. */
+.launcher-section{margin:0 0 28px}.launcher-section>h2{margin:0 0 8px;padding:0 8px;color:var(--brand-dark);font-size:14px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}.launcher-section .launcher-grid{padding:0}
