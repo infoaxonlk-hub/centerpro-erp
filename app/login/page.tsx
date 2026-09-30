@@ -1,3 +1,5 @@
+import { ActionSubmit } from "@/components/action-submit";
+import "@/app/appearance.css";
 import { login } from "./actions";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -19,7 +21,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           {error && <div className="alert error">{error}</div>}
           <label>Email address<input name="email" type="email" autoComplete="email" required /></label>
           <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>
-          <button className="primary" type="submit">Sign in</button>
+          <ActionSubmit label="Sign in" pendingLabel="Signing in…" />
         </form>
       </section>
     </main>
