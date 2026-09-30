@@ -7,10 +7,10 @@ import { NotificationBell, type AdminNotification } from "@/components/notificat
 import { SidebarNavigation } from "@/components/sidebar-navigation";
 import { ContextNavigation } from "@/components/context-navigation";
 
-export function AppShell({ children, name, role, permissions, notifications, isAdmin, assignedCenters, demoNotice }: { children: React.ReactNode; name: string; role: string; permissions: string[]; notifications: AdminNotification[]; isAdmin: boolean; assignedCenters: string[]; demoNotice?: { endDate: string; message: string } | null }) {
+export function AppShell({ children, companyName, name, role, permissions, notifications, isAdmin, assignedCenters, demoNotice }: { children: React.ReactNode; companyName?: string; name: string; role: string; permissions: string[]; notifications: AdminNotification[]; isAdmin: boolean; assignedCenters: string[]; demoNotice?: { endDate: string; message: string } | null }) {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Colombo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const daysLeft = demoNotice ? Math.round((Date.parse(`${demoNotice.endDate}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000) : 0;
-  return <AppearanceShell permissions={permissions} isAdmin={isAdmin}>
+  return <AppearanceShell permissions={permissions} isAdmin={isAdmin} companyName={companyName} centerNames={assignedCenters}>
     <aside className="sidebar">
       <div className="logo"><span>CP</span><div><strong>CenterPro</strong><small>by InfoAxon</small></div></div>
       <SidebarNavigation permissions={permissions} isAdmin={isAdmin} />
