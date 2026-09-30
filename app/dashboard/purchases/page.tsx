@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/access";
-import { OfflinePosLink } from "@/components/offline-pos-link";
 
 const PAGE_SIZE = 25;
 const methods = ["cash", "credit", "bank_transfer", "card", "cheque"] as const;
@@ -58,7 +57,6 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Se
   return <>
     <div className="page-heading">
       <div><span className="eyebrow dark">PROCUREMENT</span><h1>Purchases</h1><p>Open a PO number to view or print its bill and request cancellation.</p></div>
-      <OfflinePosLink className="primary" href="/dashboard/purchases/new">New purchase</OfflinePosLink>
     </div>
     <form className="panel purchase-list-filters" method="get">
       <label className="purchase-list-search">Search PO number<input name="q" defaultValue={q} placeholder="e.g. PO-20260924-0103" /></label>

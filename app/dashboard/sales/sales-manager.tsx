@@ -5,7 +5,7 @@ import {useState} from "react";
 import {createClient} from "@/lib/supabase/client";
 import {Center,Customer,Sale,colomboDate,methods,money} from "./types";
 
-export function SalesManager({start,centers,customers:initialCustomers,sales}:{start:"history"|"new";centers:Center[];customers:Customer[];sales:Sale[]}){
+export function SalesManager({start,centers,customers:initialCustomers,sales}:{start:"history"|"new"|"customers";centers:Center[];customers:Customer[];sales:Sale[]}){
  const [tab,setTab]=useState<string>(start),[center,setCenter]=useState(centers[0]?.id??""),[customers,setCustomers]=useState(initialCustomers);
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState("");
  const [reportCenter,setReportCenter]=useState(""),[reportCustomer,setReportCustomer]=useState(""),[from,setFrom]=useState(""),[to,setTo]=useState("");
