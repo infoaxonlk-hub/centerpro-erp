@@ -5,6 +5,7 @@ import {DraftBill} from "@/components/draft-bill";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Banknote,
   Check,
   CircleCheck,
   CloudOff,
@@ -143,6 +144,9 @@ export function PurchaseForm({
   const [offlineQueueError, setOfflineQueueError] = useState("");
   const [offlineNeedsCorrection, setOfflineNeedsCorrection] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [cashBalance, setCashBalance] = useState<{ centerId: string; amount: number } | null>(null);
+  const [cashBalanceLoading, setCashBalanceLoading] = useState(false);
+  const [cashBalanceRefresh, setCashBalanceRefresh] = useState(0);
   const requestId = useRef<string | null>(null);
   const syncLock = useRef(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -159,6 +163,24 @@ export function PurchaseForm({
     return () => { window.removeEventListener("online", update); window.removeEventListener("offline", update); };
   }, []);
   const center = centers.find((c) => c.id === centerId);
+  useEffect(() => {
+    if (!centerId || !isOnline) return;
+    let live = true;
+    setCashBalanceLoading(true);
+    void (async () => {
+      try {
+        const { data, error } = await createClient().rpc("center_cash_balance", { target_center: centerId });
+        if (!live) return;
+        if (error || data === null) setCashBalance((current) => current?.centerId === centerId ? current : null);
+        else setCashBalance({ centerId, amount: Number(data) });
+      } catch {
+        if (live) setCashBalance((current) => current?.centerId === centerId ? current : null);
+      } finally {
+        if (live) setCashBalanceLoading(false);
+      }
+    })();
+    return () => { live = false; };
+  }, [centerId, isOnline, cashBalanceRefresh]);
   useEffect(() => {
     let live = true;
     const url = new URL(window.location.href);
@@ -464,6 +486,7 @@ export function PurchaseForm({
       status: String(row.payment_status),
       payments: paymentLines.map((line) => ({ ...line })),
     });
+    setCashBalanceRefresh((value) => value + 1);
     notify("Purchase confirmed successfully");
   }
   useEffect(() => {
@@ -670,6 +693,11 @@ export function PurchaseForm({
         <OfflinePosStatus scopeId={scopeId} kind="purchase" />
       </header>
       {!isOnline&&<div className="pos-offline-warning" role="status">Offline: purchases can be saved on this device and will post only after server validation when connected.</div>}
+      <section className="pos-available-cash" aria-live="polite">
+        <div className="pos-available-cash-label"><span><Banknote size={19}/></span><div><strong>Available center cash</strong><small>{center ? `${center.code} · ${center.name}` : "Select a center"}{!isOnline ? " · Offline" : ""}</small></div></div>
+        <strong className="pos-available-cash-amount">{cashBalanceLoading ? "Checking…" : cashBalance?.centerId === centerId ? money(cashBalance.amount) : "Unavailable"}</strong>
+        {!isOnline && <small className="pos-cash-offline-note">Last online balance only; the server checks cash when syncing.</small>}
+      </section>
       {!checkout ? (
         <main className="pos-sale-screen">
           <section className="pos-products">
