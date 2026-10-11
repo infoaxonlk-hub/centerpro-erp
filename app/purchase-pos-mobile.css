@@ -1,0 +1,141 @@
+/* Mobile checkout overrides load after the POS accessibility sizing rules. */
+@media (max-width: 850px) {
+  .purchase-pos-full.is-payment-window {
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .purchase-pos-full .pos-payment-screen {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
+    gap: 8px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 8px 10px 12px;
+  }
+
+  /* Keep JSX order: payment form first, purchase summary below it. */
+  .purchase-pos-full .pos-payment-screen .payment-card,
+  .purchase-pos-full .pos-payment-screen .payment-summary {
+    order: 0;
+    flex: 0 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px;
+    border-radius: 12px;
+  }
+
+  .purchase-pos-full .payment-card .payment-back {
+    min-height: 36px;
+    margin: 0 0 8px;
+    padding: 5px 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .payment-card h1 {
+    margin: 2px 0 7px;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .purchase-pos-full .payment-fields {
+    gap: 8px;
+    margin-top: 7px;
+  }
+
+  .purchase-pos-full .payment-fields label {
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .payment-fields input,
+  .purchase-pos-full .payment-fields select {
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .purchase-pos-full .split-payment-heading strong,
+  .purchase-pos-full .split-payment-title b {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .payment-summary h2 {
+    margin: 0 0 7px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .summary-center {
+    gap: 3px;
+    padding: 8px;
+  }
+
+  .purchase-pos-full .summary-center small,
+  .purchase-pos-full .summary-lines small,
+  .purchase-pos-full .summary-total small {
+    font-size: 12px;
+  }
+
+  .purchase-pos-full .summary-center strong,
+  .purchase-pos-full .summary-lines b,
+  .purchase-pos-full .summary-lines > div > strong {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .summary-lines {
+    gap: 6px;
+    margin: 8px 0;
+  }
+
+  .purchase-pos-full .summary-lines > div {
+    padding-bottom: 6px;
+    font-size: 13px;
+  }
+
+  .purchase-pos-full .allocation-summary {
+    gap: 6px;
+    margin: 9px 0;
+    padding: 9px;
+    font-size: 13px;
+  }
+
+  .purchase-pos-full .allocation-summary span b,
+  .purchase-pos-full .allocation-summary > strong {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .summary-total {
+    padding-top: 8px;
+  }
+
+  .purchase-pos-full .summary-total b {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .summary-total strong {
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .confirm-payment {
+    height: 42px;
+    margin-top: 9px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+}

@@ -24,6 +24,7 @@ import "./cash-handover.css";
 import "./cash-topups.css";
 import "./offline-pos.css";
 import "./bill-return.css";
+import "./purchase-pos-mobile.css";
 import { OfflineSupport } from "@/components/offline-pos-status";
 
 export const metadata: Metadata = {

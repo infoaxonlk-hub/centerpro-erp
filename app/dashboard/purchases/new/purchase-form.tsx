@@ -2,7 +2,7 @@
 import Link from "next/link";
 import {Bill} from "@/components/bill";
 import {DraftBill} from "@/components/draft-bill";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Banknote,
@@ -232,8 +232,11 @@ export function PurchaseForm({
       .finally(() => { if (live) setDraftReady(true); });
     return () => { live = false; };
   }, [draftKey, scopeId]);
-  useEffect(() => {
-    if (checkout) paymentScreenRef.current?.scrollTo(0, 0);
+  useLayoutEffect(() => {
+    if (checkout) {
+      window.scrollTo(0, 0);
+      paymentScreenRef.current?.scrollTo(0, 0);
+    }
   }, [checkout]);
 
   useEffect(() => {
@@ -763,7 +766,7 @@ export function PurchaseForm({
     );
   }
   return (
-    <div className="purchase-pos-full">
+    <div className={`purchase-pos-full${checkout ? " is-payment-window" : ""}`}>
       <header className="pos-topbar">
         <Link href="/dashboard/purchases" className="pos-back">
           <ArrowLeft /> <span>Purchases</span>
