@@ -13,7 +13,7 @@ type Line = { key: string; product_id: string; quality_id: string; location_id: 
 const money = (n: number) => new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 2 }).format(n);
 
 export function DetailedPurchaseEntry({
-  center, suppliers, supplierId, onSupplierChange, onAddSupplier, products, visibleLines, total, totalSacks,
+  center, suppliers, supplierId, onSupplierChange, onAddSupplier, products, visibleLines, total,
   onSelectProduct, onAddWeightRow, onUpdateLine, onRemoveLine, onOpenPayment, onSetError,
 }: {
   center?: Center;
@@ -54,16 +54,9 @@ export function DetailedPurchaseEntry({
     }
     return [...map.values()];
   }, [visibleLines, products]);
-  const totalWeight = visibleLines.reduce((sum, line) => sum + (Number(line.quantity) || 0), 0);
   const farmerName = supplierId === "__cash_farmer__" || !supplierId
     ? "Cash Farmer"
     : suppliers.find(supplier => supplier.id === supplierId)?.name ?? "Select farmer";
-  const productHeading = groups.length === 1
-    ? groups[0].product.name
-    : groups.length > 1
-      ? `${groups[0].product.name} + ${groups.length - 1} more`
-      : "Select a product";
-
   function addRowAndFocus(line: Line) {
     const newKey = onAddWeightRow(line);
     requestAnimationFrame(() => {
@@ -120,12 +113,7 @@ export function DetailedPurchaseEntry({
             </div>
           </section>
         </> : <>
-          <div className="detail-totals-sticky" aria-live="polite">
-            <div className="detail-context-card"><small>Product</small><strong>{productHeading}</strong></div>
-            <div className="detail-context-card"><small>Farmer</small><strong>{farmerName}</strong></div>
-            <div className="detail-total-card"><small>Total weight</small><strong>{totalWeight.toLocaleString("en-LK", { maximumFractionDigits: 3 })} kg</strong></div>
-            <div className="detail-total-card"><small>Total sacks</small><strong>{totalSacks.toLocaleString("en-LK")}</strong></div>
-          </div>
+          <div className="detail-farmer-context"><small>Farmer</small><strong>{farmerName}</strong></div>
           <header className="detail-purchase-heading detail-entry-heading">
             <div><span className="eyebrow dark">PURCHASE ORDER</span><h1>Enter weights</h1></div>
             <button type="button" className="ghost detail-back-to-entry" onClick={() => setShowProductPicker(true)}><Plus size={16}/> Add product</button>
@@ -135,8 +123,16 @@ export function DetailedPurchaseEntry({
         {!showProductPicker && <section className="detail-weight-sections" aria-label="Selected products and weight entries">
           {groups.map(({ product, quality, lines }) => {
             const price = lines[0]?.actual_price ?? 0;
+            const productWeight = lines.reduce((sum, line) => sum + (Number(line.quantity) || 0), 0);
+            const productSacks = lines.reduce((sum, line) => sum + (Number(line.sack_count) || 0), 0);
+            const productTotal = lines.reduce((sum, line) => sum + ((Number(line.quantity) || 0) * (Number(line.actual_price) || 0)), 0);
             return <article className="detail-product-group" key={`${product.id}:${quality.id}`}>
               <header><div><strong>{product.name}</strong><small>{quality.is_base ? "No quality" : quality.name} · {product.unit_of_measure}</small></div><button type="button" className="detail-add-row" onClick={() => addRowAndFocus(lines[0])}><Plus size={15}/> Add weighing</button></header>
+              <div className="detail-product-summary" aria-live="polite">
+                <div><small>Total weight</small><strong>{productWeight.toLocaleString("en-LK", { maximumFractionDigits: 3 })} kg</strong></div>
+                <div><small>Total sacks</small><strong>{productSacks.toLocaleString("en-LK")}</strong></div>
+                <div><small>Product total</small><strong>{money(productTotal)}</strong></div>
+              </div>
               <label className="detail-price-field">Purchase price per kg (LKR)<input type="number" min="0" step="0.01" value={price} onChange={e => lines.forEach(line => onUpdateLine(line.key, { actual_price: Number(e.target.value) }))}/></label>
               {center?.allow_multiple_locations && <label className="detail-location-field">Stock location<select value={lines[0]?.location_id ?? ""} onChange={e => lines.forEach(line => onUpdateLine(line.key, { location_id: e.target.value }))}><option value="">Select location</option>{center.locations.filter(l => l.is_active).map(location => <option key={location.id} value={location.id}>{location.code} · {location.name}</option>)}</select></label>}
               <div className="detail-weight-rows">
