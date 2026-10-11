@@ -58,6 +58,12 @@ export function DetailedPurchaseEntry({
   const farmerName = supplierId === "__cash_farmer__" || !supplierId
     ? "Cash Farmer"
     : suppliers.find(supplier => supplier.id === supplierId)?.name ?? "Select farmer";
+  const productHeading = groups.length === 1
+    ? groups[0].product.name
+    : groups.length > 1
+      ? `${groups[0].product.name} + ${groups.length - 1} more`
+      : "Select a product";
+
   function addRowAndFocus(line: Line) {
     const newKey = onAddWeightRow(line);
     requestAnimationFrame(() => {
@@ -115,23 +121,10 @@ export function DetailedPurchaseEntry({
           </section>
         </> : <>
           <div className="detail-totals-sticky" aria-live="polite">
+            <div className="detail-context-card"><small>Product</small><strong>{productHeading}</strong></div>
             <div className="detail-context-card"><small>Farmer</small><strong>{farmerName}</strong></div>
             <div className="detail-total-card"><small>Total weight</small><strong>{totalWeight.toLocaleString("en-LK", { maximumFractionDigits: 3 })} kg</strong></div>
             <div className="detail-total-card"><small>Total sacks</small><strong>{totalSacks.toLocaleString("en-LK")}</strong></div>
-            <section className="detail-product-totals" aria-label="Totals by product">
-              {groups.map(({ product, quality, lines }) => {
-                const weight = lines.reduce((sum, line) => sum + (Number(line.quantity) || 0), 0);
-                const sacks = lines.reduce((sum, line) => sum + (Number(line.sack_count) || 0), 0);
-                const unitPrice = Number(lines[0]?.actual_price) || 0;
-                return <article className="detail-product-total" key={`${product.id}:${quality.id}`}>
-                  <strong title={`${product.name} · ${quality.is_base ? "No quality" : quality.name}`}>{product.name}</strong>
-                  <small>{quality.is_base ? "No quality" : quality.name}</small>
-                  <div><span>Weight <b>{weight.toLocaleString("en-LK", { maximumFractionDigits: 3 })} kg</b></span><span>Sacks <b>{sacks.toLocaleString("en-LK")}</b></span></div>
-                  <small>Product total</small>
-                  <b className="detail-product-total-amount">{money(weight * unitPrice)}</b>
-                </article>;
-              })}
-            </section>
           </div>
           <header className="detail-purchase-heading detail-entry-heading">
             <div><span className="eyebrow dark">PURCHASE ORDER</span><h1>Enter weights</h1></div>
