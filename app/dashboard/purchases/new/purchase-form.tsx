@@ -318,7 +318,9 @@ export function PurchaseForm({
     else if (qs[0]) add(product, qs[0]);
   }
   function addWeightRow(line: Line) {
-    setLines(old => [...old, { ...line, key: makeKey(), quantity: 0, sack_count: 0 }]);
+    const key = makeKey();
+    setLines(old => [...old, { ...line, key, quantity: 0, sack_count: 0 }]);
+    return key;
   }
   function update(key: string, change: Partial<Line>) {
     setLines((old) =>
