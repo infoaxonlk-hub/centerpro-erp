@@ -47,6 +47,7 @@ export default async function NewPurchasePage() {
     <PurchaseForm
       centers={centers ?? []}
       suppliers={suppliers ?? []}
+      organizationId={profile.organization_id}
       products={products ?? []}
       prices={prices ?? []}
       bankAccounts={bankAccounts ?? []}

@@ -82,13 +82,14 @@ export async function syncPosTasks(client: SupabaseClient, scopeId: string, kind
             p_lines: p.lines,
             p_payments: p.payments,
           })
-        : await client.rpc("confirm_queued_purchase", {
+        : await client.rpc(p.purchaseMode === "detailed" ? "confirm_queued_purchase_detailed" : "confirm_queued_purchase", {
             p_request: task.requestId,
             target_center: p.centerId,
             target_supplier: p.supplierId || null,
             purchase_notes: p.notes || null,
             purchase_lines: p.lines,
             payment_allocations: p.payments,
+            ...(p.purchaseMode === "detailed" ? { purchase_sack_counts: p.sackCounts, use_cash_farmer: Boolean(p.useCashFarmer) } : {}),
           });
       if (result.error) { needsCorrection = !/failed to fetch|network|timeout|load failed|gateway|502|503|504/i.test(result.error.message); throw new Error(result.error.message); }
       const row = task.kind === "sale" ? null : Array.isArray(result.data) ? result.data[0] : result.data;

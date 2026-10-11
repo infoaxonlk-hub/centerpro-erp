@@ -15,12 +15,14 @@ import {
   RefreshCw,
   Search,
   ShoppingCart,
+  Store,
   Trash2,
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { notify } from "@/components/feedback";
 import { OfflinePosStatus } from "@/components/offline-pos-status";
+import { DetailedPurchaseEntry } from "./detailed-purchase-entry";
 import { clearPosDraft, deletePosTask, enqueuePosTask, loadPosDraft, listPosTasks, savePosDraft, syncPosTasks, type OfflinePosTask } from "@/lib/offline-pos";
 type Location = {
   id: string;
@@ -78,6 +80,7 @@ type Line = {
   quality_id: string;
   location_id: string;
   quantity: number;
+  sack_count: number;
   actual_price: number;
 };
 const money = (n: number) =>
@@ -89,7 +92,8 @@ const money = (n: number) =>
 const makeKey = () => Math.random().toString(36).slice(2);
 export function PurchaseForm({
   centers,
-  suppliers,
+  suppliers: initialSuppliers,
+  organizationId,
   products,
   prices,
   bankAccounts,
@@ -99,6 +103,7 @@ export function PurchaseForm({
 }: {
   centers: Center[];
   suppliers: Supplier[];
+  organizationId: string;
   products: Product[];
   prices: Price[];
   bankAccounts: BankAccount[];
@@ -107,7 +112,12 @@ export function PurchaseForm({
   scopeId: string;
 }) {
   const [centerId, setCenterId] = useState(centers[0]?.id ?? "");
+  const [entryMode, setEntryMode] = useState<"pos" | "detailed">("pos");
+  const [suppliers, setSuppliers] = useState(initialSuppliers);
   const [supplierId, setSupplierId] = useState("");
+  const [showSupplierDialog, setShowSupplierDialog] = useState(false);
+  const [supplierBusy, setSupplierBusy] = useState(false);
+  const [supplierError, setSupplierError] = useState("");
   const [paymentLines, setPaymentLines] = useState<PaymentLine[]>([
     {
       key: makeKey(),
@@ -155,6 +165,23 @@ export function PurchaseForm({
   const cartRef = useRef<HTMLElement>(null);
   const startFreshAfterQueue = useRef(false);
   const draftKey = `purchase:${scopeId}`;
+  useEffect(() => {
+    const readMode = () => {
+      try {
+        const value = localStorage.getItem("centerpro-purchase-view");
+        setEntryMode(value === "detailed" ? "detailed" : "pos");
+      } catch { setEntryMode("pos"); }
+    };
+    readMode();
+    window.addEventListener("centerpro-purchase-view-change", readMode);
+    return () => window.removeEventListener("centerpro-purchase-view-change", readMode);
+  }, []);
+  useEffect(() => {
+    if (entryMode === "detailed" && !supplierId) {
+      const cashFarmer = suppliers.find(s => s.name.trim().toLowerCase() === "cash farmer");
+      setSupplierId(cashFarmer?.id ?? "__cash_farmer__");
+    } else if (entryMode === "pos" && supplierId === "__cash_farmer__") setSupplierId("");
+  }, [entryMode, supplierId, suppliers]);
   useEffect(() => {
     const update = () => setIsOnline(navigator.onLine);
     update();
@@ -250,6 +277,15 @@ export function PurchaseForm({
     );
   }
   function add(product: Product, quality: Quality) {
+    if (entryMode === "detailed") {
+      setLines(old => [...old, {
+        key: makeKey(), product_id: product.id, quality_id: quality.id,
+        location_id: center?.allow_multiple_locations ? "" : (center?.locations.find(l => l.is_default)?.id ?? ""),
+        quantity: 0, sack_count: 0, actual_price: rate(quality.id),
+      }]);
+      setQualityProduct(null);
+      return;
+    }
     const existing = lines.find(
       (l) => l.product_id === product.id && l.quality_id === quality.id,
     );
@@ -270,6 +306,7 @@ export function PurchaseForm({
             ? ""
             : (center?.locations.find((l) => l.is_default)?.id ?? ""),
           quantity: 1,
+          sack_count: 0,
           actual_price: rate(quality.id),
         },
       ]);
@@ -280,6 +317,9 @@ export function PurchaseForm({
     if (qs.length > 1) setQualityProduct(product);
     else if (qs[0]) add(product, qs[0]);
   }
+  function addWeightRow(line: Line) {
+    setLines(old => [...old, { ...line, key: makeKey(), quantity: 0, sack_count: 0 }]);
+  }
   function update(key: string, change: Partial<Line>) {
     setLines((old) =>
       old.map((l) => (l.key === key ? { ...l, ...change } : l)),
@@ -289,7 +329,40 @@ export function PurchaseForm({
     () => lines.reduce((s, l) => s + l.quantity * l.actual_price, 0),
     [lines],
   );
+  async function createSupplier(fd: FormData) {
+    const name = String(fd.get("name") ?? "").trim();
+    if (!name) { setSupplierError("Supplier name is required."); return; }
+    setSupplierBusy(true);
+    setSupplierError("");
+    try {
+      const { data, error } = await createClient()
+        .from("suppliers")
+        .insert({
+          organization_id: organizationId,
+          name,
+          phone: String(fd.get("phone") ?? "").trim() || null,
+          nic_or_registration: String(fd.get("nic") ?? "").trim() || null,
+          address: String(fd.get("address") ?? "").trim() || null,
+          bank_details: String(fd.get("bank") ?? "").trim() || null,
+          notes: String(fd.get("notes") ?? "").trim() || null,
+        })
+        .select("id,name,phone")
+        .single();
+      if (error || !data) throw new Error(error?.message ?? "Supplier could not be created.");
+      setSuppliers((current) => [...current, data as Supplier].sort((a, b) => a.name.localeCompare(b.name)));
+      setSupplierId(data.id);
+      setShowSupplierDialog(false);
+      notify("Supplier created and selected for this purchase.");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "Supplier could not be created.";
+      setSupplierError(message);
+      notify(message, "error");
+    } finally {
+      setSupplierBusy(false);
+    }
+  }
   const qty = useMemo(() => lines.reduce((s, l) => s + l.quantity, 0), [lines]);
+  const totalSacks = useMemo(() => lines.reduce((s, l) => s + (Number(l.sack_count) || 0), 0), [lines]);
   const overrides = lines.filter(
     (l) => Math.abs(l.actual_price - rate(l.quality_id)) > 0.001,
   ).length;
@@ -325,7 +398,9 @@ export function PurchaseForm({
     let message = "";
     if (!lines.length) message = "Add at least one purchase item.";
     else if (lines.some((l) => l.quantity <= 0))
-      message = "Enter a valid quantity for every item.";
+      message = entryMode === "detailed" ? "Enter a weight greater than zero for every row." : "Enter a valid quantity for every item.";
+    else if (entryMode === "detailed" && lines.some(l => l.sack_count <= 0 || !Number.isInteger(l.sack_count)))
+      message = "Enter a whole sack count greater than zero for every weight row.";
     else if (
       center?.allow_multiple_locations &&
       lines.some((l) => !l.location_id)
@@ -418,7 +493,10 @@ export function PurchaseForm({
       createdAt: new Date().toISOString(),
       payload: {
         centerId,
-        supplierId: supplierId || null,
+        supplierId: supplierId && supplierId !== "__cash_farmer__" ? supplierId : null,
+        purchaseMode: entryMode,
+        useCashFarmer: entryMode === "detailed" && (!supplierId || supplierId === "__cash_farmer__"),
+        sackCounts: entryMode === "detailed" ? lines.map(line => ({ sack_count: line.sack_count })) : [],
         notes,
         lines: lines.map(({ product_id, quality_id, location_id, quantity, actual_price }) => ({ product_id, quality_id, location_id, quantity, actual_price })),
         payments: payload,
@@ -449,13 +527,14 @@ export function PurchaseForm({
     let data: unknown;
     let error: { message: string } | null;
     try {
-      const result = await createClient().rpc("confirm_queued_purchase", {
+      const result = await createClient().rpc(entryMode === "detailed" ? "confirm_queued_purchase_detailed" : "confirm_queued_purchase", {
         p_request: task.requestId,
         target_center: task.payload.centerId,
         target_supplier: task.payload.supplierId,
         purchase_notes: task.payload.notes,
         purchase_lines: task.payload.lines,
         payment_allocations: task.payload.payments,
+        ...(entryMode === "detailed" ? { purchase_sack_counts: task.payload.sackCounts, use_cash_farmer: Boolean(task.payload.useCashFarmer) } : {}),
       });
       data = result.data;
       error = result.error;
@@ -594,13 +673,14 @@ export function PurchaseForm({
     const tasks = await listPosTasks(scopeId, "purchase");
     const task = tasks.find(item => item.requestId === requestId.current) ?? tasks[0];
     if (!task?.needsCorrection) return;
-    const saved = task.payload as { centerId:string; supplierId:string|null; notes:string|null; lines:Array<{product_id:string;quality_id:string;location_id:string;quantity:number;actual_price:number}>; payments:Array<{method:PaymentMethod;amount:number;bank_account_id:string|null;reference:string|null;cheque_number:string|null;cheque_date:string|null}> };
+    const saved = task.payload as { centerId:string; supplierId:string|null; notes:string|null; purchaseMode?:"pos"|"detailed"; sackCounts?:Array<{sack_count:number}>; lines:Array<{product_id:string;quality_id:string;location_id:string;quantity:number;actual_price:number}>; payments:Array<{method:PaymentMethod;amount:number;bank_account_id:string|null;reference:string|null;cheque_number:string|null;cheque_date:string|null}> };
     await deletePosTask(task.requestId);
     requestId.current = null;
     setCenterId(saved.centerId);
     setSupplierId(saved.supplierId ?? "");
     setNotes(saved.notes ?? "");
-    setLines(saved.lines.map(line => ({ ...line, key: makeKey() })));
+    setEntryMode(saved.purchaseMode === "detailed" ? "detailed" : "pos");
+    setLines(saved.lines.map((line,index) => ({ ...line, key: makeKey(), sack_count: saved.sackCounts?.[index]?.sack_count ?? 0 })));
     setPaymentLines(saved.payments.map(line => ({ ...line, key: makeKey(), bank_account_id: line.bank_account_id ?? "", reference: line.reference ?? "", cheque_number: line.cheque_number ?? "", cheque_date: line.cheque_date ?? "" })));
     setCheckout(true);
     setOfflineQueueError("");
@@ -608,7 +688,7 @@ export function PurchaseForm({
     setOfflineQueued(false);
     setError("The server did not post this purchase. Review the details and confirm again.");
   }
-  const billData = {organization:organizationName,title:"PURCHASE BILL",date:new Date().toLocaleString("en-LK",{timeZone:"Asia/Colombo"}),center:(center?.code??"")+" · "+(center?.name??""),party:suppliers.find(s=>s.id===supplierId)?.name??"Cash purchase",user:userName,notes,total,lines:lines.map(l=>{const p=products.find(p=>p.id===l.product_id);return {name:p?.name??"",quality:p?.product_qualities.find(q=>q.id===l.quality_id)?.name,quantity:l.quantity,unit:p?.unit_of_measure??"",price:l.actual_price,total:Math.round(l.quantity*l.actual_price*100)/100};})};
+  const billData = {organization:organizationName,title:"PURCHASE BILL",date:new Date().toLocaleString("en-LK",{timeZone:"Asia/Colombo"}),center:(center?.code??"")+" · "+(center?.name??""),party:suppliers.find(s=>s.id===supplierId)?.name??(supplierId==="__cash_farmer__"?"Cash Farmer":"Cash purchase"),user:userName,notes,total,lines:lines.map(l=>{const p=products.find(p=>p.id===l.product_id);return {name:p?.name??"",quality:p?.product_qualities.find(q=>q.id===l.quality_id)?.name,quantity:l.quantity,sacks:l.sack_count,unit:p?.unit_of_measure??"",price:l.actual_price,total:Math.round(l.quantity*l.actual_price*100)/100};})};
   if (offlineQueued) return <div className="purchase-pos-full"><header className="pos-topbar"><Link href="/dashboard/purchases" className="pos-back"><ArrowLeft/><span>Purchases</span></Link><div className="pos-brand"><b>CenterPro</b><small>Purchase POS</small></div><OfflinePosStatus scopeId={scopeId} kind="purchase"/></header><main className="pos-offline-pending"><article><CloudOff size={48}/><h1>Purchase saved · waiting to sync</h1><p>This purchase is stored on this device. It has <strong>not</strong> changed stock or cash yet. When the connection returns, CenterPro will validate and post it.</p><strong>{money(pendingTotal)}</strong>{offlineQueueError&&<p className="alert error" role="alert">Sync needs attention: {offlineQueueError}</p>}<p>Keep this device and account available until the status shows synced. Server stock and cash balances are checked when posting.</p><div className="pos-offline-actions">{offlineNeedsCorrection&&<button className="ghost" onClick={()=>void editPendingPurchase()}>Review and edit saved purchase</button>}<button className="primary" onClick={()=>window.dispatchEvent(new Event("centerpro-pos-queue"))}><RefreshCw size={17}/> Try sync now</button><button className="ghost" onClick={()=>window.location.assign("/dashboard/purchases/new?new=1")}>New purchase</button><Link className="ghost" href="/dashboard/purchases">Purchase history</Link></div></article></main></div>;
   if (done) {
     return (
@@ -671,7 +751,7 @@ export function PurchaseForm({
         </Link>
         <div className="pos-brand">
           <b>CenterPro</b>
-          <small>Purchase POS</small>
+          <small>{entryMode === "detailed" ? "Detailed purchase order" : "Purchase POS"}</small>
         </div>
         <label>
           <kbd>F4</kbd> Center
@@ -699,6 +779,25 @@ export function PurchaseForm({
         {!isOnline && <small className="pos-cash-offline-note">Last online balance only; the server checks cash when syncing.</small>}
       </section>
       {!checkout ? (
+        entryMode === "detailed" ? (
+          <DetailedPurchaseEntry
+            center={center}
+            suppliers={suppliers}
+            supplierId={supplierId}
+            onSupplierChange={setSupplierId}
+            onAddSupplier={() => { setSupplierError(""); setShowSupplierDialog(true); }}
+            products={activeProducts}
+            visibleLines={lines}
+            total={total}
+            totalSacks={totalSacks}
+            onSelectProduct={selectProduct}
+            onAddWeightRow={addWeightRow}
+            onUpdateLine={update}
+            onRemoveLine={key => setLines(old => old.filter(line => line.key !== key))}
+            onOpenPayment={openPayment}
+            onSetError={setError}
+          />
+        ) : (
         <main className="pos-sale-screen">
           <section className="pos-products">
             <div className="pos-search">
@@ -944,11 +1043,12 @@ export function PurchaseForm({
             </footer>
           </aside>
         </main>
+        )
       ) : (
         <main className="pos-payment-screen">
           <section className="payment-card">
             <button className="payment-back" onClick={() => setCheckout(false)}>
-              <ArrowLeft /> Back to products
+              <ArrowLeft /> {entryMode === "detailed" ? "Back to purchase" : "Back to products"}
             </button>
             <span className="eyebrow dark">FINAL STEP</span>
             <h1>Split purchase payment</h1>
@@ -958,7 +1058,8 @@ export function PurchaseForm({
             </p>
             {error && <div className="alert error">{error}</div>}
             <div className="payment-fields">
-              <label>
+              <div className="supplier-select-row">
+                <label>
                 Supplier <small>{paymentLines.some((line) => line.method !== "cash") ? "(required)" : "(optional for Cash-only purchase)"}</small>
                 <select
                   ref={supplierRef}
@@ -966,6 +1067,7 @@ export function PurchaseForm({
                   onChange={(e) => setSupplierId(e.target.value)}
                 >
                   <option value="">Select supplier</option>
+                  {supplierId === "__cash_farmer__" && <option value="__cash_farmer__">Cash Farmer (default)</option>}
                   {suppliers.map((s) => (
                     <option value={s.id} key={s.id}>
                       {s.name}
@@ -973,7 +1075,11 @@ export function PurchaseForm({
                     </option>
                   ))}
                 </select>
-              </label>
+                </label>
+                <button type="button" className="ghost supplier-create-button" onClick={() => { setSupplierError(""); setShowSupplierDialog(true); }} disabled={!isOnline} title={!isOnline ? "Connect to the internet to add a supplier" : "Create a supplier"}>
+                  <Plus size={15}/> New supplier
+                </button>
+              </div>
               <div className="split-payments">
                 <div className="split-payment-heading">
                   <strong>Payment allocations</strong>
@@ -1167,7 +1273,7 @@ export function PurchaseForm({
                       <b>{p.name}</b>
                       <small>
                         {q.is_base ? "No quality" : q.name} · {line.quantity}{" "}
-                        {p.unit_of_measure}
+                        {p.unit_of_measure}{line.sack_count > 0 ? ` · ${line.sack_count} sacks` : ""}
                       </small>
                     </span>
                     <strong>{money(line.quantity * line.actual_price)}</strong>
@@ -1228,6 +1334,27 @@ export function PurchaseForm({
             </button>
           </aside>
         </main>
+      )}
+      {showSupplierDialog && (
+        <div className="dialog-backdrop quality-picker supplier-quick-create">
+          <form action={createSupplier} className="dialog">
+            <div className="dialog-head">
+              <div><h2><Store size={19}/> Add supplier</h2><p>Create a supplier and select it for this purchase.</p></div>
+              <button type="button" className="icon-btn" onClick={() => setShowSupplierDialog(false)} disabled={supplierBusy}><X/></button>
+            </div>
+            {supplierError && <div className="alert error" role="alert">{supplierError}</div>}
+            <div className="form-grid">
+              <label className="wide">Supplier name<input name="name" autoFocus required maxLength={160} placeholder="Enter supplier or business name"/></label>
+              <label>Phone<input name="phone" type="tel" maxLength={40} placeholder="Optional"/></label>
+              <label>NIC / Registration<input name="nic" maxLength={100} placeholder="Optional"/></label>
+              <label className="wide">Address<input name="address" maxLength={300} placeholder="Optional"/></label>
+              <label className="wide">Bank details<input name="bank" maxLength={300} placeholder="Optional"/></label>
+              <label className="wide">Notes<input name="notes" maxLength={500} placeholder="Optional"/></label>
+            </div>
+            {!isOnline && <div className="alert error">Supplier creation needs an internet connection. Reconnect and try again.</div>}
+            <div className="dialog-actions"><button type="button" className="ghost" onClick={() => setShowSupplierDialog(false)} disabled={supplierBusy}>Cancel</button><button type="submit" className="primary" disabled={supplierBusy || !isOnline}><Store size={16}/>{supplierBusy ? "Saving…" : "Save and select supplier"}</button></div>
+          </form>
+        </div>
       )}
       {qualityProduct && (
         <div className="dialog-backdrop quality-picker">
