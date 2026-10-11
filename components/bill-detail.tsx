@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Bill, type BillData } from "@/components/bill";
+import { Bill, getBillDisplayLines, type BillData } from "@/components/bill";
 import "@/app/bill-detail.css";
 
 const money = (value: number) => new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(value);
@@ -8,6 +8,8 @@ const money = (value: number) => new Intl.NumberFormat("en-LK", { style: "curren
 export function BillDetail({ data: bill }: { data: BillData }) {
   const [language, setLanguage] = useState<"en" | "si">("en");
   const isPurchase = bill.title.includes("PURCHASE");
+  const weighingBill = isPurchase && bill.lines.some(line => Number(line.sacks ?? 0) > 0);
+  const displayLines = getBillDisplayLines(bill);
   const cancelled = bill.status === "cancelled";
   return <div className="bill-detail-layout">
     <div className="bill-detail-screen">
@@ -37,7 +39,7 @@ export function BillDetail({ data: bill }: { data: BillData }) {
         </section>
       </div>
 
-      <section className="bill-detail-panel bill-detail-items"><h2>Items</h2><div className="bill-detail-table-wrap"><table><thead><tr><th>Item</th><th>Quality</th><th className="number">Quantity</th>{isPurchase&&<th className="number">Sacks</th>}<th className="number">Unit price</th><th className="number">Amount</th></tr></thead><tbody>{bill.lines.map((line, index) => <tr key={index}><td><strong>{line.name}</strong></td><td>{line.quality || "—"}</td><td className="number">{line.quantity} {line.unit}</td>{isPurchase&&<td className="number">{line.sacks??0}</td>}<td className="number">{money(line.price)}</td><td className="number"><strong>{money(line.total)}</strong></td></tr>)}</tbody><tfoot><tr><td colSpan={isPurchase?5:4}>Total</td><td className="number">{money(bill.total)}</td></tr></tfoot></table></div></section>
+      <section className="bill-detail-panel bill-detail-items"><h2>Items</h2><div className="bill-detail-table-wrap"><table className={weighingBill?"bill-weight-detail-table":""}><thead>{weighingBill?<tr><th>No</th><th>Item</th><th className="number">Total sacks</th><th className="number">Total weight</th><th className="number">Unit price</th><th className="number">Total amount</th></tr>:<tr><th>Item</th><th>Quality</th><th className="number">Quantity</th>{isPurchase&&<th className="number">Sacks</th>}<th className="number">Unit price</th><th className="number">Amount</th></tr>}</thead><tbody>{displayLines.map((line,index)=><tr key={`${line.name}-${line.quality}-${index}`}>{weighingBill?<><td>{index+1}</td><td><strong>{line.name}</strong>{line.quality&&<small className="bill-detail-quality">{line.quality}</small>}</td><td className="number">{line.sacks??0}</td><td className="number">{line.quantity} {line.unit}</td><td className="number">{money(line.price)}</td><td className="number"><strong>{money(line.total)}</strong></td></>:<><td><strong>{line.name}</strong></td><td>{line.quality||"—"}</td><td className="number">{line.quantity} {line.unit}</td>{isPurchase&&<td className="number">{line.sacks??0}</td>}<td className="number">{money(line.price)}</td><td className="number"><strong>{money(line.total)}</strong></td></>}</tr>)}</tbody><tfoot><tr><td colSpan={weighingBill?5:isPurchase?5:4}>Total</td><td className="number">{money(bill.total)}</td></tr></tfoot></table></div></section>
       {bill.notes && <section className="bill-detail-panel"><h2>Notes</h2><p>{bill.notes}</p></section>}
     </div>
     <div className="bill-detail-print"><Bill data={{ ...bill, language }} /></div>
