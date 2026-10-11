@@ -1066,12 +1066,7 @@ export function PurchaseForm({
             <button className="payment-back" onClick={() => setCheckout(false)}>
               <ArrowLeft /> {entryMode === "detailed" ? "Back to purchase" : "Back to products"}
             </button>
-            <span className="eyebrow dark">FINAL STEP</span>
-            <h1>Split purchase payment</h1>
-            <p>
-              Add one or more allocations. Their total must exactly equal the
-              purchase total.
-            </p>
+            <h1>Payment window</h1>
             {error && <div className="alert error">{error}</div>}
             <div className="payment-fields">
               <div className="supplier-select-row">
