@@ -1,4 +1,4 @@
-import {requirePermission} from "@/lib/access";
+﻿import {requirePermission} from "@/lib/access";
 import {SalesManager} from "./sales-manager";
 import {SalesPOS} from "./sales-pos";
 import type {Bank,Center,Customer,Price,Product,Sale} from "./types";
@@ -26,6 +26,12 @@ export async function SalesScreen({start="history"}:{start?:"history"|"new"|"cus
  const {data:organization}=await s.from("organizations").select("name").limit(1).maybeSingle();
  const [centers,customers,products,prices,accounts,sales]=loaded;
  const banks=(accounts as (Bank&{is_active:boolean})[]).map(a=>({...a,payment_banks:Array.isArray(a.payment_banks)?a.payment_banks[0]:a.payment_banks})).filter(a=>a.is_active&&a.payment_banks?.is_active);
- if(start==="new")return <SalesPOS scopeId={profile.id} organizationName={organization?.name??"CenterPro"} userName={profile.full_name} centers={(centers as (Center&{is_active:boolean})[]).filter(c=>c.is_active)} customers={customers as Customer[]} products={(products as (Product&{is_active:boolean})[]).filter(p=>p.is_active)} prices={prices as Price[]} banks={banks}/>;
+ if(start==="new"){
+  const {data:laborSessions}=profile.role==="admin"||profile.role==="super_admin"||(profile.permissions??[]).includes("labor")
+   ? await s.from("labor_sessions").select("id,center_id,title,operation,session_date").eq("status","open").in("operation",["sales","both"]).order("session_date",{ascending:false})
+   : {data:[]};
+  return <SalesPOS scopeId={profile.id} organizationName={organization?.name??"CenterPro"} userName={profile.full_name} centers={(centers as (Center&{is_active:boolean})[]).filter(c=>c.is_active)} customers={customers as Customer[]} products={(products as (Product&{is_active:boolean})[]).filter(p=>p.is_active)} prices={prices as Price[]} banks={banks} laborSessions={laborSessions??[]}/>;
+ }
  return <SalesManager start={start} centers={(centers as (Center&{is_active:boolean})[]).filter(c=>c.is_active)} customers={customers as Customer[]} sales={sales as Sale[]}/>;
 }
+

@@ -74,22 +74,28 @@ export async function syncPosTasks(client: SupabaseClient, scopeId: string, kind
     try {
       const p = task.payload;
       const result = task.kind === "sale"
-        ? await client.rpc("confirm_center_sale", {
+        ? await client.rpc("confirm_center_sale_with_labor", {
             p_request: task.requestId,
             p_center: p.centerId,
             p_customer: p.customerId || null,
             p_notes: p.notes || null,
             p_lines: p.lines,
             p_payments: p.payments,
+            p_labor_session: p.laborSessionId || null,
+            p_load_count: Number(p.laborLoadCount || 0),
           })
-        : await client.rpc(p.purchaseMode === "detailed" ? "confirm_queued_purchase_detailed" : "confirm_queued_purchase", {
+        : await client.rpc("confirm_queued_purchase_with_labor", {
             p_request: task.requestId,
             target_center: p.centerId,
             target_supplier: p.supplierId || null,
             purchase_notes: p.notes || null,
             purchase_lines: p.lines,
             payment_allocations: p.payments,
-            ...(p.purchaseMode === "detailed" ? { purchase_sack_counts: p.sackCounts, use_cash_farmer: Boolean(p.useCashFarmer) } : {}),
+            p_labor_session: p.laborSessionId || null,
+            p_load_count: Number(p.laborLoadCount || 0),
+            p_detailed: p.purchaseMode === "detailed",
+            purchase_sack_counts: p.sackCounts ?? [],
+            use_cash_farmer: Boolean(p.useCashFarmer),
           });
       if (result.error) { needsCorrection = !/failed to fetch|network|timeout|load failed|gateway|502|503|504/i.test(result.error.message); throw new Error(result.error.message); }
       const row = task.kind === "sale" ? null : Array.isArray(result.data) ? result.data[0] : result.data;

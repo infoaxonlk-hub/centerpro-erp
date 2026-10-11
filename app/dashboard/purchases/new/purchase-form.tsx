@@ -39,6 +39,7 @@ type Center = {
   locations: Location[];
 };
 type Supplier = { id: string; name: string; phone: string | null };
+type LaborSession={id:string;center_id:string;title:string;operation:string;session_date:string};
 type BankInfo = { id: string; code: string; name: string; is_active: boolean };
 type BankAccount = {
   id: string;
@@ -100,6 +101,7 @@ export function PurchaseForm({
   organizationName,
   userName,
   scopeId,
+  laborSessions,
 }: {
   centers: Center[];
   suppliers: Supplier[];
@@ -110,6 +112,7 @@ export function PurchaseForm({
   organizationName: string;
   userName: string;
   scopeId: string;
+  laborSessions: LaborSession[];
 }) {
   const [centerId, setCenterId] = useState(centers[0]?.id ?? "");
   const [entryMode, setEntryMode] = useState<"pos" | "detailed">("pos");
@@ -157,6 +160,8 @@ export function PurchaseForm({
   const [cashBalance, setCashBalance] = useState<{ centerId: string; amount: number } | null>(null);
   const [cashBalanceLoading, setCashBalanceLoading] = useState(false);
   const [cashBalanceRefresh, setCashBalanceRefresh] = useState(0);
+  const [laborSessionId,setLaborSessionId]=useState("");
+  const [laborLoadCount,setLaborLoadCount]=useState("0");
   const requestId = useRef<string | null>(null);
   const syncLock = useRef(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -218,18 +223,18 @@ export function PurchaseForm({
     }
     const startFresh = startFreshAfterQueue.current;
     void Promise.all([
-        startFresh ? Promise.resolve(null) : loadPosDraft<{centerId:string;supplierId:string;paymentLines:PaymentLine[];notes:string;lines:Line[];checkout:boolean}>(draftKey),
+        startFresh ? Promise.resolve(null) : loadPosDraft<{centerId:string;supplierId:string;paymentLines:PaymentLine[];notes:string;lines:Line[];checkout:boolean;laborSessionId?:string;laborLoadCount?:string}>(draftKey),
       listPosTasks(scopeId, "purchase"),
     ])
-      .then(([draft, tasks]) => { if (live && draft) { setCenterId(draft.centerId); setSupplierId(draft.supplierId); setPaymentLines(draft.paymentLines); setNotes(draft.notes); setLines(draft.lines); setCheckout(draft.checkout); } if (live && tasks.length && !startFresh) { requestId.current = tasks[0].requestId; setOfflineQueued(true); setPendingTotal(Number(tasks[0].payload.total ?? 0)); const failed=tasks.find(task => task.lastError); setOfflineQueueError(failed?.lastError ?? ""); setOfflineNeedsCorrection(Boolean(failed?.needsCorrection)); } })
+      .then(([draft, tasks]) => { if (live && draft) { setCenterId(draft.centerId); setSupplierId(draft.supplierId); setPaymentLines(draft.paymentLines); setNotes(draft.notes); setLines(draft.lines); setCheckout(draft.checkout);setLaborSessionId(draft.laborSessionId??"");setLaborLoadCount(draft.laborLoadCount??"0"); } if (live && tasks.length && !startFresh) { requestId.current = tasks[0].requestId; setOfflineQueued(true); setPendingTotal(Number(tasks[0].payload.total ?? 0)); const failed=tasks.find(task => task.lastError); setOfflineQueueError(failed?.lastError ?? ""); setOfflineNeedsCorrection(Boolean(failed?.needsCorrection)); } })
       .catch(() => {})
       .finally(() => { if (live) setDraftReady(true); });
     return () => { live = false; };
   }, [draftKey, scopeId]);
   useEffect(() => {
     if (!draftReady || done || offlineQueued) return;
-    void savePosDraft(draftKey, { centerId, supplierId, paymentLines, notes, lines, checkout }).catch(() => {});
-  }, [draftReady, done, offlineQueued, draftKey, centerId, supplierId, paymentLines, notes, lines, checkout]);
+    void savePosDraft(draftKey, { centerId, supplierId, paymentLines, notes, lines, checkout,laborSessionId,laborLoadCount }).catch(() => {});
+  }, [draftReady, done, offlineQueued, draftKey, centerId, supplierId, paymentLines, notes, lines, checkout,laborSessionId,laborLoadCount]);
   useEffect(() => {
     let active = true;
     const syncPending = async () => {
@@ -497,6 +502,8 @@ export function PurchaseForm({
         centerId,
         supplierId: supplierId && supplierId !== "__cash_farmer__" ? supplierId : null,
         purchaseMode: entryMode,
+        laborSessionId: laborSessionId||null,
+        laborLoadCount: Math.max(0,Number(laborLoadCount)||0),
         useCashFarmer: entryMode === "detailed" && (!supplierId || supplierId === "__cash_farmer__"),
         sackCounts: entryMode === "detailed" ? lines.map(line => ({ sack_count: line.sack_count })) : [],
         notes,
@@ -529,13 +536,16 @@ export function PurchaseForm({
     let data: unknown;
     let error: { message: string } | null;
     try {
-      const result = await createClient().rpc(entryMode === "detailed" ? "confirm_queued_purchase_detailed" : "confirm_queued_purchase", {
+      const result = await createClient().rpc("confirm_queued_purchase_with_labor", {
         p_request: task.requestId,
         target_center: task.payload.centerId,
         target_supplier: task.payload.supplierId,
         purchase_notes: task.payload.notes,
         purchase_lines: task.payload.lines,
         payment_allocations: task.payload.payments,
+        p_labor_session: task.payload.laborSessionId,
+        p_load_count: task.payload.laborLoadCount,
+        p_detailed: entryMode === "detailed",
         ...(entryMode === "detailed" ? { purchase_sack_counts: task.payload.sackCounts, use_cash_farmer: Boolean(task.payload.useCashFarmer) } : {}),
       });
       data = result.data;
@@ -675,12 +685,14 @@ export function PurchaseForm({
     const tasks = await listPosTasks(scopeId, "purchase");
     const task = tasks.find(item => item.requestId === requestId.current) ?? tasks[0];
     if (!task?.needsCorrection) return;
-    const saved = task.payload as { centerId:string; supplierId:string|null; notes:string|null; purchaseMode?:"pos"|"detailed"; sackCounts?:Array<{sack_count:number}>; lines:Array<{product_id:string;quality_id:string;location_id:string;quantity:number;actual_price:number}>; payments:Array<{method:PaymentMethod;amount:number;bank_account_id:string|null;reference:string|null;cheque_number:string|null;cheque_date:string|null}> };
+    const saved = task.payload as { centerId:string; supplierId:string|null; notes:string|null; laborSessionId?:string|null;laborLoadCount?:number;purchaseMode?:"pos"|"detailed"; sackCounts?:Array<{sack_count:number}>; lines:Array<{product_id:string;quality_id:string;location_id:string;quantity:number;actual_price:number}>; payments:Array<{method:PaymentMethod;amount:number;bank_account_id:string|null;reference:string|null;cheque_number:string|null;cheque_date:string|null}> };
     await deletePosTask(task.requestId);
     requestId.current = null;
     setCenterId(saved.centerId);
     setSupplierId(saved.supplierId ?? "");
     setNotes(saved.notes ?? "");
+    setLaborSessionId(saved.laborSessionId??"");
+    setLaborLoadCount(String(saved.laborLoadCount??0));
     setEntryMode(saved.purchaseMode === "detailed" ? "detailed" : "pos");
     setLines(saved.lines.map((line,index) => ({ ...line, key: makeKey(), sack_count: saved.sackCounts?.[index]?.sack_count ?? 0 })));
     setPaymentLines(saved.payments.map(line => ({ ...line, key: makeKey(), bank_account_id: line.bank_account_id ?? "", reference: line.reference ?? "", cheque_number: line.cheque_number ?? "", cheque_date: line.cheque_date ?? "" })));
@@ -763,6 +775,8 @@ export function PurchaseForm({
             onChange={(e) => {
               setCenterId(e.target.value);
               setLines([]);
+              setLaborSessionId("");
+              setLaborLoadCount("0");
             }}
           >
             {centers.map((c) => (
@@ -1083,6 +1097,7 @@ export function PurchaseForm({
                 </button>
               </div>
               <div className="split-payments">
+                {laborSessions.some(s=>s.center_id===centerId)&&<div className="labor-pos-fields"><label>Labor session<select value={laborSessionId} onChange={e=>setLaborSessionId(e.target.value)}><option value="">No labor session</option>{laborSessions.filter(s=>s.center_id===centerId).map(s=><option key={s.id} value={s.id}>{s.title} · {s.session_date}</option>)}</select></label><label>Loads<input type="number" min="0" step="1" value={laborLoadCount} onChange={e=>setLaborLoadCount(e.target.value)}/></label></div>}
                 <div className="split-payment-heading">
                   <strong>Payment allocations</strong>
                   <button type="button" className="ghost" onClick={addPayment}>

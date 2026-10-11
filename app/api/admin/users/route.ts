@@ -12,7 +12,7 @@ async function requireAdmin() {
   return {...profile,id:user.id};
 }
 
-const permissionsSchema=z.array(z.enum(["dashboard","sales","purchases","stock","stock_adjustment","cash","payment_reports","centers","users","masters","product_create","product_edit","audit"]));
+const permissionsSchema=z.array(z.enum(["dashboard","sales","purchases","stock","stock_adjustment","labor","cash","payment_reports","centers","users","masters","product_create","product_edit","audit"]));
 const createUserSchema = z.object({
   email: z.string().email(), password: z.string().min(8).max(72), fullName: z.string().trim().min(2).max(120),
   phone: z.string().trim().max(30).optional(), role: z.enum(["admin", "center_user"]),

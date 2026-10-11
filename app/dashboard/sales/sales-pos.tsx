@@ -10,17 +10,19 @@ import {clearPosDraft,deletePosTask,enqueuePosTask,loadCachedStock,loadPosDraft,
 import {Bank,Center,Customer,Line,Payment,Price,Product,Stock,cents,methods,money} from "./types";
 import "./sales-pos.css";
 
-type Props={centers:Center[];customers:Customer[];products:Product[];prices:Price[];banks:Bank[];organizationName?:string;userName?:string;scopeId:string};
+type LaborSession={id:string;center_id:string;title:string;operation:string;session_date:string};
+type Props={centers:Center[];customers:Customer[];products:Product[];prices:Price[];banks:Bank[];laborSessions:LaborSession[];organizationName?:string;userName?:string;scopeId:string};
 const newPayment=(amount:number,key="initial"):Payment=>({key,method:"cash",amount:amount.toFixed(2),bank_account_id:"",reference:"",cheque_number:"",cheque_date:""});
 const qty=(n:number)=>n.toLocaleString("en-LK",{maximumFractionDigits:3});
 const roundedQty=(n:number)=>Math.round(n*1000)/1000;
 
-export function SalesPOS({centers,customers:initialCustomers,products,prices,banks,organizationName="CenterPro",userName,scopeId}:Props){
+export function SalesPOS({centers,customers:initialCustomers,products,prices,banks,laborSessions,organizationName="CenterPro",userName,scopeId}:Props){
  const [centerId,setCenterId]=useState(centers[0]?.id??"");
  const [stock,setStock]=useState<Stock[]>([]),[stockReady,setStockReady]=useState(false),[stockError,setStockError]=useState(""),[refresh,setRefresh]=useState(0);
  const [lines,setLines]=useState<Line[]>([]),[search,setSearch]=useState(""),[category,setCategory]=useState("all"),[checkout,setCheckout]=useState(false);
  const [payments,setPayments]=useState<Payment[]>([]),[customerId,setCustomerId]=useState(""),[customers,setCustomers]=useState(initialCustomers),[notes,setNotes]=useState("");
  const [error,setError]=useState(""),[busy,setBusy]=useState(false),[customerBusy,setCustomerBusy]=useState(false),[customerError,setCustomerError]=useState(""),[customerOpen,setCustomerOpen]=useState(false);
+ const [laborSessionId,setLaborSessionId]=useState(""),[laborLoadCount,setLaborLoadCount]=useState("0");
  const [draftReady,setDraftReady]=useState(false),[offlineQueued,setOfflineQueued]=useState(false),[pendingTotal,setPendingTotal]=useState(0),[offlineQueueError,setOfflineQueueError]=useState(""),[offlineNeedsCorrection,setOfflineNeedsCorrection]=useState(false),[isOnline,setIsOnline]=useState(true);
  const requestId=useRef<string|null>(null),submitLock=useRef(false),customerLock=useRef(false);
  const syncLock=useRef(false),draftKey=`sale:${scopeId}`;
@@ -44,13 +46,13 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
 
  useEffect(()=>{
   let live=true;
-  void Promise.all([loadPosDraft<{centerId:string;lines:Line[];payments:Payment[];customerId:string;notes:string;checkout:boolean}>(draftKey),listPosTasks(scopeId,"sale")]).then(([draft,tasks])=>{
-   if(live&&draft){setCenterId(draft.centerId);setLines(draft.lines);setPayments(draft.payments);setCustomerId(draft.customerId);setNotes(draft.notes);setCheckout(draft.checkout);}
+  void Promise.all([loadPosDraft<{centerId:string;lines:Line[];payments:Payment[];customerId:string;notes:string;checkout:boolean;laborSessionId?:string;laborLoadCount?:string}>(draftKey),listPosTasks(scopeId,"sale")]).then(([draft,tasks])=>{
+   if(live&&draft){setCenterId(draft.centerId);setLines(draft.lines);setPayments(draft.payments);setCustomerId(draft.customerId);setNotes(draft.notes);setCheckout(draft.checkout);setLaborSessionId(draft.laborSessionId??"");setLaborLoadCount(draft.laborLoadCount??"0");}
    if(live&&tasks.length){requestId.current=tasks[0].requestId;setOfflineQueued(true);setPendingTotal(Number(tasks[0].payload.totalCents??0)/100);const failed=tasks.find(task=>task.lastError);setOfflineQueueError(failed?.lastError??"");setOfflineNeedsCorrection(Boolean(failed?.needsCorrection));}
   }).catch(()=>{}).finally(()=>{if(live)setDraftReady(true);});
   return()=>{live=false;};
  },[draftKey,scopeId]);
- useEffect(()=>{if(!draftReady||offlineQueued)return;void savePosDraft(draftKey,{centerId,lines,payments,customerId,notes,checkout}).catch(()=>{});},[draftReady,offlineQueued,draftKey,centerId,lines,payments,customerId,notes,checkout]);
+ useEffect(()=>{if(!draftReady||offlineQueued)return;void savePosDraft(draftKey,{centerId,lines,payments,customerId,notes,checkout,laborSessionId,laborLoadCount}).catch(()=>{});},[draftReady,offlineQueued,draftKey,centerId,lines,payments,customerId,notes,checkout,laborSessionId,laborLoadCount]);
  useEffect(()=>{const update=()=>setIsOnline(navigator.onLine);update();window.addEventListener("online",update);window.addEventListener("offline",update);return()=>{window.removeEventListener("online",update);window.removeEventListener("offline",update);};},[]);
  useEffect(()=>{
   let active=true;
@@ -84,7 +86,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
  function changeCenter(id:string){
   if(id===centerId)return;
   if(lines.length&&!window.confirm("Change center and clear this sale?"))return;
-  setCenterId(id);setStock([]);setStockReady(false);setStockError("");setLines([]);setPayments([]);setCustomerId("");setNotes("");setError("");setCheckout(false);requestId.current=null;
+  setCenterId(id);setStock([]);setStockReady(false);setStockError("");setLines([]);setPayments([]);setCustomerId("");setNotes("");setLaborSessionId("");setLaborLoadCount("0");setError("");setCheckout(false);requestId.current=null;
  }
  function savedPrice(qualityId:string){
   const value=Number(prices.find(p=>p.center_id===centerId&&p.quality_id===qualityId)?.price??0);
@@ -108,11 +110,11 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
   e.preventDefault();if(submitLock.current)return;
   if(!canConfirm){setError("Check stock, customer and payment allocations before confirming.");return;}
   submitLock.current=true;setBusy(true);setError("");
-  const task:OfflinePosTask={requestId:requestId.current??=crypto.randomUUID(),scopeId,kind:"sale",createdAt:new Date().toISOString(),payload:{centerId,customerId,notes,lines:lines.map(l=>({...l,quantity:Number(l.quantity)})),payments:rows.map(p=>({...p,amount:Number(p.amount)})),totalCents}};
+  const task:OfflinePosTask={requestId:requestId.current??=crypto.randomUUID(),scopeId,kind:"sale",createdAt:new Date().toISOString(),payload:{centerId,customerId,notes,laborSessionId:laborSessionId||null,laborLoadCount:Math.max(0,Number(laborLoadCount)||0),lines:lines.map(l=>({...l,quantity:Number(l.quantity)})),payments:rows.map(p=>({...p,amount:Number(p.amount)})),totalCents}};
   const queueForLater=async(message?:string)=>{try{await enqueuePosTask(task);await clearPosDraft(draftKey);setOfflineQueueError(message??"");setPendingTotal(totalCents/100);setOfflineQueued(true);window.dispatchEvent(new Event("centerpro-pos-queue"));}catch(storageError){const text=storageError instanceof Error?storageError.message:"This device could not save the offline sale.";setError(text);submitLock.current=false;setBusy(false);}};
   if(!navigator.onLine){await queueForLater();setBusy(false);return;}
   try{
-   const {data,error}=await createClient().rpc("confirm_center_sale",{p_request:task.requestId,p_center:centerId,p_customer:customerId||null,p_notes:notes,p_lines:task.payload.lines,p_payments:task.payload.payments});
+   const {data,error}=await createClient().rpc("confirm_center_sale_with_labor",{p_request:task.requestId,p_center:centerId,p_customer:customerId||null,p_notes:notes,p_lines:task.payload.lines,p_payments:task.payload.payments,p_labor_session:task.payload.laborSessionId,p_load_count:task.payload.laborLoadCount});
    if(error)throw new Error(error.message);
    await deletePosTask(task.requestId).catch(()=>{});await clearPosDraft(draftKey).catch(()=>{});
    // Reload the stored receipt and cash/stock state after the atomic posting.
@@ -122,8 +124,8 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
  }
  async function editPendingSale(){
   const tasks=await listPosTasks(scopeId,"sale");const task=tasks.find(item=>item.requestId===requestId.current)??tasks[0];if(!task?.needsCorrection)return;
-  const saved=task.payload as {centerId:string;customerId:string;notes:string;lines:Array<Line>;payments:Array<Payment&{amount:number|string}>};
-  await deletePosTask(task.requestId);requestId.current=null;setCenterId(saved.centerId);setCustomerId(saved.customerId??"");setNotes(saved.notes??"");setLines(saved.lines.map(line=>({...line,quantity:String(line.quantity)})));setPayments(saved.payments.map(payment=>({...payment,amount:String(payment.amount)})));setCheckout(true);setOfflineQueueError("");setOfflineNeedsCorrection(false);setOfflineQueued(false);setError("The server did not post this sale. Review the details and confirm again.");
+  const saved=task.payload as {centerId:string;customerId:string;notes:string;laborSessionId?:string|null;laborLoadCount?:number;lines:Array<Line>;payments:Array<Payment&{amount:number|string}>};
+  await deletePosTask(task.requestId);requestId.current=null;setCenterId(saved.centerId);setCustomerId(saved.customerId??"");setNotes(saved.notes??"");setLaborSessionId(saved.laborSessionId??"");setLaborLoadCount(String(saved.laborLoadCount??0));setLines(saved.lines.map(line=>({...line,quantity:String(line.quantity)})));setPayments(saved.payments.map(payment=>({...payment,amount:String(payment.amount)})));setCheckout(true);setOfflineQueueError("");setOfflineNeedsCorrection(false);setOfflineQueued(false);setError("The server did not post this sale. Review the details and confirm again.");
  }
  async function addCustomer(e:React.FormEvent<HTMLFormElement>){
   e.preventDefault();if(customerLock.current)return;customerLock.current=true;setCustomerBusy(true);setCustomerError("");
@@ -172,6 +174,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
     <fieldset disabled={busy} className="sales-pos-fieldset"><button type="button" className="payment-back" onClick={()=>setCheckout(false)}><ArrowLeft/>Back to products</button><span className="eyebrow dark">FINAL STEP</span><h1>Split sales payment</h1><p>Allocate the sale total across your payment methods.</p>
     {error&&<div className="alert error" role="alert">{error}</div>}
     <div className="payment-fields"><label>Customer<select aria-label="Sale customer" value={customerId} required={credit>0} onChange={e=>setCustomerId(e.target.value)}><option value="">Walk-in customer (no credit)</option>{customers.filter(c=>c.center_id===centerId).map(c=><option key={c.id} value={c.id}>{c.name}{c.phone?" · "+c.phone:""}</option>)}</select></label><button type="button" className="ghost sales-add-customer" disabled={!isOnline} title={!isOnline?"Connect to add a customer":""} onClick={()=>{setCustomerError("");setCustomerOpen(true);}}><UserPlus size={17}/>Add customer</button>
+    {laborSessions.some(s=>s.center_id===centerId)&&<div className="labor-pos-fields"><label>Labor session<select value={laborSessionId} onChange={e=>setLaborSessionId(e.target.value)}><option value="">No labor session</option>{laborSessions.filter(s=>s.center_id===centerId).map(s=><option key={s.id} value={s.id}>{s.title} · {s.session_date}</option>)}</select></label><label>Loads<input type="number" min="0" step="1" value={laborLoadCount} onChange={e=>setLaborLoadCount(e.target.value)}/></label></div>}
     {credit>0&&!customerId&&<p className="alert error">Select or add a customer for Credit.</p>}
     <div className="split-payments"><div className="split-payment-heading"><strong>Payment allocations</strong><button type="button" className="ghost" disabled={rows.length>=20||difference<=0} onClick={()=>setPayments([...rows,newPayment(Math.max(0,difference)/100,crypto.randomUUID())])}><Plus size={17}/>Add line</button></div>
     {rows.map((p,index)=>{const account=banks.find(b=>b.id===p.bank_account_id);return <section className="split-payment-line" key={p.key}><div className="split-payment-title"><b>Payment {index+1}</b>{rows.length>1&&<button type="button" aria-label={"Remove payment "+(index+1)} onClick={()=>setPayments(rows.filter(row=>row.key!==p.key))}><Trash2 size={16}/></button>}</div><div className="split-payment-grid">

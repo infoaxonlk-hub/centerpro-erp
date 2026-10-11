@@ -9,6 +9,7 @@ export default async function NewPurchasePage() {
     { data: prices },
     { data: organization },
     { data: bankAccounts },
+    { data: laborSessions },
   ] = await Promise.all([
     s
       .from("centers")
@@ -42,6 +43,9 @@ export default async function NewPurchasePage() {
       )
       .eq("is_active", true)
       .order("account_number"),
+    (profile.role==="admin"||profile.role==="super_admin"||(profile.permissions??[]).includes("labor"))
+      ? s.from("labor_sessions").select("id,center_id,title,operation,session_date").eq("status","open").in("operation",["purchase","both"]).order("session_date",{ascending:false})
+      : Promise.resolve({data:[]} as {data:never[]}),
   ]);
   return (
     <PurchaseForm
@@ -54,6 +58,7 @@ export default async function NewPurchasePage() {
       organizationName={organization?.name ?? "CenterPro"}
       userName={profile.full_name}
       scopeId={profile.id}
+      laborSessions={laborSessions??[]}
     />
   );
 }
