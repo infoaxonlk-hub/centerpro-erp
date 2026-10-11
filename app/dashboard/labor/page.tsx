@@ -12,5 +12,5 @@ export default async function LaborPage(){
   supabase.from("labor_payments").select("session_id,laborer_id,amount"),
  ]);
  const orders=[...(purchases??[]).map((x:any)=>({...x,kind:"purchase"})),...(sales??[]).map((x:any)=>({...x,kind:"sales"}))];
- return <LaborManager centers={centers??[]} laborers={laborers??[]} sessions={(sessions??[]) as never} orders={orders} payments={payments??[]} canManage={profile.role==="admin"||profile.role==="super_admin"}/>;
+ return <LaborManager organizationId={profile.organization_id} centers={centers??[]} laborers={laborers??[]} sessions={(sessions??[]) as never} orders={orders} payments={payments??[]} canManage={profile.role==="admin"||profile.role==="super_admin"}/>;
 }
