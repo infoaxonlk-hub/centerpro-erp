@@ -136,20 +136,20 @@
 
 /* On phones, show the bill summary first and keep the payment form compact. */
 @media(max-width:850px){
-  .pos-payment-screen{display:flex;flex-direction:column;gap:10px;padding:8px 10px 14px}
-  .pos-payment-screen .payment-summary{order:-1;width:100%;padding:13px;border-radius:12px}
-  .pos-payment-screen .payment-card{order:1;width:100%;padding:13px;border-radius:12px}
-  .payment-summary h2{font-size:17px;margin:0 0 9px}
-  .payment-card .payment-back{min-height:36px;margin:0 0 10px;padding:6px 9px;font-size:12px}
-  .payment-card h1{font-size:22px;line-height:1.15;margin:2px 0 8px}
+  .pos-payment-screen{display:flex;flex-direction:column;gap:8px;padding:8px 10px 12px}
+  .pos-payment-screen .payment-summary{order:-1;width:100%;padding:11px;border-radius:12px}
+  .pos-payment-screen .payment-card{order:1;width:100%;padding:11px;border-radius:12px}
+  .payment-summary h2{font-size:16px;margin:0 0 7px}
+  .payment-card .payment-back{min-height:34px;margin:0 0 8px;padding:5px 8px;font-size:12px}
+  .payment-card h1{font-size:20px;line-height:1.2;margin:2px 0 7px}
   .payment-card>p{display:none}
-  .payment-fields{gap:9px;margin-top:8px}
-  .payment-fields label{gap:5px;font-size:11px}
-  .payment-fields input,.payment-fields select{height:40px}
-  .summary-center{gap:3px;padding:9px}
-  .summary-lines{gap:7px;margin:10px 0}
-  .summary-lines>div{padding-bottom:7px;font-size:13px}
-  .summary-total{padding-top:9px}
-  .summary-total strong{font-size:19px}
-  .confirm-payment{height:42px;margin-top:10px}
+  .payment-fields{gap:8px;margin-top:7px}
+  .payment-fields label{gap:4px;font-size:11px}
+  .payment-fields input,.payment-fields select{height:38px}
+  .summary-center{gap:3px;padding:8px}
+  .summary-lines{gap:6px;margin:8px 0}
+  .summary-lines>div{padding-bottom:6px;font-size:12px}
+  .summary-total{padding-top:8px}
+  .summary-total strong{font-size:18px}
+  .confirm-payment{height:40px;margin-top:9px}
 }

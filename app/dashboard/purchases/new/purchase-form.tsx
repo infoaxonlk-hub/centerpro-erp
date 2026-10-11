@@ -168,6 +168,7 @@ export function PurchaseForm({
   const centerRef = useRef<HTMLSelectElement>(null);
   const supplierRef = useRef<HTMLSelectElement>(null);
   const cartRef = useRef<HTMLElement>(null);
+  const paymentScreenRef = useRef<HTMLElement>(null);
   const startFreshAfterQueue = useRef(false);
   const draftKey = `purchase:${scopeId}`;
   useEffect(() => {
@@ -231,6 +232,10 @@ export function PurchaseForm({
       .finally(() => { if (live) setDraftReady(true); });
     return () => { live = false; };
   }, [draftKey, scopeId]);
+  useEffect(() => {
+    if (checkout) paymentScreenRef.current?.scrollTo(0, 0);
+  }, [checkout]);
+
   useEffect(() => {
     if (!draftReady || done || offlineQueued) return;
     void savePosDraft(draftKey, { centerId, supplierId, paymentLines, notes, lines, checkout,laborSessionId,laborLoadCount }).catch(() => {});
@@ -1061,7 +1066,7 @@ export function PurchaseForm({
         </main>
         )
       ) : (
-        <main className="pos-payment-screen">
+        <main className="pos-payment-screen" ref={paymentScreenRef}>
           <section className="payment-card">
             <button className="payment-back" onClick={() => setCheckout(false)}>
               <ArrowLeft /> {entryMode === "detailed" ? "Back to purchase" : "Back to products"}
