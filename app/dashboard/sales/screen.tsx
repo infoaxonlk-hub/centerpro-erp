@@ -3,7 +3,7 @@ import {SalesManager} from "./sales-manager";
 import {SalesPOS} from "./sales-pos";
 import type {Bank,Center,Customer,Price,Product,Sale} from "./types";
 import "./sales.css";
-export async function SalesScreen({start="history"}:{start?:"history"|"new"|"customers"}){
+export async function SalesScreen({start="history"}:{start?:"history"|"new"|"customers"|"summary"}){
  const {supabase:s,profile}=await requirePermission("sales");
  // Page through every record: totals must not silently stop at Supabase's row limit.
  async function rows(table:string,select:string,order="id"){

@@ -27,10 +27,11 @@ type NavItem = {
   href: string;
   label: string;
   permission?: string;
+  permissionsAny?: string[];
   adminOnly?: boolean;
   centerUserOrStock?: boolean;
   icon: LucideIcon;
-  children?: { href: string; label: string; permission?: string }[];
+  children?: { href: string; label: string; permission?: string; centerUserOrStock?: boolean }[];
 };
 
 type NavSection = {
@@ -54,8 +55,10 @@ export const sections: NavSection[] = [
         permission: "purchases",
         icon: PackagePlus,
         children: [
-          { href: "/dashboard/purchases", label: "Order List" },
-          { href: "/dashboard/purchases/new", label: "New Purchase" },
+          { href: "/dashboard/purchases/new", label: "New purchase" },
+          { href: "/dashboard/purchases", label: "Purchase orders" },
+          { href: "/dashboard/purchases/products", label: "Products" },
+          { href: "/dashboard/purchases/suppliers", label: "Suppliers" },
         ],
       },
       {
@@ -63,33 +66,34 @@ export const sections: NavSection[] = [
         label: "Sales",
         permission: "sales",
         icon: ShoppingCart,
-        children: [{ href: "/dashboard/sales/receivables", label: "Customer Receivables" }],
+        children: [{ href: "/dashboard/sales/new", label: "New sale" }, { href: "/dashboard/sales", label: "Sales orders" }, { href: "/dashboard/sales/summary", label: "Sales summary" }, { href: "/dashboard/sales/products", label: "Products" }, { href: "/dashboard/sales/customers", label: "Customers" }],
       },
-      { href: "/dashboard/stock", label: "Inventory / Stock", permission: "stock", icon: Boxes, children: [
-        { href: "/dashboard/stock", label: "Stock explorer" },
-        { href: "/dashboard/stock/transfers", label: "Internal transfers" },
+      { href: "/dashboard/stock", label: "Inventory", centerUserOrStock: true, icon: Boxes, children: [
+        { href: "/dashboard/stock", label: "Stock explorer", permission: "stock" },
+        { href: "/dashboard/stock/transfers", label: "Internal transfers", permission: "stock" },
         { href: "/dashboard/stock/adjustments", label: "Stock adjustment", permission: "stock_adjustment" },
-        { href: "/dashboard/stock/movements", label: "Product movements" },
+        { href: "/dashboard/stock/movements", label: "Product movements", permission: "stock" },
+        { href: "/dashboard/stock/scrap", label: "Scrap stock", centerUserOrStock: true },
       ] },
-      { href: "/dashboard/stock/scrap", label: "Scrap stock", centerUserOrStock: true, icon: Trash2 },
       { href: "/dashboard/labor", label: "Labor & Sessions", permission: "labor", icon: UsersRound },
     ],
   },
   {
     label: "Finance",
     items: [
+      { href: "/dashboard/sales/receivables", label: "Customer receivables", permission: "sales", icon: ClipboardList },
+      { href: "/dashboard/payment-reports/payables", label: "Supplier payables", permissionsAny: ["purchases","payment_reports"], icon: ClipboardList },
+      { href: "/dashboard/payment-reports/cheques", label: "Cheque management", permission: "payment_reports", icon: FileCheck2 },
       { href: "/dashboard/cash", label: "Cash & Payments", permission: "cash", icon: CircleDollarSign },
       { href: "/dashboard/expenses", label: "Expenses", permission: "cash", icon: Wallet },
       {
         href: "/dashboard/payment-reports/all",
-        label: "Payment Reports",
+        label: "Payments",
         permission: "payment_reports",
         icon: BarChart3,
         children: [
           { href: "/dashboard/payment-reports/all", label: "All Payments" },
           { href: "/dashboard/payment-reports/bank", label: "Bank Transactions" },
-          { href: "/dashboard/payment-reports/payables", label: "Supplier Payables" },
-          { href: "/dashboard/payment-reports/cheques", label: "Cheque Management" },
         ],
       },
     ],
@@ -112,15 +116,17 @@ export const sections: NavSection[] = [
   },
 ];
 
-function isActive(pathname: string, href: string) {
-  if (href === "/dashboard") return pathname === "/dashboard";
-  if (href === "/dashboard/payment-reports/all") return pathname.startsWith("/dashboard/payment-reports");
-  return pathname === href || pathname.startsWith(`${href}/`);
+export function canSeeNavigation(item: {permission?:string;permissionsAny?:string[];adminOnly?:boolean;centerUserOrStock?:boolean}, permissions:string[], isAdmin:boolean) {
+  return (!item.adminOnly || isAdmin) && (item.centerUserOrStock ? (!isAdmin || permissions.includes("stock")) : item.permissionsAny ? item.permissionsAny.some(p=>permissions.includes(p)) : !item.permission || permissions.includes(item.permission));
+}
+export function activeNavigation(pathname:string, items:NavItem[]) {
+  return items.filter(item=>item.href!=="/dashboard" && (pathname===item.href || pathname.startsWith(item.href+"/") || item.children?.some(c=>pathname===c.href || pathname.startsWith(c.href+"/")))).sort((a,b)=>b.href.length-a.href.length)[0];
 }
 
 export function SidebarNavigation({ permissions, isAdmin }: { permissions: string[]; isAdmin: boolean }) {
   const pathname = usePathname();
-  const canSee = (item: NavItem) => (!item.adminOnly||isAdmin) && (item.centerUserOrStock ? (!isAdmin||permissions.includes("stock")) : !item.permission||permissions.includes(item.permission));
+  const canSee = (item: NavItem) => canSeeNavigation(item, permissions, isAdmin);
+  const activeItem = activeNavigation(pathname, sections.flatMap(s=>s.items).filter(canSee));
 
   return (
     <nav className="sidebar-nav" aria-label="Main navigation">
@@ -132,7 +138,7 @@ export function SidebarNavigation({ permissions, isAdmin }: { permissions: strin
             <div className="nav-section-title">{section.label}</div>
             {visible.map((item) => {
               const Icon = item.icon;
-              const active = isActive(pathname, item.href);
+              const active = item.href === "/dashboard" ? pathname === item.href : activeItem?.href === item.href;
               return (
                 <div className={`nav-group ${active ? "active" : ""}`} key={item.href}>
                   <Link className={`nav-item ${active ? "active" : ""}`} href={item.href} aria-current={active ? "page" : undefined}>
@@ -141,10 +147,10 @@ export function SidebarNavigation({ permissions, isAdmin }: { permissions: strin
                   </Link>
                   {item.children && active && (
                     <div className="nav-submenu">
-                      {item.children.filter(child=>!child.permission||permissions.includes(child.permission)).map((child) => {
+                      {item.children.filter(child=>canSeeNavigation(child,permissions,isAdmin)).map((child) => {
                         const childActive = pathname === child.href;
                         const content = <><span className="nav-sub-dot" /><span>{child.label}</span></>;
-                        return child.href === "/dashboard/purchases/new"
+                        return child.href.endsWith("/new")
                           ? <OfflinePosLink className={childActive ? "active" : ""} href={child.href} key={child.href}>{content}</OfflinePosLink>
                           : <Link className={childActive ? "active" : ""} href={child.href} key={child.href} aria-current={childActive ? "page" : undefined}>{content}</Link>;
                       })}
@@ -156,15 +162,7 @@ export function SidebarNavigation({ permissions, isAdmin }: { permissions: strin
           </section>
         );
       })}
-      {permissions.includes("purchases") && !permissions.includes("payment_reports") && (
-        <section className="nav-section">
-          <div className="nav-section-title">Finance</div>
-          <Link className={`nav-item ${pathname === "/dashboard/payment-reports/payables" ? "active" : ""}`} href="/dashboard/payment-reports/payables">
-            <ClipboardList size={18} />
-            <span>Supplier Payables</span>
-          </Link>
-        </section>
-      )}
+
     </nav>
   );
 }

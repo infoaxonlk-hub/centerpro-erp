@@ -23,6 +23,10 @@ const labels: Record<string, string> = {
   "bill-requests": "Cancel Requests",
   returns: "Return Requests",
   receivables: "Customer Receivables",
+  products: "Products",
+  suppliers: "Suppliers",
+  customers: "Customers",
+  summary: "Sales summary",
   new: "New",
 };
 
