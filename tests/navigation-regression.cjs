@@ -4,6 +4,8 @@ const root=path.resolve(__dirname,'..'),ts=require('typescript'),React=require('
 let navPath='/dashboard',mode='cards',selectedGroup=null,partySelected=null,partyView='profile';
 const original=Module._load;
 Module._load=function(id,parent,...rest){
+ if(id==='@/lib/supabase/client')return {createClient:()=>{throw Error('Unexpected database call')}};
+ if(id==='@/components/feedback')return {notify:()=>{}};
  if(id.endsWith('.css'))return {};
  if(id==='next/navigation')return {usePathname:()=>navPath,useRouter:()=>({})};
  if(id==='next/link')return {__esModule:true,default:({children,href,...p})=>React.createElement('a',{href,...p},children)};
@@ -46,3 +48,14 @@ console.log('PASS: navigation routes, permissions, 3 modes, purchase settings, d
  const rows=await readAll(client,'supplier_payables','id','org-test');assert.equal(rows.length,1201);assert.equal(ranges,3);
  console.log('PASS: all 1,201 rows read across pages with organization filtering.');
 })().catch(e=>{console.error(e);process.exitCode=1});
+
+const {CashManager}=require('../app/dashboard/cash/cash-manager.tsx');
+const cashLabels=['Available cash by center','Cash handover history','Accepted cash ledger','Center cash top-ups','Company bank accounts'];
+assert.deepEqual(all.find(x=>x.label==='Cash & Payments').children.map(x=>x.label),cashLabels);
+for(const [i,view] of ['available','handovers','ledger'].entries()){
+ const markup=renderToStaticMarkup(React.createElement(CashManager,{view,initialLedger:[],initialHandovers:[],centers:[],initialBalances:[],canIssue:true}));
+ assert.ok(markup.includes(cashLabels[i]));
+ for(const [j,label] of cashLabels.slice(0,3).entries())if(j!==i)assert.ok(!markup.includes(label));
+ assert.equal(markup.includes('Issue cash'),view!=='ledger');
+}
+console.log('PASS: five cash menus and isolated cash sections.');
