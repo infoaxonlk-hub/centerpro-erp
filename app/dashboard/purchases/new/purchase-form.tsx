@@ -233,10 +233,14 @@ export function PurchaseForm({
     return () => { live = false; };
   }, [draftKey, scopeId]);
   useLayoutEffect(() => {
-    if (checkout) {
+    if (!checkout) return;
+    const resetPaymentScroll = () => {
       window.scrollTo(0, 0);
-      paymentScreenRef.current?.scrollTo(0, 0);
-    }
+      if (paymentScreenRef.current) paymentScreenRef.current.scrollTop = 0;
+    };
+    resetPaymentScroll();
+    const frame = requestAnimationFrame(resetPaymentScroll);
+    return () => cancelAnimationFrame(frame);
   }, [checkout]);
 
   useEffect(() => {
@@ -1070,10 +1074,10 @@ export function PurchaseForm({
         )
       ) : (
         <main className="pos-payment-screen" ref={paymentScreenRef}>
+          <button className="payment-back" onClick={() => setCheckout(false)}>
+            <ArrowLeft /> {entryMode === "detailed" ? "Back to purchase" : "Back to products"}
+          </button>
           <section className="payment-card">
-            <button className="payment-back" onClick={() => setCheckout(false)}>
-              <ArrowLeft /> {entryMode === "detailed" ? "Back to purchase" : "Back to products"}
-            </button>
             <h1>Payment window</h1>
             {error && <div className="alert error">{error}</div>}
             <div className="payment-fields">
@@ -1338,6 +1342,8 @@ export function PurchaseForm({
                 <strong>{money(total)}</strong>
               </span>
             </div>
+          </aside>
+          <div className="payment-actions">
             <DraftBill data={billData} disabled={busy||!lines.length||!Number.isFinite(total)||total<=0}/>
             <button
               className="primary confirm-payment"
@@ -1352,7 +1358,7 @@ export function PurchaseForm({
                 </>
               )}
             </button>
-          </aside>
+          </div>
         </main>
       )}
       {showSupplierDialog && (

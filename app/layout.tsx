@@ -10,7 +10,6 @@ import "./purchase-pos.css";
 import "./purchase-keyboard.css";
 import "./receipt.css";
 import "./receipt-print-fix.css";
-import "./purchase-pos-accessibility.css";
 import "./payment-setup.css";
 import "./auth-recovery.css";
 import "./bank-accounts.css";
@@ -24,7 +23,7 @@ import "./cash-handover.css";
 import "./cash-topups.css";
 import "./offline-pos.css";
 import "./bill-return.css";
-import "./purchase-pos-mobile.css";
+import "./purchase-pos-accessibility.css";
 import { OfflineSupport } from "@/components/offline-pos-status";
 
 export const metadata: Metadata = {

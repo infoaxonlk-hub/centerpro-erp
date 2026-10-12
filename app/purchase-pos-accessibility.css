@@ -1,1 +1,197 @@
 .purchase-pos-full{font-size:16px}.pos-topbar{height:76px;flex-basis:76px}.pos-back{font-size:17px}.pos-brand b{font-size:23px}.pos-brand small{font-size:14px}.pos-topbar label{font-size:14px}.pos-topbar select{height:46px;font-size:16px}.pos-search{height:58px}.pos-search input{font-size:18px}.pos-categories button{font-size:15px;padding:11px 17px}.pos-product{min-height:180px;padding:16px;gap:9px}.pos-product>span{font-size:12px}.pos-product strong{font-size:19px;line-height:1.25}.pos-product small{font-size:14px;line-height:1.35}.pos-product b{font-size:17px}.pos-product em{font-size:14px}.pos-cart-head{height:64px;flex-basis:64px}.pos-cart-head strong{font-size:18px}.pos-cart-head>span{font-size:13px}.pos-cart-line{padding:13px}.pos-line-title>span{width:27px;height:27px;font-size:13px}.pos-line-title strong{font-size:17px}.pos-line-title small{font-size:13px}.pos-cart-line>label,.pos-line-values label{font-size:12px}.pos-cart-line select,.pos-line-values input{height:44px;font-size:16px}.pos-line-values small{font-size:11px}.pos-qty{grid-template-columns:38px 76px 38px}.pos-qty button,.pos-qty input{height:44px;font-size:17px}.pos-qty input{width:76px}.pos-line-total span{font-size:13px}.pos-line-total strong{font-size:17px}.pos-cart-footer small{font-size:13px}.pos-cart-footer b{font-size:17px}.pos-cart-footer strong{font-size:26px}.pos-payment-button{height:54px;font-size:18px}.payment-card h1{font-size:38px}.payment-card>p{font-size:17px;line-height:1.5}.payment-fields label{font-size:14px}.payment-fields input,.payment-fields select{height:52px;font-size:17px}.payment-fields textarea{font-size:17px}.payment-summary h2{font-size:27px}.summary-center small,.summary-lines small,.summary-total small{font-size:14px}.summary-center strong,.summary-lines b{font-size:17px}.summary-lines>div>strong{font-size:17px}.summary-total b{font-size:18px}.summary-total strong{font-size:27px}.confirm-payment{height:56px;font-size:18px}.quality-options strong{font-size:18px}.quality-options small{font-size:14px}.quality-options b{font-size:17px}@media(max-width:520px){.pos-product{min-height:165px}.pos-product strong{font-size:17px}.pos-product small{font-size:13px}.pos-topbar select{font-size:14px}}
+
+/* Purchase checkout layout and compact phone sizing. */
+.purchase-pos-full .pos-payment-screen {
+  grid-template-areas: "back summary" "payment summary" "payment actions";
+  grid-template-rows: auto auto auto;
+}
+.purchase-pos-full .payment-back { grid-area: back; }
+.purchase-pos-full .payment-card { grid-area: payment; }
+.purchase-pos-full .payment-summary { grid-area: summary; }
+.purchase-pos-full .payment-actions {
+  grid-area: actions;
+  display: grid;
+  align-self: start;
+  gap: 9px;
+}
+
+@media (max-width: 850px) {
+  .purchase-pos-full.is-payment-window {
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .purchase-pos-full .pos-payment-screen {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
+    gap: 8px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-anchor: none;
+    overscroll-behavior: contain;
+    padding: 8px 10px 12px;
+  }
+
+  .purchase-pos-full .pos-payment-screen .payment-card,
+  .purchase-pos-full .pos-payment-screen .payment-summary {
+    flex: 0 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px;
+    border-radius: 12px;
+  }
+
+  .purchase-pos-full .pos-payment-screen .payment-back {
+    order: 0;
+    align-self: flex-start;
+    min-height: 36px;
+    margin: 0;
+    padding: 5px 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .purchase-pos-full .pos-payment-screen .payment-summary { order: 1; }
+  .purchase-pos-full .pos-payment-screen .payment-card { order: 2; }
+  .purchase-pos-full .pos-payment-screen .payment-actions {
+    order: 3;
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .purchase-pos-full .supplier-select-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .purchase-pos-full .supplier-select-row > label {
+    min-width: 0;
+  }
+
+  .purchase-pos-full .supplier-select-row select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .purchase-pos-full .supplier-create-button {
+    justify-self: start;
+    width: max-content;
+    max-width: 100%;
+    min-height: 40px;
+    height: auto;
+    padding: 0 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .purchase-pos-full .payment-card h1 {
+    margin: 2px 0 7px;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .purchase-pos-full .payment-fields {
+    gap: 8px;
+    margin-top: 7px;
+  }
+
+  .purchase-pos-full .payment-fields label {
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .payment-fields input,
+  .purchase-pos-full .payment-fields select {
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .purchase-pos-full .payment-fields textarea {
+    min-height: 64px;
+    padding: 8px 11px;
+    font-size: 14px;
+  }
+
+  .purchase-pos-full .split-payment-heading strong,
+  .purchase-pos-full .split-payment-title b {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .payment-summary h2 {
+    margin: 0 0 7px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .summary-center {
+    gap: 3px;
+    padding: 8px;
+  }
+
+  .purchase-pos-full .summary-center small,
+  .purchase-pos-full .summary-lines small,
+  .purchase-pos-full .summary-total small {
+    font-size: 12px;
+  }
+
+  .purchase-pos-full .summary-center strong,
+  .purchase-pos-full .summary-lines b,
+  .purchase-pos-full .summary-lines > div > strong {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .summary-lines {
+    gap: 6px;
+    margin: 8px 0;
+  }
+
+  .purchase-pos-full .summary-lines > div {
+    padding-bottom: 6px;
+    font-size: 13px;
+  }
+
+  .purchase-pos-full .allocation-summary {
+    gap: 6px;
+    margin: 9px 0;
+    padding: 9px;
+    font-size: 13px;
+  }
+
+  .purchase-pos-full .allocation-summary span b,
+  .purchase-pos-full .allocation-summary > strong {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .summary-total {
+    padding-top: 8px;
+  }
+
+  .purchase-pos-full .summary-total b {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .summary-total strong {
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .purchase-pos-full .confirm-payment {
+    height: 42px;
+    margin-top: 9px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+}
