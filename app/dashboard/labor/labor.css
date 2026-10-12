@@ -48,3 +48,8 @@
 .labor-dialog{padding:16px}
 .labor-dialog-actions{flex-wrap:wrap}
 }
+
+.labor-payment-filters{margin:14px 0}
+.labor-filter-empty{display:none}
+.labor-workers:empty + .labor-filter-empty{display:block;padding:16px 0}
+.labor-session-open{display:inline-flex;align-items:center;min-height:40px;text-decoration:none}

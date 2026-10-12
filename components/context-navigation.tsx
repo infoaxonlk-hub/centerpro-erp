@@ -39,6 +39,7 @@ const labels: Record<string, string> = {
 };
 
 function parentHref(pathname: string) {
+  if (pathname.startsWith("/dashboard/labor/sessions/")) return "/dashboard/labor/sessions";
   if (/^\/dashboard\/purchases\/[^/]+$/.test(pathname)) return "/dashboard/purchases";
   if (/^\/dashboard\/sales\/[^/]+$/.test(pathname)) return "/dashboard/sales";
   if (pathname === "/dashboard/sales/receivables") return "/dashboard/sales";
@@ -50,6 +51,7 @@ function parentHref(pathname: string) {
 function currentTitle(parts: string[]) {
   const last = parts.at(-1) ?? "dashboard";
   if (last === "new") return parts.includes("sales") ? "New Sale" : "New Purchase";
+  if (parts.includes("labor") && parts.includes("sessions") && parts.length>3) return "Session details";
   if (!labels[last] && parts.includes("purchases")) return "Purchase Bill";
   if (!labels[last] && parts.includes("sales")) return "Sales Invoice";
   return labels[last] ?? "Details";
