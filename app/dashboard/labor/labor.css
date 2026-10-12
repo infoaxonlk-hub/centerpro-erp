@@ -4,3 +4,47 @@
 
 .labor-session-open{margin-top:12px;border:0;background:transparent;color:var(--brand);font-weight:800;padding:4px 0;cursor:pointer}.labor-session-detail{margin-top:12px;padding:14px;border-radius:10px;background:#faf9fc;border:1px solid var(--line)}.labor-session-detail h4{margin:0 0 4px;font-size:15px}.labor-calculation-note{font-size:12px!important;margin:0 0 10px!important}.labor-workers{display:grid;gap:8px}.labor-worker-pay{justify-content:space-between;padding:10px;background:#fff;border:1px solid var(--line);border-radius:9px}.labor-worker-calculation{display:grid;gap:3px}.labor-worker-calculation>span{font-size:13px}.labor-worker-calculation>span b{color:var(--brand-dark)}.labor-worker-calculation>small{color:var(--muted);font-size:12px}.labor-payee{margin:0;color:var(--muted)}.labor-quick-pay{display:flex;gap:8px}.labor-quick-pay button{flex:1;min-height:40px}.labor-due-preview{margin:-5px 0 0;color:var(--brand-dark);font-size:13px;font-weight:750}@media(max-width:640px){.labor-session-main{align-items:flex-start}.labor-session-main>div{min-width:0}.labor-session h3{font-size:15px}.labor-session p{font-size:12px}.labor-session-stats{gap:5px;margin-top:8px}.labor-session-stats span{font-size:11px;padding:4px 6px}.labor-session-open{margin-top:9px}.labor-session-detail{padding:10px}.labor-worker-pay{align-items:flex-start;flex-direction:column;gap:8px}.labor-worker-pay .ghost{min-height:36px}.labor-worker-calculation>span{font-size:12px}}
 .labor-workers span{padding:0;border-radius:0;background:transparent;color:inherit;font-size:inherit}
+
+/* Labor directories and session wage lists */
+.labor-page,.labor-card,.labor-session-detail{min-width:0}
+.labor-page .page-heading h1{font-size:clamp(20px,2vw,26px)}
+.labor-page .page-heading p{font-size:14px}
+.labor-list-filters{display:flex;flex-wrap:wrap;gap:12px}
+.labor-list-filters label{display:grid;gap:5px;flex:1 1 180px;font-size:13px;min-width:0}
+.labor-list-filters input,.labor-list-filters select{width:100%;min-height:42px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface,#fff);font-size:16px}
+.labor-directory-list{display:grid}
+.labor-directory-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+.labor-directory-row:last-child{border-bottom:0}
+.labor-directory-row>div{display:grid;gap:4px;min-width:0}
+.labor-directory-row strong{font-size:14px;overflow-wrap:anywhere}
+.labor-directory-row small,.labor-directory-row>div>span{font-size:12px;color:var(--muted)}
+.labor-wage-row{display:grid;grid-template-columns:minmax(150px,2fr) repeat(3,minmax(90px,1fr)) minmax(90px,auto);gap:12px;align-items:center;background:#fff;border-bottom:1px solid var(--line);padding:14px 10px;min-width:0}
+.labor-wage-person,.labor-wage-amount{display:grid;gap:5px;min-width:0}
+.labor-wage-person strong,.labor-wage-amount strong{font-size:14px;overflow-wrap:anywhere}
+.labor-wage-person small,.labor-wage-amount small{font-size:12px;color:var(--muted)}
+.labor-workers .labor-status{justify-self:start;padding:3px 8px;font-size:11px;border-radius:20px;background:#ecfdf3;color:#027a48}
+.labor-workers .labor-status.due{background:#fff4e5;color:#8a4800}
+.labor-page button{white-space:normal;overflow-wrap:anywhere;min-height:40px}
+.labor-dialog{box-sizing:border-box;max-height:calc(100dvh - 32px);min-width:0}
+.labor-dialog h2{font-size:20px}
+.labor-dialog input,.labor-dialog select,.labor-dialog textarea{box-sizing:border-box;min-width:0;font-size:16px}
+.labor-session-main>div{min-width:0;overflow-wrap:anywhere}
+@media(max-width:1000px){
+.labor-wage-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+.labor-wage-person{grid-column:1/-1}
+.labor-wage-row>div:last-child{grid-column:1/-1}
+}
+@media(max-width:540px){
+.labor-card{padding:12px}
+.labor-directory-row{grid-template-columns:minmax(0,1fr) auto;gap:10px}
+.labor-directory-row>div:nth-child(2){text-align:right}
+.labor-directory-row>.labor-status{justify-self:start}
+.labor-directory-row>button{justify-self:end}
+.labor-session{padding:12px}
+.labor-session-main{flex-wrap:wrap}
+.labor-session-detail{padding:8px}
+.labor-wage-row{gap:10px 6px;padding:12px 6px}
+.labor-wage-amount strong{font-size:12px}
+.labor-dialog{padding:16px}
+.labor-dialog-actions{flex-wrap:wrap}
+}

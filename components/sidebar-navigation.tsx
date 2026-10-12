@@ -75,7 +75,7 @@ export const sections: NavSection[] = [
         { href: "/dashboard/stock/movements", label: "Product movements", permission: "stock" },
         { href: "/dashboard/stock/scrap", label: "Scrap stock", centerUserOrStock: true },
       ] },
-      { href: "/dashboard/labor", label: "Labor & Sessions", permission: "labor", icon: UsersRound },
+      { href: "/dashboard/labor", label: "Labor & Sessions", permission: "labor", icon: UsersRound, children: [{href:"/dashboard/labor/laborers",label:"Laborers"},{href:"/dashboard/labor/sessions",label:"Sessions"}] },
     ],
   },
   {

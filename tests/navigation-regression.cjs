@@ -1,6 +1,7 @@
 /* Run: node tests/navigation-regression.cjs. No database or network calls. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),Module=require('node:module');
 const root=path.resolve(__dirname,'..'),ts=require('typescript'),React=require('react'),{renderToStaticMarkup}=require('react-dom/server');
+let laborSelected=null;
 let navPath='/dashboard',mode='cards',selectedGroup=null,partySelected=null,partyView='profile';
 const original=Module._load;
 Module._load=function(id,parent,...rest){
@@ -11,6 +12,7 @@ Module._load=function(id,parent,...rest){
  if(id==='next/link')return {__esModule:true,default:({children,href,...p})=>React.createElement('a',{href,...p},children)};
  if(id.includes('offline-pos-link'))return {OfflinePosLink:({children,href,...p})=>React.createElement('a',{href,...p},children)};
  if(id.includes('product-image-actions'))return {saveProductImage:()=>{throw Error('Unexpected mutation')}};
+ if(id==='react'&&parent?.filename.endsWith('labor-manager.tsx')){let n=0;return {...React,useState:(v)=>{const i=n++;return React.useState(i===5?laborSelected:v)}};}
  if(id==='react'&&parent?.filename.endsWith('appearance-shell.tsx')){let n=0;return {...React,useState:(v)=>{const i=n++;return React.useState(i===5?mode:i===6?selectedGroup:v)}};}
  if(id==='react'&&parent?.filename.endsWith('party-directory.tsx')){let n=0;return {...React,useState:(v)=>{const i=n++;return React.useState(i===4?partySelected:i===5?partyView:v)}};}
  if(id.startsWith('@/'))id=path.join(root,id.slice(2));
@@ -59,3 +61,17 @@ for(const [i,view] of ['available','handovers','ledger'].entries()){
  assert.equal(markup.includes('Issue cash'),view!=='ledger');
 }
 console.log('PASS: five cash menus and isolated cash sections.');
+
+const {LaborManager}=require('../app/dashboard/labor/labor-manager.tsx');
+assert.deepEqual(all.find(x=>x.label==='Labor & Sessions').children.map(x=>x.label),['Laborers','Sessions']);
+const laborProps={organizationId:'org',centers:[],laborers:[{id:'w',full_name:'Worker One',phone:'071',rate_basis:'per_kg',rate:2,is_active:true}],sessions:[{id:'s',title:'Morning team',center_id:'c',session_date:'2026-10-12',operation:'purchase',status:'open',notes:null,centers:{code:'C1',name:'Main'},labor_session_workers:[{laborer_id:'w',rate_basis:'per_kg',rate:2,laborers:{full_name:'Worker One'}}]}],orders:[{id:'o',labor_session_id:'s',labor_load_count:1,kind:'purchase',purchase_order_lines:[{quantity:100,sack_count:2}]}],payments:[],canManage:true};
+let laborMarkup=renderToStaticMarkup(React.createElement(LaborManager,{...laborProps,view:'laborers'}));
+assert.ok(laborMarkup.includes('New laborer'));assert.ok(!laborMarkup.includes('Morning team'));
+laborSelected='s';
+for(const [paid,status] of [[0,'Unpaid'],[100,'Partially paid'],[200,'Paid']]){
+ delete require.cache[require.resolve('../app/dashboard/labor/labor-manager.tsx')];
+ const FreshLaborManager=require('../app/dashboard/labor/labor-manager.tsx').LaborManager;
+ laborMarkup=renderToStaticMarkup(React.createElement(FreshLaborManager,{...laborProps,view:'sessions',payments:[{session_id:'s',laborer_id:'w',amount:paid}]}));
+ assert.ok(laborMarkup.includes(status));assert.ok(laborMarkup.includes('Worker One'));assert.ok(laborMarkup.includes('200.00'));assert.equal(laborMarkup.includes('Pay wages'),paid<200);
+}
+console.log('PASS: labor menus, worker list, session wages and payment statuses.');
