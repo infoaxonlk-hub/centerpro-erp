@@ -17,9 +17,11 @@
     .report-title, .dashboard-apps-heading, .cash-section-title, .line-heading) {
     gap: 12px; flex-wrap: wrap;
   }
-  .app-shell .topbar { height: auto; min-height: 68px; padding: 12px clamp(12px, 2.2vw, 28px); }
+  .app-shell .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; height: auto; min-height: 68px; padding: 12px clamp(12px, 2.2vw, 28px); }
   .app-shell .topbar > div:first-child { min-width: 0; flex: 1 1 160px; overflow-wrap: anywhere; }
-  .app-shell .topbar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 100%; }
+  .app-shell .topbar .topbar-actions { display: flex; flex-wrap: nowrap; justify-self: end; gap: 8px; align-items: center; max-width: 100%; }
+  .app-shell .topbar-actions > * { flex: 0 0 auto; }
+  .app-shell .topbar-actions form .ghost { white-space: nowrap; }
   .app-shell .current-center { width: auto; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
   .app-shell .page-heading { margin-bottom: 18px; }
   .app-shell .page-heading h1 { font-size: clamp(22px, 2.4vw, 30px); line-height: 1.25; overflow-wrap: anywhere; }
@@ -152,6 +154,10 @@
   .login-page .login-panel { min-width: 0; padding: 24px 16px; }
 }
 @media screen and (max-width: 600px) {
+  .app-shell .topbar { gap: 8px; padding: 10px 12px; }
+  .app-shell .topbar .topbar-actions { gap: 6px; }
+  .app-shell .topbar-actions form .ghost { min-height: 42px; padding: 9px 10px; font-size: 13px; }
+  .app-shell .topbar > div:first-child strong { font-size: 13px; line-height: 1.35; }
   .app-shell .page-heading { gap: 10px; }
   .app-shell :is(.panel:not(.table-panel):not(.handover-history),.entity-card) { padding: 14px; }
   .app-shell .launcher-search { flex: 0 1 auto; }
