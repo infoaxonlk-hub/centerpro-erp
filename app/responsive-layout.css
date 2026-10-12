@@ -1,0 +1,171 @@
+/* Shared screen layout. Printing keeps each receipt/report's own dimensions. */
+@media screen {
+  .app-shell { width: 100%; min-width: 0; }
+  .app-shell.appearance-list { grid-template-columns: 255px minmax(0, 1fr); }
+  .app-shell .workspace { min-width: 0; max-width: 100%; }
+  .app-shell .page-content {
+    width: 100%; min-width: 0; max-width: 1500px;
+    padding: clamp(12px, 2.2vw, 30px);
+  }
+  .app-shell .page-content > *,
+  .app-shell :is(.panel, .entity-card, .product-card, .metric, .app-card,
+    .form-grid, .expense-form, .sales-layout, .report-grid, .stock-metrics,
+    .metric-grid, .card-grid, .expense-layout, .report-cards) > * { min-width: 0; }
+  .app-shell :is(.panel, .entity-card, .product-card, .table-panel,
+    .report-grid, .sales-layout, .expense-layout) { min-width: 0; max-width: 100%; }
+  .app-shell :is(.topbar, .page-heading, .section-actions, .expenses-heading,
+    .report-title, .dashboard-apps-heading, .cash-section-title, .line-heading) {
+    gap: 12px; flex-wrap: wrap;
+  }
+  .app-shell .topbar { height: auto; min-height: 68px; padding: 12px clamp(12px, 2.2vw, 28px); }
+  .app-shell .topbar > div:first-child { min-width: 0; flex: 1 1 160px; overflow-wrap: anywhere; }
+  .app-shell .topbar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 100%; }
+  .app-shell .current-center { width: auto; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .app-shell .page-heading { margin-bottom: 18px; }
+  .app-shell .page-heading h1 { font-size: clamp(22px, 2.4vw, 30px); line-height: 1.25; overflow-wrap: anywhere; }
+  .app-shell :is(.page-heading, .entity-head, .product-title, .app-card,
+    .labor-session-main, .launcher-tile, .app-launcher header) :is(h1,h2,b,strong,p,small) { overflow-wrap: anywhere; }
+  .app-shell .context-nav { padding: 8px clamp(12px, 2.2vw, 28px); gap: 10px; min-width: 0; }
+  .app-shell .context-back { flex: 0 0 auto; }
+  .app-shell .breadcrumbs { flex: 1; min-width: 0; }
+  .app-shell :is(.heading-actions,.labor-actions,.purchase-actions,.receipt-actions,
+    .purchase-filter-actions,.purchase-list-pagination,.report-date-pages,.cash-action-tabs) { flex-wrap: wrap; }
+  .app-shell :is(.primary,.ghost,.soft) { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .app-shell :is(.primary,.ghost,.soft) svg { flex-shrink: 0; }
+  .app-shell :is(.metric-grid,.stock-metrics,.report-cards,.expense-cards) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+    gap: 12px;
+  }
+  .app-shell :is(.card-grid,.app-card-grid) { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+  .app-shell .laborer-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+  .app-shell :is(.stock-filters,.report-selects,.purchase-list-filters) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+    gap: 10px; align-items: end;
+  }
+  .app-shell :is(.stock-filters,.report-selects,.purchase-list-filters) > * { min-width: 0; }
+  .app-shell :is(.stock-filters,.report-selects,.purchase-list-filters) :is(input,select) { width: 100%; min-width: 0; }
+  .app-shell :is(.report-dates,.report-date-form,.credit-date-filters,.sales-fields,.expense-filters) { flex-wrap: wrap; gap: 10px; }
+  .app-shell :is(.report-dates,.report-date-form,.credit-date-filters,.sales-fields,.expense-filters) > label {
+    flex: 1 1 160px; min-width: 0; max-width: 100%;
+  }
+  .app-shell :is(.master-search,.report-search,.stock-search,.launcher-search) { min-width: 0; max-width: 100%; }
+  .app-shell :is(.master-search,.report-search,.stock-search,.launcher-search) input { min-width: 0; width: 100%; }
+  .app-shell .page-content :is(input,select,textarea) { min-width: 0; max-width: 100%; }
+  .app-shell .page-content textarea { width: 100%; resize: vertical; }
+  .app-shell :is(.form-grid,.labor-form-grid,.expense-form) { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .app-shell .form-grid.thirds { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .app-shell :is(.form-grid,.labor-form-grid,.expense-form,.cash-action-form) label { min-width: 0; }
+  .app-shell .expense-layout { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); }
+  .app-shell :is(.entity-head,.product-title) > div { min-width: 0; }
+  .app-shell :is(.table-panel,.master-product-table,.stock-table,.report-table,
+    .purchase-list-table,.handover-history,.cash-table-scroll,.payable-summary-table,
+    .bank-summary,.fsn-table-scroll) { min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+  .app-shell .segmented { max-width: 100%; flex-wrap: wrap; gap: 3px; }
+  .app-shell .segmented button { flex: 1 1 110px; min-width: 0; white-space: normal; overflow-wrap: normal; }
+  .app-shell .labor-session-main { flex-wrap: wrap; }
+  .app-shell .labor-session-main > div { min-width: 0; }
+  .app-shell .app-launcher { min-width: 0; width: 100%; }
+  .app-shell .app-launcher header { flex-wrap: wrap; }
+  .app-shell .launcher-search { flex: 0 1 260px; }
+  .app-shell .launcher-brand-footer { max-width: calc(100% - 28px); }
+  .toast-stack { right: 16px; max-width: calc(100vw - 32px); }
+  .toast { min-width: 0; overflow-wrap: anywhere; }
+  .dialog-backdrop { padding: 12px; overflow-y: auto; }
+  .dialog-backdrop :is(.dialog,.labor-dialog) {
+    min-width: 0; max-width: 100%; max-height: calc(100dvh - 24px);
+    padding: clamp(14px, 2.5vw, 24px); overflow-y: auto;
+  }
+  :is(.dialog,.labor-dialog,.appearance-dialog,.sales-customer-dialog) :is(label,fieldset,.form-grid) { min-width: 0; }
+  :is(.dialog,.labor-dialog,.appearance-dialog,.sales-customer-dialog) :is(input,select,textarea) { min-width: 0; max-width: 100%; }
+  :is(.dialog,.labor-dialog) .form-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  :is(.dialog-actions,.labor-dialog-actions) { flex-wrap: wrap; }
+  .dialog-head > div { min-width: 0; overflow-wrap: anywhere; }
+  .dialog-head .icon-btn { flex: 0 0 auto; }
+  /* Full-screen POS uses one bounded workspace and scrollable content. */
+  .purchase-pos-full {
+    position: fixed; inset: 0; height: 100vh; height: 100dvh;
+    min-height: 0; width: 100%; max-width: 100%;
+  }
+  .purchase-pos-full .pos-topbar {
+    height: auto; min-height: 64px; flex: 0 0 auto;
+    padding: 10px 14px; grid-template-columns: auto minmax(0,1fr) minmax(0,auto) auto;
+  }
+  .purchase-pos-full .pos-topbar label { min-width: 0; }
+  .purchase-pos-full .pos-topbar select { min-width: 0; width: 100%; max-width: 320px; }
+  .purchase-pos-full .pos-available-cash { flex: 0 0 auto; }
+  .purchase-pos-full :is(.pos-sale-screen,.pos-products,.pos-cart,.detail-purchase-scroll) { min-width: 0; min-height: 0; }
+  .purchase-pos-full .pos-search input { min-width: 0; }
+  .purchase-pos-full .pos-product-grid { grid-template-columns: repeat(auto-fill,minmax(min(100%,160px),1fr)); }
+  .purchase-pos-full .pos-product { min-width: 0; overflow-wrap: anywhere; }
+  .purchase-pos-full .pos-line-title { grid-template-columns: 27px minmax(0,1fr) 30px; }
+  .purchase-pos-full .pos-line-title > div { min-width: 0; overflow-wrap: anywhere; }
+  .purchase-pos-full .pos-line-values { grid-template-columns: minmax(0,1fr) auto; }
+  .purchase-pos-full .pos-line-values label { min-width: 0; }
+  .purchase-pos-full .pos-line-values input { min-width: 0; max-width: 100%; }
+  /* Sales checkout has its own DOM structure, independent of purchase grid areas. */
+  .sales-pos-full .pos-payment-screen {
+    flex: 1 1 0%; min-height: 0; min-width: 0; overflow: auto;
+    grid-template-columns: minmax(0,650px) minmax(0,440px);
+    grid-template-areas: none; grid-template-rows: auto;
+    justify-content: center; align-content: start; align-items: start;
+    gap: 14px; padding: 16px;
+  }
+  .sales-pos-full :is(.payment-card,.payment-summary) { min-width: 0; padding: 16px; }
+  .sales-pos-full .payment-card h1 { font-size: 22px; }
+  .sales-pos-full .payment-card > p { font-size: 14px; }
+  .sales-pos-full .payment-summary h2 { font-size: 18px; }
+  .sales-pos-full .sales-pos-fieldset > h1 { font-size: 22px; line-height: 1.3; }
+  .sales-pos-full .sales-pos-fieldset > p { font-size: 14px; }
+  .sales-pos-full .split-payment-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .sales-pos-full .payment-fields label { min-width: 0; font-size: 13px; font-weight: 600; }
+  .sales-pos-full .payment-fields :is(input,select,textarea) { font-size: 16px; font-weight: 400; }
+  .sales-pos-full .summary-lines > div { flex-wrap: wrap; }
+  .sales-pos-full .summary-lines span { min-width: 0; overflow-wrap: anywhere; }
+  .sales-pos-full .summary-total { flex-wrap: wrap; gap: 10px; }
+  .sales-pos-full .summary-total strong { font-size: 20px; overflow-wrap: anywhere; }
+  .sales-pos-full .allocation-summary span { flex-wrap: wrap; gap: 6px; }
+}
+@media screen and (max-width: 1050px) {
+  .app-shell.appearance-list { grid-template-columns: 78px minmax(0,1fr); }
+}
+@media screen and (max-width: 900px) {
+  .app-shell .expense-layout { grid-template-columns: minmax(0,1fr); }
+  .purchase-pos-full .pos-topbar { grid-template-columns: auto minmax(0,1fr) auto; gap: 8px; }
+  .purchase-pos-full .pos-brand { display: none; }
+  .purchase-pos-full .pos-back span { display: none; }
+  .purchase-pos-full .pos-topbar label { width: 100%; }
+  .purchase-pos-full .pos-topbar .offline-pos-indicator { grid-column: 3; }
+  .sales-pos-full .pos-payment-screen { grid-template-columns: minmax(0,720px); }
+}
+@media screen and (max-width: 760px) {
+  .app-shell.appearance-list { display: block; }
+  .app-shell.appearance-list .page-content { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .app-shell .sidebar { height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .app-shell :is(.form-grid,.form-grid.thirds,.labor-form-grid,.expense-form) { grid-template-columns: minmax(0,1fr); }
+  .app-shell .page-content :is(input,select,textarea) { font-size: 16px; }
+  .app-shell .page-content :is(.primary,.ghost,.soft) { min-height: 42px; }
+  .app-shell .purchase-list-pagination { justify-content: flex-start; gap: 10px; }
+  .app-shell .notification-popover { position: fixed; top: 76px; left: 12px; right: 12px; width: auto; max-width: none; max-height: calc(100dvh - 90px); overflow-y: auto; }
+  .app-shell .notification-popover-list { max-height: 55dvh; }
+  .dialog-backdrop .form-grid { grid-template-columns: minmax(0,1fr); }
+  .dialog-backdrop :is(input,select,textarea) { font-size: 16px; }
+  .login-page .login-panel { min-width: 0; padding: 24px 16px; }
+}
+@media screen and (max-width: 600px) {
+  .app-shell .page-heading { gap: 10px; }
+  .app-shell :is(.panel:not(.table-panel):not(.handover-history),.entity-card) { padding: 14px; }
+  .app-shell .launcher-search { flex: 0 1 auto; }
+  .app-shell .permission-grid { grid-template-columns: minmax(0,1fr); }
+  .app-shell .pending-expenses form { grid-template-columns: minmax(0,1fr); }
+  .purchase-pos-full .pos-topbar { padding: 8px 10px; min-height: 60px; }
+  .purchase-pos-full .pos-topbar kbd { display: none; }
+  .purchase-pos-full .pos-topbar label { gap: 5px; font-size: 12px; }
+  .purchase-pos-full .pos-topbar select { font-size: 16px; height: 44px; padding: 0 6px; }
+  .purchase-pos-full .pos-product-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .purchase-pos-full .detail-party-section { grid-template-columns: minmax(0,1fr); }
+  .purchase-pos-full .detail-add-farmer { justify-self: start; }
+  .purchase-pos-full .pos-line-total { flex-wrap: wrap; }
+  .sales-pos-full .pos-payment-screen { padding: 10px; gap: 10px; }
+  .sales-pos-full .split-payment-grid { grid-template-columns: minmax(0,1fr); }
+  .sales-pos-full .split-payment-grid .wide { grid-column: 1 / -1; }
+}

@@ -27,7 +27,7 @@
   flex: 0 0 auto;
   margin: 10px 16px 0;
 }
-.purchase-pos-full .pos-payment-screen {
+.purchase-pos-full.is-payment-window .pos-payment-screen {
   flex: 1 1 0%;
   min-height: 0;
   min-width: 0;
@@ -48,8 +48,8 @@
   font-size: 14px;
   line-height: 1.45;
 }
-.purchase-pos-full .pos-payment-screen > * { min-width: 0; max-width: 100%; }
-.purchase-pos-full .pos-payment-screen .payment-back {
+.purchase-pos-full.is-payment-window .pos-payment-screen > * { min-width: 0; max-width: 100%; }
+.purchase-pos-full.is-payment-window .pos-payment-screen .payment-back {
   grid-area: back;
   justify-self: start;
   margin: 0;
@@ -58,13 +58,13 @@
   font-size: 14px;
   font-weight: 600;
 }
-.purchase-pos-full .pos-payment-screen .payment-card { grid-area: payment; }
-.purchase-pos-full .pos-payment-screen .payment-summary { grid-area: summary; }
-.purchase-pos-full .pos-payment-screen .payment-card,
-.purchase-pos-full .pos-payment-screen .payment-summary {
+.purchase-pos-full.is-payment-window .pos-payment-screen .payment-card { grid-area: payment; }
+.purchase-pos-full.is-payment-window .pos-payment-screen .payment-summary { grid-area: summary; }
+.purchase-pos-full.is-payment-window .pos-payment-screen .payment-card,
+.purchase-pos-full.is-payment-window .pos-payment-screen .payment-summary {
   width: 100%; padding: 16px; border-radius: 12px;
 }
-.purchase-pos-full .pos-payment-screen .payment-actions {
+.purchase-pos-full.is-payment-window .pos-payment-screen .payment-actions {
   grid-area: actions;
   justify-self: end;
   display: grid;
@@ -72,71 +72,71 @@
   width: 100%;
   max-width: 440px;
 }
-.purchase-pos-full .pos-payment-screen h1 { margin: 0 0 12px; font-size: 22px; line-height: 1.3; font-weight: 600; }
-.purchase-pos-full .pos-payment-screen h2 { margin: 0 0 10px; font-size: 18px; line-height: 1.3; font-weight: 600; }
-.purchase-pos-full .payment-fields { gap: 12px; margin-top: 0; }
-.purchase-pos-full .payment-fields label { min-width: 0; gap: 5px; font-size: 13px; font-weight: 600; }
-.purchase-pos-full .payment-fields label small { font-size: 12px; font-weight: 400; }
-.purchase-pos-full .payment-fields input,
-.purchase-pos-full .payment-fields select,
-.purchase-pos-full .payment-fields textarea {
+.purchase-pos-full.is-payment-window .pos-payment-screen h1 { margin: 0 0 12px; font-size: 22px; line-height: 1.3; font-weight: 600; }
+.purchase-pos-full.is-payment-window .pos-payment-screen h2 { margin: 0 0 10px; font-size: 18px; line-height: 1.3; font-weight: 600; }
+.purchase-pos-full.is-payment-window .payment-fields { gap: 12px; margin-top: 0; }
+.purchase-pos-full.is-payment-window .payment-fields label { min-width: 0; gap: 5px; font-size: 13px; font-weight: 600; }
+.purchase-pos-full.is-payment-window .payment-fields label small { font-size: 12px; font-weight: 400; }
+.purchase-pos-full.is-payment-window .payment-fields input,
+.purchase-pos-full.is-payment-window .payment-fields select,
+.purchase-pos-full.is-payment-window .payment-fields textarea {
   min-width: 0; max-width: 100%; width: 100%; font-size: 16px; font-weight: 400;
 }
-.purchase-pos-full .payment-fields input,
-.purchase-pos-full .payment-fields select { height: 44px; }
-.purchase-pos-full .payment-fields textarea { min-height: 72px; padding: 10px; font-family: inherit; }
-.purchase-pos-full .supplier-select-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
-.purchase-pos-full .supplier-create-button {
+.purchase-pos-full.is-payment-window .payment-fields input,
+.purchase-pos-full.is-payment-window .payment-fields select { height: 44px; }
+.purchase-pos-full.is-payment-window .payment-fields textarea { min-height: 72px; padding: 10px; font-family: inherit; }
+.purchase-pos-full.is-payment-window .supplier-select-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.purchase-pos-full.is-payment-window .supplier-create-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   height: auto; min-height: 44px; max-width: 100%; padding: 8px 12px;
   font-size: 14px; line-height: 1.4; font-weight: 600; white-space: normal;
 }
-.purchase-pos-full .supplier-create-button svg { flex: 0 0 auto; }
-.purchase-pos-full .labor-pos-fields { grid-template-columns: minmax(0, 1fr) minmax(72px, .3fr); margin: 0; gap: 10px; }
-.purchase-pos-full .split-payments { min-width: 0; gap: 12px; }
-.purchase-pos-full .split-payment-heading { flex-wrap: wrap; gap: 8px; margin: 0; }
-.purchase-pos-full .split-payment-heading strong,
-.purchase-pos-full .split-payment-title b { font-size: 14px; font-weight: 600; }
-.purchase-pos-full .split-payment-heading button { min-height: 44px; padding: 8px 12px; font-size: 14px; font-weight: 600; }
-.purchase-pos-full .split-payment-line { min-width: 0; padding: 12px; }
-.purchase-pos-full .split-payment-title { margin-bottom: 10px; }
-.purchase-pos-full .split-payment-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.purchase-pos-full .bank-account-details { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); overflow-wrap: anywhere; }
-.purchase-pos-full .summary-center { padding: 10px; gap: 3px; }
-.purchase-pos-full .summary-center small,
-.purchase-pos-full .summary-lines small,
-.purchase-pos-full .summary-total small { font-size: 12px; }
-.purchase-pos-full .summary-center strong,
-.purchase-pos-full .summary-lines b,
-.purchase-pos-full .summary-lines > div > strong { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
-.purchase-pos-full .summary-lines { gap: 8px; margin: 12px 0; }
-.purchase-pos-full .summary-lines > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding-bottom: 8px; }
-.purchase-pos-full .summary-lines > div > strong { text-align: right; }
-.purchase-pos-full .allocation-summary { gap: 6px; margin: 12px 0; padding: 10px; font-size: 13px; }
-.purchase-pos-full .allocation-summary span { gap: 8px; align-items: baseline; flex-wrap: wrap; }
-.purchase-pos-full .allocation-summary span b { margin-left: auto; overflow-wrap: anywhere; text-align: right; }
-.purchase-pos-full .allocation-summary small { font-size: 12px; }
-.purchase-pos-full .allocation-summary b,
-.purchase-pos-full .allocation-summary > strong { font-size: 13px; font-weight: 600; }
-.purchase-pos-full .summary-total { padding-top: 10px; gap: 10px; flex-wrap: wrap; }
-.purchase-pos-full .summary-total > span:last-child { margin-left: auto; text-align: right; }
-.purchase-pos-full .summary-total b { font-size: 14px; font-weight: 600; }
-.purchase-pos-full .summary-total strong { font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
-.purchase-pos-full .payment-actions button {
+.purchase-pos-full.is-payment-window .supplier-create-button svg { flex: 0 0 auto; }
+.purchase-pos-full.is-payment-window .labor-pos-fields { grid-template-columns: minmax(0, 1fr) minmax(72px, .3fr); margin: 0; gap: 10px; }
+.purchase-pos-full.is-payment-window .split-payments { min-width: 0; gap: 12px; }
+.purchase-pos-full.is-payment-window .split-payment-heading { flex-wrap: wrap; gap: 8px; margin: 0; }
+.purchase-pos-full.is-payment-window .split-payment-heading strong,
+.purchase-pos-full.is-payment-window .split-payment-title b { font-size: 14px; font-weight: 600; }
+.purchase-pos-full.is-payment-window .split-payment-heading button { min-height: 44px; padding: 8px 12px; font-size: 14px; font-weight: 600; }
+.purchase-pos-full.is-payment-window .split-payment-line { min-width: 0; padding: 12px; }
+.purchase-pos-full.is-payment-window .split-payment-title { margin-bottom: 10px; }
+.purchase-pos-full.is-payment-window .split-payment-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.purchase-pos-full.is-payment-window .bank-account-details { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); overflow-wrap: anywhere; }
+.purchase-pos-full.is-payment-window .summary-center { padding: 10px; gap: 3px; }
+.purchase-pos-full.is-payment-window .summary-center small,
+.purchase-pos-full.is-payment-window .summary-lines small,
+.purchase-pos-full.is-payment-window .summary-total small { font-size: 12px; }
+.purchase-pos-full.is-payment-window .summary-center strong,
+.purchase-pos-full.is-payment-window .summary-lines b,
+.purchase-pos-full.is-payment-window .summary-lines > div > strong { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.purchase-pos-full.is-payment-window .summary-lines { gap: 8px; margin: 12px 0; }
+.purchase-pos-full.is-payment-window .summary-lines > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding-bottom: 8px; }
+.purchase-pos-full.is-payment-window .summary-lines > div > strong { text-align: right; }
+.purchase-pos-full.is-payment-window .allocation-summary { gap: 6px; margin: 12px 0; padding: 10px; font-size: 13px; }
+.purchase-pos-full.is-payment-window .allocation-summary span { gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.purchase-pos-full.is-payment-window .allocation-summary span b { margin-left: auto; overflow-wrap: anywhere; text-align: right; }
+.purchase-pos-full.is-payment-window .allocation-summary small { font-size: 12px; }
+.purchase-pos-full.is-payment-window .allocation-summary b,
+.purchase-pos-full.is-payment-window .allocation-summary > strong { font-size: 13px; font-weight: 600; }
+.purchase-pos-full.is-payment-window .summary-total { padding-top: 10px; gap: 10px; flex-wrap: wrap; }
+.purchase-pos-full.is-payment-window .summary-total > span:last-child { margin-left: auto; text-align: right; }
+.purchase-pos-full.is-payment-window .summary-total b { font-size: 14px; font-weight: 600; }
+.purchase-pos-full.is-payment-window .summary-total strong { font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
+.purchase-pos-full.is-payment-window .payment-actions button {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   width: 100%; min-height: 46px; height: auto; margin: 0; padding: 10px 12px;
   font-size: 15px; font-weight: 600;
 }
 /* Stack when two readable cards no longer fit; content stays top-aligned. */
 @media (max-width: 900px) {
-  .purchase-pos-full .pos-payment-screen {
+  .purchase-pos-full.is-payment-window .pos-payment-screen {
     grid-template-columns: minmax(0, 720px);
     grid-template-areas: "back" "summary" "payment" "actions";
     grid-template-rows: auto auto auto auto;
     gap: 12px; padding: 12px;
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
-  .purchase-pos-full .pos-payment-screen .payment-actions { max-width: none; }
+  .purchase-pos-full.is-payment-window .pos-payment-screen .payment-actions { max-width: none; }
   .purchase-pos-full.is-payment-window .pos-topbar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; }
   .purchase-pos-full.is-payment-window .pos-brand { display: none; }
   .purchase-pos-full.is-payment-window .pos-back span { display: none; }
@@ -149,12 +149,12 @@
   .purchase-pos-full.is-payment-window .pos-topbar kbd { display: none; }
   .purchase-pos-full.is-payment-window .pos-topbar select { padding: 0 6px; font-size: 16px; }
   .purchase-pos-full.is-payment-window .pos-available-cash { margin: 8px 10px 0; padding: 8px 10px; }
-  .purchase-pos-full .pos-payment-screen { padding: 10px; gap: 10px; }
-  .purchase-pos-full .pos-payment-screen .payment-card,
-  .purchase-pos-full .pos-payment-screen .payment-summary { padding: 12px; }
-  .purchase-pos-full .supplier-select-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-  .purchase-pos-full .supplier-create-button { justify-self: start; }
-  .purchase-pos-full .split-payment-grid { grid-template-columns: minmax(0, 1fr); }
-  .purchase-pos-full .split-payment-grid .wide { grid-column: 1 / -1; }
-  .purchase-pos-full .summary-lines > div { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .purchase-pos-full.is-payment-window .pos-payment-screen { padding: 10px; gap: 10px; }
+  .purchase-pos-full.is-payment-window .pos-payment-screen .payment-card,
+  .purchase-pos-full.is-payment-window .pos-payment-screen .payment-summary { padding: 12px; }
+  .purchase-pos-full.is-payment-window .supplier-select-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .purchase-pos-full.is-payment-window .supplier-create-button { justify-self: start; }
+  .purchase-pos-full.is-payment-window .split-payment-grid { grid-template-columns: minmax(0, 1fr); }
+  .purchase-pos-full.is-payment-window .split-payment-grid .wide { grid-column: 1 / -1; }
+  .purchase-pos-full.is-payment-window .summary-lines > div { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
