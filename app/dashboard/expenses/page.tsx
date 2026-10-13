@@ -18,5 +18,9 @@ export default async function ExpensesPage(){
   supabase.from("expense_cash_handovers").select("id,center_id,issued_amount,received_amount,difference_amount,reference,issue_note,response_note,status,issued_at,responded_at,centers(code,name)").order("issued_at",{ascending:false}).limit(100),
   supabase.from("expense_cash_ledger").select("id,center_id,movement_type,amount,created_at").order("created_at",{ascending:false}).limit(500)
  ]);
- return <ExpenseManager organizationId={profile.organization_id} centers={centers??[]} categories={categories??[]} accounts={accounts??[]} initialExpenses={expenses??[]} handovers={handovers??[]} ledger={ledger??[]} isAdmin={isAdmin}/>;
+ const balances=await Promise.all((centers??[]).map(async c=>{
+  const {data,error}=await supabase.rpc("center_cash_balance",{target_center:c.id});
+  return {center_id:c.id,balance:error?null:Number(data)};
+ }));
+ return <ExpenseManager cashBalances={balances} organizationId={profile.organization_id} centers={centers??[]} categories={categories??[]} accounts={accounts??[]} initialExpenses={expenses??[]} handovers={handovers??[]} ledger={ledger??[]} isAdmin={isAdmin}/>;
 }

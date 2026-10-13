@@ -43,11 +43,11 @@ export function CashTopups({ centers, rows, isAdmin }: { centers: Center[]; rows
         <div>
           <span className="eyebrow dark">CASH MANAGEMENT</span>
           <h2>{isAdmin ? "Center cash top-ups" : "Add cash to center"}</h2>
-          <p>{isAdmin ? "Review cash entries submitted by center staff." : "Record cash received for your center, such as an owner deposit or opening cash."}</p>
+          <p>{isAdmin ? "Review cash entries submitted by center staff." : "New funds must now be added to Admin Main Cash and issued to your center. Historical center cash entries are below."}</p>
         </div>
       </div>
 
-      {!isAdmin && (
+      {false && !isAdmin && (
         <form action={request} className="cash-topup-form">
           <label>
             <span>Center</span>
@@ -76,7 +76,7 @@ export function CashTopups({ centers, rows, isAdmin }: { centers: Center[]; rows
         </form>
       )}
 
-      {isAdmin && <div className="cash-topups-admin-note"><ArrowDownToLine size={17} /> New entries from center staff appear below.</div>}
+      {isAdmin && <div className="cash-topups-admin-note"><ArrowDownToLine size={17} /> Historical center cash top-ups and pending approvals appear below. New funding uses Admin Main Cash.</div>}
 
       <div className="table-panel cash-topups-table-wrap">
         <table>
