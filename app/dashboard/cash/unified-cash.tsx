@@ -87,7 +87,7 @@ export function UnifiedCash({ isAdmin, centers, accounts, issues }: Props) {
     <section className="unified-cash">
       <header className="page-heading">
         <div>
-          <span className="eyebrow dark">CASH / BANK MANAGE</span>
+          <span className="eyebrow dark">CASH MANAGE</span>
           <h1>Cash Management</h1>
           <p>{isAdmin
             ? "View cash balances, add funds to Admin Main Cash and issue cash to a center."

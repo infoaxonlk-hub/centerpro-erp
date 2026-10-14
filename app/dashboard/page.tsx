@@ -1,7 +1,7 @@
 import {readCashLedger} from "@/lib/cash-ledger";
 import Link from "next/link";
 import { requirePermission } from "@/lib/access";
-import { BellRing, Building2, CalendarClock, CircleDollarSign, PackagePlus, Settings, ShieldCheck, TriangleAlert, Users, Wallet, Boxes, BarChart3 } from "lucide-react";
+import { BellRing, Building2, CalendarClock, CircleDollarSign, PackagePlus, Settings, ShieldCheck, TriangleAlert, Users, Wallet, Boxes, BarChart3, Landmark } from "lucide-react";
 
 const money = new Intl.NumberFormat("en-LK", {
   style: "currency",
@@ -13,7 +13,8 @@ const appModules = [
   { href: "/dashboard/purchases", permission: "purchases", title: "Purchases", text: "Create and review purchase orders", icon: PackagePlus, tone: "violet" },
   { href: "/dashboard/sales", permission: "sales", title: "Sales", text: "Sales, customers and receivables", icon: PackagePlus, tone: "green" },
   { href: "/dashboard/stock", permission: "stock", title: "Inventory / Stock", text: "Location-wise inventory balances", icon: Boxes, tone: "blue" },
-  { href: "/dashboard/cash", permission: "cash", title: "Cash/Bank Manage", text: "Center cash balances, cash issues and cash funding", icon: CircleDollarSign, tone: "green" },
+  { href: "/dashboard/cash", permission: "cash", title: "Cash Manage", text: "Center cash balances, cash issues and cash funding", icon: CircleDollarSign, tone: "green" },
+  { href: "/dashboard/bank", permission: "cash", title: "Bank Management", text: "Company bank accounts, deposits and bank statement", icon: Landmark, tone: "blue" },
   { href: "/dashboard/expenses", permission: "cash", title: "Expenses", text: "Expense cash, entries and categories", icon: Wallet, tone: "orange" },
   { href: "/dashboard/payment-reports/all", permission: "payment_reports", title: "Payment Reports", text: "Payments, banks, payables and cheques", icon: BarChart3, tone: "pink" },
   { href: "/dashboard/centers", permission: "centers", title: "Centers & Locations", text: "Manage centers and stock locations", icon: Building2, tone: "cyan" },
@@ -25,7 +26,7 @@ const appModules = [
 export default async function DashboardPage() {
   const { supabase, profile } = await requirePermission("dashboard");
   const isAdmin = ["super_admin", "admin"].includes(profile.role);
-  const modules = appModules.filter((module) => profile.permissions.includes(module.permission));
+  const modules = appModules.filter((module) => profile.permissions.includes(module.permission) && (module.href !== "/dashboard/bank" || isAdmin));
   const [
     { count: centers },
     { count: purchases },

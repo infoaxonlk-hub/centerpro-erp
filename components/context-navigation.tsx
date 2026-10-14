@@ -12,7 +12,10 @@ const labels: Record<string, string> = {
   labor: "Labor & Sessions",
   laborers: "Laborers",
   sessions: "Sessions",
-  cash: "Cash/Bank Manage",
+  cash: "Cash Manage",
+  bank: "Bank Management",
+  accounts: "Bank Accounts",
+  statement: "Bank Statement",
   available: "Cash Management",
   handovers: "Cash handover history",
   ledger: "Cash Ledger",
@@ -21,7 +24,7 @@ const labels: Record<string, string> = {
   expenses: "Expenses",
   "payment-reports": "Payment Reports",
   all: "All Payments",
-  bank: "Bank Transactions",
+  
   payables: "Supplier Payables",
   cheques: "Cheque Management",
   centers: "Centers & Locations",
@@ -44,6 +47,7 @@ function parentHref(pathname: string) {
   if (/^\/dashboard\/sales\/[^/]+$/.test(pathname)) return "/dashboard/sales";
   if (pathname === "/dashboard/sales/receivables") return "/dashboard/sales";
   if (pathname === "/dashboard/cash/ledger") return "/dashboard/cash/available";
+  if (pathname.startsWith("/dashboard/bank/")) return "/dashboard/bank/accounts";
   if (pathname === "/dashboard/payment-reports/all") return "/dashboard";
   if (pathname.startsWith("/dashboard/payment-reports/")) return "/dashboard/payment-reports/all";
   return "/dashboard";

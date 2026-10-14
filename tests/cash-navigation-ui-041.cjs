@@ -10,14 +10,14 @@ const screen = read('app/dashboard/cash/screen.tsx');
 const dashboard = read('app/dashboard/page.tsx');
 const breadcrumb = read('components/context-navigation.tsx');
 const users = read('app/dashboard/users/users-manager.tsx');
-const cashMenu = nav.match(/\{ href: "\/dashboard\/cash", label: "Cash\/Bank Manage"[\s\S]*?\] \}/);
-assert.ok(cashMenu, 'Cash/Bank Manage parent menu must exist');
+const cashMenu = nav.match(/\{ href: "\/dashboard\/cash", label: "Cash Manage"[\s\S]*?\] \}/);
+assert.ok(cashMenu, 'Cash Manage parent menu must exist');
 assert.equal((cashMenu[0].match(/href: "\/dashboard\/cash\//g) || []).length, 2, 'Cash Management and Cash Ledger are the two submenus');
 assert.ok(cashMenu[0].includes('label: "Cash Management"'), 'Cash Management submenu must exist');
 assert.ok(cashMenu[0].includes('label: "Cash Ledger"'), 'Cash Ledger submenu must exist');
-assert.ok(dashboard.includes('title: "Cash/Bank Manage"'), 'Dashboard card must use new name');
-assert.ok(breadcrumb.includes('cash: "Cash/Bank Manage"'), 'Breadcrumb must use new name');
-assert.ok(users.includes('label:"Cash/Bank Manage"'), 'User permissions label must use new name');
+assert.ok(dashboard.includes('title: "Cash Manage"'), 'Dashboard card must use new name');
+assert.ok(breadcrumb.includes('cash: "Cash Manage"'), 'Breadcrumb must use new name');
+assert.ok(users.includes('label:"Cash Manage"'), 'User permissions label must use new name');
 for (const label of ['Cash balances', 'Issue to center', 'Add Cash In', 'Cash to receive']) {
   assert.ok(cash.includes(label), `Cash management missing: ${label}`);
 }
@@ -28,4 +28,4 @@ for (const rpc of ['record_admin_cash_in', 'issue_combined_center_cash', 'receiv
   assert.ok(cash.includes(rpc), `Required existing RPC must be preserved: ${rpc}`);
 }
 assert.ok(screen.includes('.eq("status","pending")'), 'Only actionable pending receipts should be requested');
-console.log('PASS: Cash/Bank Manage -> Cash Management, balances, cash actions, pending receipts; Cash Ledger navigation.');
+console.log('PASS: Cash Manage -> Cash Management, balances, cash actions, pending receipts; Cash Ledger navigation.');

@@ -91,7 +91,7 @@ export default async function CashLedgerPage({ searchParams }: { searchParams: P
   return (
     <section className="cash-gl">
       <div className="page-heading"><div>
-        <span className="eyebrow dark">CASH/BANK MANAGE</span>
+        <span className="eyebrow dark">CASH MANAGE</span>
         <h1>Cash Ledger</h1>
         <p>Center cash account statement · Double-entry journal · Amounts in LKR</p>
       </div></div>
