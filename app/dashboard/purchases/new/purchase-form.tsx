@@ -23,7 +23,8 @@ import { createClient } from "@/lib/supabase/client";
 import { notify } from "@/components/feedback";
 import { OfflinePosStatus } from "@/components/offline-pos-status";
 import { DetailedPurchaseEntry } from "./detailed-purchase-entry";
-import { clearPosDraft, deletePosTask, enqueuePosTask, loadPosDraft, listPosTasks, savePosDraft, syncPosTasks, type OfflinePosTask } from "@/lib/offline-pos";
+import { formatPurchaseQuantityByUnit } from "@/lib/purchase-quantity-summary";
+import { clearPosDraft, deletePosTask, enqueuePosTask, loadPosDraft, listPosDrafts, listPosTasks, savePosDraft, syncPosTasks, type OfflinePosTask, type StoredPosDraft } from "@/lib/offline-pos";
 type Location = {
   id: string;
   code: string;
@@ -75,6 +76,18 @@ type Product = {
   product_qualities: Quality[];
 };
 type Price = { center_id: string; quality_id: string; price: number | string };
+type PurchaseDraft = {
+  centerId: string;
+  supplierId: string;
+  paymentLines: PaymentLine[];
+  notes: string;
+  lines: Line[];
+  checkout: boolean;
+  laborSessionId?: string;
+  laborLoadCount?: string;
+  entryMode?: "pos" | "detailed";
+  requestId?: string | null;
+};
 type Line = {
   key: string;
   product_id: string;
@@ -102,6 +115,7 @@ export function PurchaseForm({
   userName,
   scopeId,
   laborSessions,
+  canManageLabor,
 }: {
   centers: Center[];
   suppliers: Supplier[];
@@ -113,6 +127,7 @@ export function PurchaseForm({
   userName: string;
   scopeId: string;
   laborSessions: LaborSession[];
+  canManageLabor: boolean;
 }) {
   const [centerId, setCenterId] = useState(centers[0]?.id ?? "");
   const [entryMode, setEntryMode] = useState<"pos" | "detailed">("pos");
@@ -169,8 +184,18 @@ export function PurchaseForm({
   const supplierRef = useRef<HTMLSelectElement>(null);
   const cartRef = useRef<HTMLElement>(null);
   const paymentScreenRef = useRef<HTMLElement>(null);
-  const startFreshAfterQueue = useRef(false);
-  const draftKey = `purchase:${scopeId}`;
+  const baseDraftKey = `purchase:${scopeId}`;
+  const [draftKey, setDraftKey] = useState(baseDraftKey);
+  const [draftBooted, setDraftBooted] = useState(false);
+  const [storedDrafts, setStoredDrafts] = useState<StoredPosDraft<PurchaseDraft>[]>([]);
+  const [switchingDraft, setSwitchingDraft] = useState(false);
+  // Keep legacy `purchase:<userId>` drafts. Additional purchases use unique suffixes.
+  useEffect(() => {
+    const params = new URL(window.location.href).searchParams;
+    const id = params.get("draft");
+    setDraftKey(id && /^[a-f0-9-]{36}$/i.test(id) ? `${baseDraftKey}:${id}` : baseDraftKey);
+    setDraftBooted(true);
+  }, [baseDraftKey]);
   useEffect(() => {
     const readMode = () => {
       try {
@@ -215,23 +240,51 @@ export function PurchaseForm({
     return () => { live = false; };
   }, [centerId, isOnline, cashBalanceRefresh]);
   useEffect(() => {
+    if (!draftBooted) return;
     let live = true;
     const url = new URL(window.location.href);
-    if (url.searchParams.get("new") === "1") {
-      startFreshAfterQueue.current = true;
+    const startFresh = url.searchParams.get("new") === "1";
+    if (startFresh) {
       url.searchParams.delete("new");
       window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
     }
-    const startFresh = startFreshAfterQueue.current;
     void Promise.all([
-        startFresh ? Promise.resolve(null) : loadPosDraft<{centerId:string;supplierId:string;paymentLines:PaymentLine[];notes:string;lines:Line[];checkout:boolean;laborSessionId?:string;laborLoadCount?:string}>(draftKey),
+      startFresh ? Promise.resolve(null) : loadPosDraft<PurchaseDraft>(draftKey),
+      listPosDrafts<PurchaseDraft>(baseDraftKey),
+      // A queued purchase is separate from an unfinished draft; never bind an
+      // unrelated queued requestId to the current new draft.
       listPosTasks(scopeId, "purchase"),
     ])
-      .then(([draft, tasks]) => { if (live && draft) { setCenterId(draft.centerId); setSupplierId(draft.supplierId); setPaymentLines(draft.paymentLines); setNotes(draft.notes); setLines(draft.lines); setCheckout(draft.checkout);setLaborSessionId(draft.laborSessionId??"");setLaborLoadCount(draft.laborLoadCount??"0"); } if (live && tasks.length && !startFresh) { requestId.current = tasks[0].requestId; setOfflineQueued(true); setPendingTotal(Number(tasks[0].payload.total ?? 0)); const failed=tasks.find(task => task.lastError); setOfflineQueueError(failed?.lastError ?? ""); setOfflineNeedsCorrection(Boolean(failed?.needsCorrection)); } })
+      .then(([draft, drafts, tasks]) => {
+        if (!live) return;
+        setStoredDrafts(drafts.filter(row => row.value?.lines?.length || row.value?.notes || row.value?.laborSessionId));
+        if (draft) {
+          setCenterId(draft.centerId);
+          setSupplierId(draft.supplierId);
+          setPaymentLines(draft.paymentLines);
+          setNotes(draft.notes);
+          setLines(draft.lines);
+          setCheckout(draft.checkout);
+          setLaborSessionId(draft.laborSessionId ?? "");
+          setLaborLoadCount(draft.laborLoadCount ?? "0");
+          if (draft.entryMode) setEntryMode(draft.entryMode);
+          requestId.current = draft.requestId ?? null;
+        }
+        // Legacy queued purchase screen only for the original draft URL.
+        // Fresh named drafts may be started while another purchase awaits sync.
+        if (draftKey === baseDraftKey && tasks.length && !startFresh) {
+          requestId.current = tasks[0].requestId;
+          setOfflineQueued(true);
+          setPendingTotal(Number(tasks[0].payload.total ?? 0));
+          const failed = tasks.find(task => task.lastError);
+          setOfflineQueueError(failed?.lastError ?? "");
+          setOfflineNeedsCorrection(Boolean(failed?.needsCorrection));
+        }
+      })
       .catch(() => {})
       .finally(() => { if (live) setDraftReady(true); });
     return () => { live = false; };
-  }, [draftKey, scopeId]);
+  }, [draftBooted, draftKey, scopeId, baseDraftKey]);
   useLayoutEffect(() => {
     if (!checkout) return;
     const resetPaymentScroll = () => {
@@ -244,9 +297,9 @@ export function PurchaseForm({
   }, [checkout]);
 
   useEffect(() => {
-    if (!draftReady || done || offlineQueued) return;
-    void savePosDraft(draftKey, { centerId, supplierId, paymentLines, notes, lines, checkout,laborSessionId,laborLoadCount }).catch(() => {});
-  }, [draftReady, done, offlineQueued, draftKey, centerId, supplierId, paymentLines, notes, lines, checkout,laborSessionId,laborLoadCount]);
+    if (!draftReady || done || offlineQueued || switchingDraft) return;
+    void savePosDraft(draftKey, { centerId, supplierId, paymentLines, notes, lines, checkout,laborSessionId,laborLoadCount,entryMode,requestId:requestId.current }).catch(() => {});
+  }, [draftReady, done, offlineQueued, switchingDraft, draftKey, centerId, supplierId, paymentLines, notes, lines, checkout,laborSessionId,laborLoadCount,entryMode]);
   useEffect(() => {
     let active = true;
     const syncPending = async () => {
@@ -271,6 +324,29 @@ export function PurchaseForm({
     void syncPending();
     return () => { active = false; window.removeEventListener("online", syncPending); window.removeEventListener("centerpro-pos-queue", syncPending); };
   }, [scopeId, draftKey, offlineQueued, draftReady]);
+  const purchaseDraftSnapshot = (): PurchaseDraft => ({
+    centerId, supplierId, paymentLines, notes, lines, checkout, laborSessionId, laborLoadCount, entryMode, requestId: requestId.current,
+  });
+  async function switchPurchaseDraft(targetKey?: string) {
+    if (busy || switchingDraft || !draftReady) return;
+    setSwitchingDraft(true);
+    try {
+      // Explicitly wait for the save before leaving; each pending order keeps its
+      // own IndexedDB record, including payment, supplier, lines and labor data.
+      const snapshot = purchaseDraftSnapshot();
+      if (snapshot.lines.length || snapshot.notes || snapshot.laborSessionId || (snapshot.supplierId && snapshot.supplierId !== "__cash_farmer__")) {
+        await savePosDraft(draftKey, snapshot);
+      } else {
+        await clearPosDraft(draftKey);
+      }
+      const target = targetKey ?? `${baseDraftKey}:${crypto.randomUUID()}`;
+      const suffix = target === baseDraftKey ? "" : `?draft=${encodeURIComponent(target.slice(baseDraftKey.length + 1))}`;
+      window.location.assign(`/dashboard/purchases/new${suffix}`);
+    } catch (cause) {
+      setSwitchingDraft(false);
+      notify(cause instanceof Error ? cause.message : "Could not save purchase draft. Please try again.", "error");
+    }
+  }
   const activeProducts = products.filter((p) =>
     p.product_qualities.some((q) => q.is_active),
   );
@@ -381,6 +457,7 @@ export function PurchaseForm({
     }
   }
   const qty = useMemo(() => lines.reduce((s, l) => s + l.quantity, 0), [lines]);
+  const quantityWithUnits = useMemo(() => formatPurchaseQuantityByUnit(lines, products), [lines, products]);
   const totalSacks = useMemo(() => lines.reduce((s, l) => s + (Number(l.sack_count) || 0), 0), [lines]);
   const overrides = lines.filter(
     (l) => Math.abs(l.actual_price - rate(l.quality_id)) > 0.001,
@@ -425,6 +502,8 @@ export function PurchaseForm({
       lines.some((l) => !l.location_id)
     )
       message = "Select a location for every purchase item.";
+    else if (laborSessionId && (!Number.isInteger(Number(laborLoadCount)) || Number(laborLoadCount) < 0))
+      message = "Enter a valid whole number of loads for the labor session.";
     if (message) {
       setError(message);
       notify(message, "error");
@@ -589,6 +668,7 @@ export function PurchaseForm({
       status: String(row.payment_status),
       payments: paymentLines.map((line) => ({ ...line })),
     });
+    requestId.current = null;
     setCashBalanceRefresh((value) => value + 1);
     notify("Purchase confirmed successfully");
   }
@@ -747,6 +827,10 @@ export function PurchaseForm({
                   setCheckout(false);
                   setLines([]);
                   setSupplierId("");
+                  setNotes("");
+                  setLaborSessionId("");
+                  setLaborLoadCount("0");
+                  requestId.current = null;
                   setPaymentLines([
                     {
                       key: makeKey(),
@@ -806,6 +890,28 @@ export function PurchaseForm({
         <strong className="pos-available-cash-amount">{cashBalanceLoading ? "Checking…" : cashBalance?.centerId === centerId ? money(cashBalance.amount) : "Unavailable"}</strong>
         {!isOnline && <small className="pos-cash-offline-note">Last online balance only; the server checks cash when syncing.</small>}
       </section>
+      <nav className="purchase-draft-toolbar" aria-label="Unfinished purchases">
+        <div className="purchase-draft-toolbar-label"><strong>Purchase drafts</strong><small>Keep an unfinished purchase and start another</small></div>
+        <label className="purchase-draft-select">Open draft
+          <select
+            value={draftKey}
+            disabled={!draftReady || switchingDraft || busy}
+            onChange={e => void switchPurchaseDraft(e.target.value)}
+          >
+            <option value={draftKey}>Current purchase{lines.length ? ` · ${lines.length} lines` : ""}</option>
+            {storedDrafts.filter(row => row.key !== draftKey).map(row => {
+              const draftCenter = centers.find(c => c.id === row.value.centerId);
+              const draftSupplier = suppliers.find(s => s.id === row.value.supplierId);
+              return <option key={row.key} value={row.key}>
+                {draftCenter?.code ?? "Center"} · {draftSupplier?.name ?? "Cash Farmer"} · {row.value.lines.length} lines
+              </option>;
+            })}
+          </select>
+        </label>
+        <button type="button" className="ghost purchase-draft-new" disabled={!draftReady || busy || switchingDraft} onClick={() => void switchPurchaseDraft()}>
+          <Plus size={16} /> {switchingDraft ? "Saving…" : "Hold & new purchase"}
+        </button>
+      </nav>
       {!checkout ? (
         entryMode === "detailed" ? (
           <DetailedPurchaseEntry
@@ -818,6 +924,12 @@ export function PurchaseForm({
             visibleLines={lines}
             total={total}
             totalSacks={totalSacks}
+            laborSessions={laborSessions}
+            laborSessionId={laborSessionId}
+            laborLoadCount={laborLoadCount}
+            canManageLabor={canManageLabor}
+            onLaborSessionChange={id => { setLaborSessionId(id); if (!id) setLaborLoadCount("0"); }}
+            onLaborLoadCountChange={setLaborLoadCount}
             onSelectProduct={selectProduct}
             onAddWeightRow={addWeightRow}
             onUpdateLine={update}
@@ -1111,6 +1223,11 @@ export function PurchaseForm({
                     <Plus size={15} /> Add line
                   </button>
                 </div>
+                {Math.abs(allocationDifference) > 0.001 && (
+                  <p className="purchase-allocation-warning" role="status">
+                    {money(Math.abs(allocationDifference))} {allocationDifference > 0 ? "remaining to allocate" : "over allocated"}. Match the purchase total before confirming.
+                  </p>
+                )}
                 {paymentLines.map((line, index) => {
                   const account = bankAccounts.find(
                     (a) => a.id === line.bank_account_id,
@@ -1305,36 +1422,11 @@ export function PurchaseForm({
                 );
               })}
             </div>
-            <div
-              className={`allocation-summary ${Math.abs(allocationDifference) < 0.001 ? "balanced" : "unbalanced"}`}
-            >
-              <span>
-                <small>Purchase total</small>
-                <b>{money(total)}</b>
-              </span>
-              <span>
-                <small>Allocated</small>
-                <b>{money(allocated)}</b>
-              </span>
-              <span>
-                <small>Paid (excl. credit)</small>
-                <b>{money(paidAmount)}</b>
-              </span>
-              <span>
-                <small>Credit balance</small>
-                <b>{money(creditAmount)}</b>
-              </span>
-              <strong>
-                {Math.abs(allocationDifference) < 0.001
-                  ? "Allocations balanced"
-                  : `${money(Math.abs(allocationDifference))} ${allocationDifference > 0 ? "remaining" : "over allocated"}`}
-              </strong>
-            </div>
             <div className="summary-total">
               <span>
                 <small>Total quantity</small>
                 <b>
-                  {qty.toLocaleString("en-LK", { maximumFractionDigits: 3 })}
+                  {quantityWithUnits}
                 </b>
               </span>
               <span>

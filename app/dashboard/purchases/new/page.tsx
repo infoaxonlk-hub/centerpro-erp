@@ -43,9 +43,8 @@ export default async function NewPurchasePage() {
       )
       .eq("is_active", true)
       .order("account_number"),
-    (profile.role==="admin"||profile.role==="super_admin"||(profile.permissions??[]).includes("labor"))
-      ? s.from("labor_sessions").select("id,center_id,title,operation,session_date").eq("status","open").in("operation",["purchase","both"]).order("session_date",{ascending:false})
-      : Promise.resolve({data:[]} as {data:never[]}),
+    // Purchase users can attach eligible open sessions for their center; RLS enforces center scope.
+    s.from("labor_sessions").select("id,center_id,title,operation,session_date").eq("status","open").in("operation",["purchase","both"]).order("session_date",{ascending:false}),
   ]);
   return (
     <PurchaseForm
@@ -59,6 +58,7 @@ export default async function NewPurchasePage() {
       userName={profile.full_name}
       scopeId={profile.id}
       laborSessions={laborSessions??[]}
+      canManageLabor={profile.role === "super_admin" || profile.role === "admin" || (profile.permissions ?? []).includes("labor")}
     />
   );
 }

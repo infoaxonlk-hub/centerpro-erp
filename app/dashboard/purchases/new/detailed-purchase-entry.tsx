@@ -9,11 +9,13 @@ type Supplier = { id: string; name: string; phone: string | null };
 type Quality = { id: string; name: string; default_price: number | string; is_active: boolean; is_base: boolean };
 type Product = { id: string; code: string; name: string; category: string | null; unit_of_measure: string; product_qualities: Quality[] };
 type Line = { key: string; product_id: string; quality_id: string; location_id: string; quantity: number; sack_count: number; actual_price: number };
+type LaborSession = { id: string; center_id: string; title: string; operation: string; session_date: string };
 
 const money = (n: number) => new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 2 }).format(n);
 
 export function DetailedPurchaseEntry({
   center, suppliers, supplierId, onSupplierChange, onAddSupplier, products, visibleLines, total,
+  laborSessions, laborSessionId, laborLoadCount, onLaborSessionChange, onLaborLoadCountChange, canManageLabor,
   onSelectProduct, onAddWeightRow, onUpdateLine, onRemoveLine, onOpenPayment, onSetError,
 }: {
   center?: Center;
@@ -25,6 +27,12 @@ export function DetailedPurchaseEntry({
   visibleLines: Line[];
   total: number;
   totalSacks: number;
+  laborSessions: LaborSession[];
+  laborSessionId: string;
+  laborLoadCount: string;
+  onLaborSessionChange: (id: string) => void;
+  onLaborLoadCountChange: (loads: string) => void;
+  canManageLabor: boolean;
   onSelectProduct: (product: Product) => void;
   onAddWeightRow: (line: Line) => string;
   onUpdateLine: (key: string, change: Partial<Line>) => void;
@@ -54,6 +62,7 @@ export function DetailedPurchaseEntry({
     }
     return [...map.values()];
   }, [visibleLines, products]);
+  const availableSessions = laborSessions.filter(session => session.center_id === center?.id);
   const farmerName = supplierId === "__cash_farmer__" || !supplierId
     ? "Cash Farmer"
     : suppliers.find(supplier => supplier.id === supplierId)?.name ?? "Select farmer";
@@ -120,6 +129,22 @@ export function DetailedPurchaseEntry({
           </header>
         </>}
 
+        <section className="detail-labor-section" aria-label="Purchase labor session">
+          <div className="detail-labor-heading"><strong>Labor session</strong><small>Optional · track loads against this purchase</small></div>
+          <div className="detail-labor-fields">
+            <label>Session
+              <select value={availableSessions.some(s => s.id === laborSessionId) ? laborSessionId : ""} onChange={e => onLaborSessionChange(e.target.value)}>
+                <option value="">No labor session</option>
+                {availableSessions.map(session => <option key={session.id} value={session.id}>{session.title} · {session.session_date}</option>)}
+              </select>
+            </label>
+            <label>Loads
+              <input type="number" min="0" step="1" inputMode="numeric" value={laborLoadCount} disabled={!laborSessionId} onChange={e => onLaborLoadCountChange(e.target.value)} />
+            </label>
+          </div>
+          {availableSessions.length === 0 && <p className="detail-labor-hint">No open purchase labor sessions for this center. {canManageLabor && <a href="/dashboard/labor/sessions" target="_blank" rel="noopener noreferrer">Open Labor Sessions</a>}</p>}
+        </section>
+
         {!showProductPicker && <section className="detail-weight-sections" aria-label="Selected products and weight entries">
           {groups.map(({ product, quality, lines }) => {
             const price = lines[0]?.actual_price ?? 0;
@@ -129,7 +154,7 @@ export function DetailedPurchaseEntry({
             return <article className="detail-product-group" key={`${product.id}:${quality.id}`}>
               <header><div><strong>{product.name}</strong><small>{quality.is_base ? "No quality" : quality.name} · {product.unit_of_measure}</small></div><button type="button" className="detail-add-row" onClick={() => addRowAndFocus(lines[0])}><Plus size={15}/> Add weighing</button></header>
               <div className="detail-product-summary" aria-live="polite">
-                <div><small>Total weight</small><strong>{productWeight.toLocaleString("en-LK", { maximumFractionDigits: 3 })} kg</strong></div>
+                <div><small>Total weight</small><strong>{productWeight.toLocaleString("en-LK", { maximumFractionDigits: 3 })} {product.unit_of_measure}</strong></div>
                 <div><small>Total sacks</small><strong>{productSacks.toLocaleString("en-LK")}</strong></div>
                 <div><small>Product total</small><strong>{money(productTotal)}</strong></div>
               </div>

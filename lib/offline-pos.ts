@@ -52,6 +52,16 @@ export async function loadPosDraft<T>(key: string): Promise<T | null> {
   return row?.value ?? null;
 }
 export const clearPosDraft = (key: string) => withStore("drafts", "readwrite", s => s.delete(key));
+
+// IndexedDB drafts are scoped per signed-in user. The original key remains supported
+// so in-progress purchases saved before multi-draft support are not lost.
+export type StoredPosDraft<T> = { key: string; value: T; updatedAt: string };
+export async function listPosDrafts<T>(baseKey: string): Promise<StoredPosDraft<T>[]> {
+  const rows = await withStore<StoredPosDraft<T>[]>(DRAFTS, "readonly", store => store.getAll());
+  return (rows ?? [])
+    .filter(row => row.key === baseKey || row.key.startsWith(`${baseKey}:`))
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
 export const saveCachedStock = (key: string, value: unknown) => withStore("stock", "readwrite", s => s.put({ key, value, updatedAt: new Date().toISOString() }));
 export async function loadCachedStock<T>(key: string): Promise<T | null> {
   const row = await withStore<{ key: string; value: T } | undefined>("stock", "readonly", s => s.get(key));
