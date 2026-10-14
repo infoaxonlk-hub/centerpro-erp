@@ -10,6 +10,7 @@ import {
   CircleCheck,
   CloudOff,
   Minus,
+  Layers3,
   Plus,
   Printer,
   RefreshCw,
@@ -189,6 +190,21 @@ export function PurchaseForm({
   const [draftBooted, setDraftBooted] = useState(false);
   const [storedDrafts, setStoredDrafts] = useState<StoredPosDraft<PurchaseDraft>[]>([]);
   const [switchingDraft, setSwitchingDraft] = useState(false);
+  const [showDraftMenu, setShowDraftMenu] = useState(false);
+  // These browser-local references label held orders only. The real purchase
+  // order number is allocated by Supabase when the purchase is confirmed.
+  const draftReference = draftKey === baseDraftKey
+    ? "D-0001"
+    : `D-${draftKey.slice(baseDraftKey.length + 1).replaceAll("-", "").slice(0, 6).toUpperCase()}`;
+  const heldDrafts = storedDrafts.filter(row => row.key !== draftKey);
+  useEffect(() => {
+    if (!showDraftMenu) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowDraftMenu(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [showDraftMenu]);
   // Keep legacy `purchase:<userId>` drafts. Additional purchases use unique suffixes.
   useEffect(() => {
     const params = new URL(window.location.href).searchParams;
@@ -905,33 +921,45 @@ export function PurchaseForm({
         <strong className="pos-available-cash-amount">{cashBalanceLoading ? "Checking…" : cashBalance?.centerId === centerId ? money(cashBalance.amount) : "Unavailable"}</strong>
         {!isOnline && <small className="pos-cash-offline-note">Last online balance only; the server checks cash when syncing.</small>}
       </section>
-      <nav className="purchase-draft-toolbar" aria-label="Unfinished purchases">
-        <div className="purchase-draft-toolbar-label"><strong>Purchase drafts</strong><small>Keep an unfinished purchase and start another</small></div>
-        <label className="purchase-draft-select">Purchase view
-          <select aria-label="Purchase view" value={entryMode} disabled={busy || switchingDraft || checkout} onChange={e => changeEntryMode(e.target.value as "pos" | "detailed")}>
-            <option value="pos">Purchase POS</option>
-            <option value="detailed">Detailed purchase order</option>
-          </select>
-        </label>
-        <label className="purchase-draft-select">Open draft
-          <select
-            value={draftKey}
-            disabled={!draftReady || switchingDraft || busy}
-            onChange={e => void switchPurchaseDraft(e.target.value)}
-          >
-            <option value={draftKey}>Current purchase{lines.length ? ` · ${lines.length} lines` : ""}</option>
-            {storedDrafts.filter(row => row.key !== draftKey).map(row => {
+      <nav className="purchase-order-topbar" aria-label="Purchase drafts and view">
+        <div className="purchase-order-current" title="Temporary draft reference. The official purchase number is assigned after confirmation.">
+          <span>Order</span>
+          <strong>{draftReference}</strong>
+          <small>Draft</small>
+        </div>
+        <div className="purchase-order-tools">
+          <label className="purchase-order-mode">
+            <span className="sr-only">Purchase view</span>
+            <select aria-label="Purchase view" value={entryMode} disabled={busy || switchingDraft || checkout} onChange={e => changeEntryMode(e.target.value as "pos" | "detailed")}>
+              <option value="pos">POS</option>
+              <option value="detailed">Detailed</option>
+            </select>
+          </label>
+          <button type="button" className="purchase-order-icon" title="Open saved purchase drafts" aria-label={`Open purchase drafts (${heldDrafts.length} held)`} aria-expanded={showDraftMenu} aria-controls="purchase-drafts-popover" onClick={() => setShowDraftMenu(value => !value)} disabled={!draftReady || switchingDraft || busy}>
+            <Layers3 size={19} aria-hidden="true" />
+            {heldDrafts.length > 0 && <span className="purchase-order-count">{heldDrafts.length}</span>}
+          </button>
+          <button type="button" className="purchase-order-icon purchase-order-new" title="Hold current purchase and start a new one" aria-label="Hold & new purchase" disabled={!draftReady || busy || switchingDraft} onClick={() => void switchPurchaseDraft()}>
+            <Plus size={21} aria-hidden="true" />
+          </button>
+        </div>
+        {showDraftMenu && <div id="purchase-drafts-popover" className="purchase-drafts-popover" role="group" aria-label="Saved purchase drafts">
+          <div className="purchase-drafts-popover-head"><strong>Unfinished orders</strong><button type="button" aria-label="Close draft list" onClick={() => setShowDraftMenu(false)}><X size={17}/></button></div>
+          <div className="purchase-drafts-list">
+            <div className="purchase-drafts-current"><strong>{draftReference}</strong><span>Current draft · {lines.length} {lines.length === 1 ? "line" : "lines"}</span></div>
+            {heldDrafts.map(row => {
               const draftCenter = centers.find(c => c.id === row.value.centerId);
               const draftSupplier = suppliers.find(s => s.id === row.value.supplierId);
-              return <option key={row.key} value={row.key}>
-                {draftCenter?.code ?? "Center"} · {draftSupplier?.name ?? "Cash Farmer"} · {row.value.lines.length} lines
-              </option>;
+              const ref = `D-${row.key.slice(baseDraftKey.length + 1).replaceAll("-", "").slice(0, 6).toUpperCase()}`;
+              return <button type="button" key={row.key} className="purchase-drafts-item" onClick={() => void switchPurchaseDraft(row.key)}>
+                <strong>{row.key === baseDraftKey ? "D-0001" : ref}</strong>
+                <span>{draftCenter?.code ?? "Center"} · {draftSupplier?.name ?? "Cash Farmer"} · {row.value.lines.length} lines</span>
+              </button>;
             })}
-          </select>
-        </label>
-        <button type="button" className="ghost purchase-draft-new" disabled={!draftReady || busy || switchingDraft} onClick={() => void switchPurchaseDraft()}>
-          <Plus size={16} /> {switchingDraft ? "Saving…" : "Hold & new purchase"}
-        </button>
+            {!heldDrafts.length && <p className="purchase-drafts-empty">No other unfinished orders on this device.</p>}
+          </div>
+          <small className="purchase-drafts-help">Drafts are saved on this device until confirmed.</small>
+        </div>}
       </nav>
       {!checkout ? (
         entryMode === "detailed" ? (

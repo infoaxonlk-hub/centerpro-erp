@@ -129,22 +129,6 @@ export function DetailedPurchaseEntry({
           </header>
         </>}
 
-        <section className="detail-labor-section" aria-label="Purchase labor session">
-          <div className="detail-labor-heading"><strong>Labor session</strong><small>Optional · track loads against this purchase</small></div>
-          <div className="detail-labor-fields">
-            <label>Session
-              <select value={availableSessions.some(s => s.id === laborSessionId) ? laborSessionId : ""} onChange={e => onLaborSessionChange(e.target.value)}>
-                <option value="">No labor session</option>
-                {availableSessions.map(session => <option key={session.id} value={session.id}>{session.title} · {session.session_date}</option>)}
-              </select>
-            </label>
-            <label>Loads
-              <input type="number" min="0" step="1" inputMode="numeric" value={laborLoadCount} disabled={!laborSessionId} onChange={e => onLaborLoadCountChange(e.target.value)} />
-            </label>
-          </div>
-          {availableSessions.length === 0 && <p className="detail-labor-hint">No open purchase labor sessions for this center. {canManageLabor && <a href="/dashboard/labor/sessions" target="_blank" rel="noopener noreferrer">Open Labor Sessions</a>}</p>}
-        </section>
-
         {!showProductPicker && <section className="detail-weight-sections" aria-label="Selected products and weight entries">
           {groups.map(({ product, quality, lines }) => {
             const price = lines[0]?.actual_price ?? 0;
@@ -171,6 +155,22 @@ export function DetailedPurchaseEntry({
             </article>;
           })}
           {!groups.length && <div className="detail-empty-weight">Select a product above to start entering weights.</div>}
+        </section>}
+
+        {!showProductPicker && <section className="detail-labor-section" aria-label="Purchase labor session">
+          <div className="detail-labor-heading"><strong>Labor session</strong><small>Optional · track loads against this purchase</small></div>
+          <div className="detail-labor-fields">
+            <label>Session
+              <select value={availableSessions.some(s => s.id === laborSessionId) ? laborSessionId : ""} onChange={e => onLaborSessionChange(e.target.value)}>
+                <option value="">No labor session</option>
+                {availableSessions.map(session => <option key={session.id} value={session.id}>{session.title} · {session.session_date}</option>)}
+              </select>
+            </label>
+            <label>Loads
+              <input type="number" min="0" step="1" inputMode="numeric" value={laborLoadCount} disabled={!laborSessionId} onChange={e => onLaborLoadCountChange(e.target.value)} />
+            </label>
+          </div>
+          {availableSessions.length === 0 && <p className="detail-labor-hint">No open purchase labor sessions for this center. {canManageLabor && <a href="/dashboard/labor/sessions" target="_blank" rel="noopener noreferrer">Open Labor Sessions</a>}</p>}
         </section>}
 
         {!showProductPicker && <footer className="detail-purchase-footer">

@@ -9,7 +9,7 @@ const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, t
 assert.equal(parsed.parseDiagnostics.length, 0, 'Purchase form syntax must be valid');
 for (const expected of [
   'aria-label="Purchase view"',
-  '<option value="detailed">Detailed purchase order</option>',
+  '<option value="detailed">Detailed</option>',
   'changeEntryMode(e.target.value as "pos" | "detailed")',
   'localStorage.setItem("centerpro-purchase-view", mode)',
   'savedPurchasePreference !== "detailed"',
