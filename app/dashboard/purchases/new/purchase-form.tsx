@@ -927,7 +927,7 @@ export function PurchaseForm({
         </div>
         <div className="purchase-order-tools">
           <label className="purchase-order-mode">
-            <span className="sr-only">Purchase view</span>
+            <span className="purchase-order-mode-label">Purchase view</span>
             <select aria-label="Purchase view" value={entryMode} disabled={busy || switchingDraft || checkout} onChange={e => changeEntryMode(e.target.value as "pos" | "detailed")}>
               <option value="pos">POS</option>
               <option value="detailed">Detailed</option>

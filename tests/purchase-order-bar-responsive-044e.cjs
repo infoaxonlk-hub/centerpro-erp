@@ -1,0 +1,22 @@
+// CenterPro 044e regression: compact order header must not overlap on mobile.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const ts = require('typescript');
+const root = path.resolve(__dirname, '..');
+const form = fs.readFileSync(path.join(root, 'app/dashboard/purchases/new/purchase-form.tsx'), 'utf8');
+const css = fs.readFileSync(path.join(root, 'app/purchase-pos.css'), 'utf8');
+const parsed = ts.createSourceFile('purchase-form.tsx', form, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+assert.equal(parsed.parseDiagnostics.length, 0, 'TSX parse failed');
+assert(form.includes('className="purchase-order-topbar"'), 'order bar missing');
+assert(form.includes('className="purchase-order-mode-label"'), 'view label not scoped for visual hiding');
+assert(form.includes('aria-label="Purchase view"'), 'select must stay accessible');
+assert(form.includes('Layers3 size={19}'), 'draft menu should remain');
+assert(form.includes('Hold & new purchase'), 'new draft action should remain');
+assert(css.includes('.purchase-order-mode-label{'), 'screen reader-only label CSS missing');
+assert(css.includes('clip:rect(0,0,0,0)'), 'view label must not occupy layout');
+assert(css.includes('.purchase-order-topbar{display:grid;grid-template-columns:minmax(0,1fr) auto'), 'responsive header columns missing');
+assert(css.includes('.purchase-order-current>strong{min-width:0;overflow:hidden;text-overflow:ellipsis'), 'long order reference must truncate');
+assert(css.includes('@media(max-width:520px)'), 'mobile spacing not defined');
+assert(css.includes('@media(max-width:380px)'), 'very narrow spacing not defined');
+console.log('PASS: 044e mobile purchase header layout and accessible controls');
