@@ -12,19 +12,17 @@ export async function CashScreen({view}:{view:"available"|"handovers"|"ledger"|"
  if(centerError)throw new Error(centerError.message);
  const availableCenters=centers??[];
  if(view==="available"||view==="ledger"){
-  const [{data:accounts,error:accountsError},{data:issues,error:issueError},{data:cashIns,error:cashInError},{data:entries,error:entryError}]=await Promise.all([
+  const [{data:accounts,error:accountsError},{data:issues,error:issueError}]=await Promise.all([
    supabase.from("cash_accounts").select("id,kind,center_id,name").order("kind").order("name"),
-   supabase.from("center_cash_issues").select("id,center_id,reference,purchase_issued,expense_issued,purchase_received,expense_received,status,receipt_note,issued_at,received_at,centers(id,code,name)").order("issued_at",{ascending:false}).limit(200),
-   isAdmin?supabase.from("admin_cash_in").select("id,amount,source,source_details,created_at").order("created_at",{ascending:false}).limit(200):Promise.resolve({data:[],error:null}),
-   supabase.from("cash_account_entries").select("id,debit_account_id,credit_account_id,amount,source_table,posting_key,note,created_at").order("created_at",{ascending:false}).limit(100)
+   supabase.from("center_cash_issues").select("id,center_id,reference,purchase_issued,expense_issued,purchase_received,expense_received,status,receipt_note,issued_at,received_at,centers(id,code,name)").eq("status","pending").order("issued_at",{ascending:false}).limit(200)
   ]);
-  const failure=accountsError??issueError??cashInError??entryError;
+  const failure=accountsError??issueError;
   if(failure)throw new Error(`Cash accounts are not ready: ${failure.message}. Run migration 039 before deploying this application.`);
   const loaded=await Promise.all((accounts??[]).map(async a=>{
    const {data,error}=await supabase.rpc("cash_account_balance",{p_account:a.id});
    return {...a,balance:error?null:Number(data)};
   }));
-  return <UnifiedCash isAdmin={isAdmin} centers={availableCenters} accounts={loaded} issues={issues??[]} cashIns={cashIns??[]} entries={entries??[]}/>;
+  return <UnifiedCash isAdmin={isAdmin} centers={availableCenters} accounts={loaded} issues={issues??[]}/>;
  }
  if(view==="handovers"){
   const {data:handovers,error}=await supabase.from("cash_handovers").select("id,center_id,issued_amount,received_amount,difference_amount,reference,issue_note,response_note,status,issued_at,responded_at,centers(name,code),issuer:profiles!cash_handovers_issued_by_fkey(full_name),receiver:profiles!cash_handovers_received_by_fkey(full_name)").order("issued_at",{ascending:false}).limit(100);

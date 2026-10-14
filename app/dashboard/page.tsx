@@ -13,7 +13,7 @@ const appModules = [
   { href: "/dashboard/purchases", permission: "purchases", title: "Purchases", text: "Create and review purchase orders", icon: PackagePlus, tone: "violet" },
   { href: "/dashboard/sales", permission: "sales", title: "Sales", text: "Sales, customers and receivables", icon: PackagePlus, tone: "green" },
   { href: "/dashboard/stock", permission: "stock", title: "Inventory / Stock", text: "Location-wise inventory balances", icon: Boxes, tone: "blue" },
-  { href: "/dashboard/cash", permission: "cash", title: "Cash & Payments", text: "Cash issues, handovers and bank accounts", icon: CircleDollarSign, tone: "green" },
+  { href: "/dashboard/cash", permission: "cash", title: "Cash/Bank Manage", text: "Center cash balances, cash issues and cash funding", icon: CircleDollarSign, tone: "green" },
   { href: "/dashboard/expenses", permission: "cash", title: "Expenses", text: "Expense cash, entries and categories", icon: Wallet, tone: "orange" },
   { href: "/dashboard/payment-reports/all", permission: "payment_reports", title: "Payment Reports", text: "Payments, banks, payables and cheques", icon: BarChart3, tone: "pink" },
   { href: "/dashboard/centers", permission: "centers", title: "Centers & Locations", text: "Manage centers and stock locations", icon: Building2, tone: "cyan" },

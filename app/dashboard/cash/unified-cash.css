@@ -11,3 +11,12 @@
 .cash-section-heading p{margin:4px 0 0}
 .cash-receive-card h3{display:flex;align-items:center;gap:8px}
 .cash-help{font-size:13px;margin:0}
+
+/* 041: single Cash Management workspace, not five duplicate menu sections. */
+.cash-management-balances{display:grid;gap:12px}
+.cash-management-section-heading{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.cash-management-section-heading h2{margin:0;font-size:19px}
+.cash-management-section-heading p{color:var(--muted);margin:0;font-size:13px}
+.cash-management-actions,.cash-management-receipts{padding:20px}
+.cash-management-receipts .cash-receive-grid{margin-top:16px}
+@media(max-width:650px){.cash-management-actions,.cash-management-receipts{padding:15px}}

@@ -84,12 +84,8 @@ export const sections: NavSection[] = [
       { href: "/dashboard/sales/receivables", label: "Customer receivables", permission: "sales", icon: ClipboardList },
       { href: "/dashboard/payment-reports/payables", label: "Supplier payables", permissionsAny: ["purchases","payment_reports"], icon: ClipboardList },
       { href: "/dashboard/payment-reports/cheques", label: "Cheque management", permission: "payment_reports", icon: FileCheck2 },
-      { href: "/dashboard/cash", label: "Cash & Payments", permission: "cash", icon: CircleDollarSign, children: [
-        { href: "/dashboard/cash/available", label: "Cash accounts & transfers" },
-        { href: "/dashboard/cash/handovers", label: "Legacy cash handovers" },
-        { href: "/dashboard/cash/ledger", label: "Debit / Credit cash ledger" },
-        { href: "/dashboard/cash/top-ups", label: "Center cash top-ups" },
-        { href: "/dashboard/cash/bank-accounts", label: "Company bank accounts" },
+      { href: "/dashboard/cash", label: "Cash/Bank Manage", permission: "cash", icon: CircleDollarSign, children: [
+        { href: "/dashboard/cash/available", label: "Cash Management" },
       ] },
       { href: "/dashboard/expenses", label: "Expenses", permission: "cash", icon: Wallet },
       {

@@ -9,7 +9,7 @@ type Access={center_id:string;centers:{name:string;code:string}|{name:string;cod
 type User={id:string;email:string|null;full_name:string;phone:string|null;role:string;is_active:boolean;permissions:string[];created_at:string;user_center_access:Access[]};
 type Draft={user:User|null;name:string;email:string;phone:string;role:"admin"|"center_user";permissions:string[];centerIds:string[]};
 const groups=[
- {name:"Workspaces",items:[{id:"dashboard",label:"Dashboard"},{id:"sales",label:"Sales"},{id:"purchases",label:"Purchases"},{id:"stock",label:"Inventory / Stock"},{id:"labor",label:"Labor & Sessions"},{id:"cash",label:"Cash & Payments"},{id:"payment_reports",label:"Payment Reports"}]},
+ {name:"Workspaces",items:[{id:"dashboard",label:"Dashboard"},{id:"sales",label:"Sales"},{id:"purchases",label:"Purchases"},{id:"stock",label:"Inventory / Stock"},{id:"labor",label:"Labor & Sessions"},{id:"cash",label:"Cash/Bank Manage"},{id:"payment_reports",label:"Payment Reports"}]},
  {name:"Product controls",items:[{id:"masters",label:"View products & suppliers"},{id:"product_create",label:"Create products"},{id:"product_edit",label:"Edit or archive products"},{id:"stock_adjustment",label:"Adjust counted stock"}]},
  {name:"Administration",items:[{id:"centers",label:"Centers & Locations"},{id:"users",label:"User Management"},{id:"audit",label:"Audit History"}]}
 ];
