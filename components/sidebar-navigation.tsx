@@ -86,6 +86,7 @@ export const sections: NavSection[] = [
       { href: "/dashboard/payment-reports/cheques", label: "Cheque management", permission: "payment_reports", icon: FileCheck2 },
       { href: "/dashboard/cash", label: "Cash/Bank Manage", permission: "cash", icon: CircleDollarSign, children: [
         { href: "/dashboard/cash/available", label: "Cash Management" },
+        { href: "/dashboard/cash/ledger", label: "Cash Ledger" },
       ] },
       { href: "/dashboard/expenses", label: "Expenses", permission: "cash", icon: Wallet },
       {

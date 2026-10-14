@@ -12,8 +12,9 @@ const breadcrumb = read('components/context-navigation.tsx');
 const users = read('app/dashboard/users/users-manager.tsx');
 const cashMenu = nav.match(/\{ href: "\/dashboard\/cash", label: "Cash\/Bank Manage"[\s\S]*?\] \}/);
 assert.ok(cashMenu, 'Cash/Bank Manage parent menu must exist');
-assert.equal((cashMenu[0].match(/href: "\/dashboard\/cash\//g) || []).length, 1, 'Only one submenu is allowed');
-assert.ok(cashMenu[0].includes('label: "Cash Management"'), 'Only submenu is Cash Management');
+assert.equal((cashMenu[0].match(/href: "\/dashboard\/cash\//g) || []).length, 2, 'Cash Management and Cash Ledger are the two submenus');
+assert.ok(cashMenu[0].includes('label: "Cash Management"'), 'Cash Management submenu must exist');
+assert.ok(cashMenu[0].includes('label: "Cash Ledger"'), 'Cash Ledger submenu must exist');
 assert.ok(dashboard.includes('title: "Cash/Bank Manage"'), 'Dashboard card must use new name');
 assert.ok(breadcrumb.includes('cash: "Cash/Bank Manage"'), 'Breadcrumb must use new name');
 assert.ok(users.includes('label:"Cash/Bank Manage"'), 'User permissions label must use new name');
@@ -27,4 +28,4 @@ for (const rpc of ['record_admin_cash_in', 'issue_combined_center_cash', 'receiv
   assert.ok(cash.includes(rpc), `Required existing RPC must be preserved: ${rpc}`);
 }
 assert.ok(screen.includes('.eq("status","pending")'), 'Only actionable pending receipts should be requested');
-console.log('PASS: Cash/Bank Manage -> Cash Management, balances, cash actions, pending receipts; no duplicate menus.');
+console.log('PASS: Cash/Bank Manage -> Cash Management, balances, cash actions, pending receipts; Cash Ledger navigation.');
