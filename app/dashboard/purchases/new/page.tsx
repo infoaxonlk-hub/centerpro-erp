@@ -58,7 +58,6 @@ export default async function NewPurchasePage() {
       userName={profile.full_name}
       scopeId={profile.id}
       laborSessions={laborSessions??[]}
-      canManageLabor={profile.role === "super_admin" || profile.role === "admin" || (profile.permissions ?? []).includes("labor")}
     />
   );
 }

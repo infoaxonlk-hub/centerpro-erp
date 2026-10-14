@@ -116,7 +116,6 @@ export function PurchaseForm({
   userName,
   scopeId,
   laborSessions,
-  canManageLabor,
 }: {
   centers: Center[];
   suppliers: Supplier[];
@@ -128,7 +127,6 @@ export function PurchaseForm({
   userName: string;
   scopeId: string;
   laborSessions: LaborSession[];
-  canManageLabor: boolean;
 }) {
   const [centerId, setCenterId] = useState(centers[0]?.id ?? "");
   const [entryMode, setEntryMode] = useState<"pos" | "detailed">("pos");
@@ -973,12 +971,6 @@ export function PurchaseForm({
             visibleLines={lines}
             total={total}
             totalSacks={totalSacks}
-            laborSessions={laborSessions}
-            laborSessionId={laborSessionId}
-            laborLoadCount={laborLoadCount}
-            canManageLabor={canManageLabor}
-            onLaborSessionChange={id => { setLaborSessionId(id); if (!id) setLaborLoadCount("0"); }}
-            onLaborLoadCountChange={setLaborLoadCount}
             onSelectProduct={selectProduct}
             onAddWeightRow={addWeightRow}
             onUpdateLine={update}

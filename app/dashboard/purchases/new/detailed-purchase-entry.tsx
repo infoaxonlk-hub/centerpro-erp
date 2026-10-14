@@ -9,13 +9,11 @@ type Supplier = { id: string; name: string; phone: string | null };
 type Quality = { id: string; name: string; default_price: number | string; is_active: boolean; is_base: boolean };
 type Product = { id: string; code: string; name: string; category: string | null; unit_of_measure: string; product_qualities: Quality[] };
 type Line = { key: string; product_id: string; quality_id: string; location_id: string; quantity: number; sack_count: number; actual_price: number };
-type LaborSession = { id: string; center_id: string; title: string; operation: string; session_date: string };
 
 const money = (n: number) => new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 2 }).format(n);
 
 export function DetailedPurchaseEntry({
   center, suppliers, supplierId, onSupplierChange, onAddSupplier, products, visibleLines, total,
-  laborSessions, laborSessionId, laborLoadCount, onLaborSessionChange, onLaborLoadCountChange, canManageLabor,
   onSelectProduct, onAddWeightRow, onUpdateLine, onRemoveLine, onOpenPayment, onSetError,
 }: {
   center?: Center;
@@ -27,12 +25,6 @@ export function DetailedPurchaseEntry({
   visibleLines: Line[];
   total: number;
   totalSacks: number;
-  laborSessions: LaborSession[];
-  laborSessionId: string;
-  laborLoadCount: string;
-  onLaborSessionChange: (id: string) => void;
-  onLaborLoadCountChange: (loads: string) => void;
-  canManageLabor: boolean;
   onSelectProduct: (product: Product) => void;
   onAddWeightRow: (line: Line) => string;
   onUpdateLine: (key: string, change: Partial<Line>) => void;
@@ -62,7 +54,6 @@ export function DetailedPurchaseEntry({
     }
     return [...map.values()];
   }, [visibleLines, products]);
-  const availableSessions = laborSessions.filter(session => session.center_id === center?.id);
   const farmerName = supplierId === "__cash_farmer__" || !supplierId
     ? "Cash Farmer"
     : suppliers.find(supplier => supplier.id === supplierId)?.name ?? "Select farmer";
@@ -155,22 +146,6 @@ export function DetailedPurchaseEntry({
             </article>;
           })}
           {!groups.length && <div className="detail-empty-weight">Select a product above to start entering weights.</div>}
-        </section>}
-
-        {!showProductPicker && <section className="detail-labor-section" aria-label="Purchase labor session">
-          <div className="detail-labor-heading"><strong>Labor session</strong><small>Optional · track loads against this purchase</small></div>
-          <div className="detail-labor-fields">
-            <label>Session
-              <select value={availableSessions.some(s => s.id === laborSessionId) ? laborSessionId : ""} onChange={e => onLaborSessionChange(e.target.value)}>
-                <option value="">No labor session</option>
-                {availableSessions.map(session => <option key={session.id} value={session.id}>{session.title} · {session.session_date}</option>)}
-              </select>
-            </label>
-            <label>Loads
-              <input type="number" min="0" step="1" inputMode="numeric" value={laborLoadCount} disabled={!laborSessionId} onChange={e => onLaborLoadCountChange(e.target.value)} />
-            </label>
-          </div>
-          {availableSessions.length === 0 && <p className="detail-labor-hint">No open purchase labor sessions for this center. {canManageLabor && <a href="/dashboard/labor/sessions" target="_blank" rel="noopener noreferrer">Open Labor Sessions</a>}</p>}
         </section>}
 
         {!showProductPicker && <footer className="detail-purchase-footer">
