@@ -207,6 +207,15 @@ export function PurchaseForm({
     window.addEventListener("centerpro-purchase-view-change", readMode);
     return () => window.removeEventListener("centerpro-purchase-view-change", readMode);
   }, []);
+  function changeEntryMode(mode: "pos" | "detailed") {
+    setEntryMode(mode);
+    try {
+      localStorage.setItem("centerpro-purchase-view", mode);
+      window.dispatchEvent(new CustomEvent("centerpro-purchase-view-change", { detail: mode }));
+    } catch {
+      notify("Purchase view preference could not be saved in this browser.", "error");
+    }
+  }
   useEffect(() => {
     if (entryMode === "detailed" && !supplierId) {
       const cashFarmer = suppliers.find(s => s.name.trim().toLowerCase() === "cash farmer");
@@ -267,7 +276,13 @@ export function PurchaseForm({
           setCheckout(draft.checkout);
           setLaborSessionId(draft.laborSessionId ?? "");
           setLaborLoadCount(draft.laborLoadCount ?? "0");
-          if (draft.entryMode) setEntryMode(draft.entryMode);
+          // The user's selected Purchase view takes precedence over older draft metadata.
+          // This prevents a POS-mode draft from hiding Detailed Purchase Order.
+          let savedPurchasePreference: string | null = null;
+          try { savedPurchasePreference = localStorage.getItem("centerpro-purchase-view"); } catch {}
+          if (draft.entryMode && savedPurchasePreference !== "pos" && savedPurchasePreference !== "detailed") {
+            setEntryMode(draft.entryMode);
+          }
           requestId.current = draft.requestId ?? null;
         }
         // Legacy queued purchase screen only for the original draft URL.
@@ -892,6 +907,12 @@ export function PurchaseForm({
       </section>
       <nav className="purchase-draft-toolbar" aria-label="Unfinished purchases">
         <div className="purchase-draft-toolbar-label"><strong>Purchase drafts</strong><small>Keep an unfinished purchase and start another</small></div>
+        <label className="purchase-draft-select">Purchase view
+          <select aria-label="Purchase view" value={entryMode} disabled={busy || switchingDraft || checkout} onChange={e => changeEntryMode(e.target.value as "pos" | "detailed")}>
+            <option value="pos">Purchase POS</option>
+            <option value="detailed">Detailed purchase order</option>
+          </select>
+        </label>
         <label className="purchase-draft-select">Open draft
           <select
             value={draftKey}
