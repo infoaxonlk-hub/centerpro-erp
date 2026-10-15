@@ -3,14 +3,16 @@
 import Link from "next/link";
 import {DraftBill} from "@/components/draft-bill";
 import {useEffect,useRef,useState} from "react";
-import {ArrowLeft,ArrowRight,Check,CloudOff,Minus,Plus,Search,ShoppingCart,Trash2,UserPlus,X} from "lucide-react";
+import {ArrowLeft,ArrowRight,Check,CloudOff,Layers3,Minus,Plus,Search,ShoppingCart,Trash2,UserPlus,X} from "lucide-react";
 import {createClient} from "@/lib/supabase/client";
 import {OfflinePosStatus} from "@/components/offline-pos-status";
-import {clearPosDraft,deletePosTask,enqueuePosTask,loadCachedStock,loadPosDraft,listPosTasks,saveCachedStock,savePosDraft,syncPosTasks,type OfflinePosTask} from "@/lib/offline-pos";
+import {clearPosDraft,deletePosTask,enqueuePosTask,loadCachedStock,loadPosDraft,listPosDrafts,listPosTasks,saveCachedStock,savePosDraft,syncPosTasks,type OfflinePosTask,type StoredPosDraft} from "@/lib/offline-pos";
 import {Bank,Center,Customer,Line,Payment,Price,Product,Stock,cents,methods,money} from "./types";
 import "./sales-pos.css";
+import {DetailedSalesEntry} from "./detailed-sales-entry";
 
 type LaborSession={id:string;center_id:string;title:string;operation:string;session_date:string};
+type SaleDraft={centerId:string;lines:Line[];payments:Payment[];customerId:string;notes:string;checkout:boolean;laborSessionId?:string;laborLoadCount?:string;entryMode?:"pos"|"detailed";requestId?:string|null};
 type Props={centers:Center[];customers:Customer[];products:Product[];prices:Price[];banks:Bank[];laborSessions:LaborSession[];organizationName?:string;userName?:string;scopeId:string};
 const newPayment=(amount:number,key="initial"):Payment=>({key,method:"cash",amount:amount.toFixed(2),bank_account_id:"",reference:"",cheque_number:"",cheque_date:""});
 const qty=(n:number)=>n.toLocaleString("en-LK",{maximumFractionDigits:3});
@@ -20,12 +22,47 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
  const [centerId,setCenterId]=useState(centers[0]?.id??"");
  const [stock,setStock]=useState<Stock[]>([]),[stockReady,setStockReady]=useState(false),[stockError,setStockError]=useState(""),[refresh,setRefresh]=useState(0);
  const [lines,setLines]=useState<Line[]>([]),[search,setSearch]=useState(""),[category,setCategory]=useState("all"),[checkout,setCheckout]=useState(false);
+ const [entryMode,setEntryMode]=useState<"pos"|"detailed">("pos");
  const [payments,setPayments]=useState<Payment[]>([]),[customerId,setCustomerId]=useState(""),[customers,setCustomers]=useState(initialCustomers),[notes,setNotes]=useState("");
  const [error,setError]=useState(""),[busy,setBusy]=useState(false),[customerBusy,setCustomerBusy]=useState(false),[customerError,setCustomerError]=useState(""),[customerOpen,setCustomerOpen]=useState(false);
  const [laborSessionId,setLaborSessionId]=useState(""),[laborLoadCount,setLaborLoadCount]=useState("0");
  const [draftReady,setDraftReady]=useState(false),[offlineQueued,setOfflineQueued]=useState(false),[pendingTotal,setPendingTotal]=useState(0),[offlineQueueError,setOfflineQueueError]=useState(""),[offlineNeedsCorrection,setOfflineNeedsCorrection]=useState(false),[isOnline,setIsOnline]=useState(true);
  const requestId=useRef<string|null>(null),submitLock=useRef(false),customerLock=useRef(false);
- const syncLock=useRef(false),draftKey=`sale:${scopeId}`;
+ const syncLock=useRef(false),baseDraftKey=`sale:${scopeId}`;
+ const [draftKey,setDraftKey]=useState(baseDraftKey),[draftBooted,setDraftBooted]=useState(false);
+ const [storedDrafts,setStoredDrafts]=useState<StoredPosDraft<SaleDraft>[]>([]);
+ const [switchingDraft,setSwitchingDraft]=useState(false),[showDraftMenu,setShowDraftMenu]=useState(false);
+ const draftReference=draftKey===baseDraftKey?"D-0001":`D-${draftKey.slice(baseDraftKey.length+1).replaceAll("-", "").slice(0,6).toUpperCase()}`;
+ const heldDrafts=storedDrafts.filter(row=>row.key!==draftKey);
+ useEffect(()=>{
+  const params=new URL(window.location.href).searchParams;
+  const id=params.get("draft");
+  setDraftKey(id&&/^[a-f0-9-]{36}$/i.test(id)?`${baseDraftKey}:${id}`:baseDraftKey);
+  setDraftBooted(true);
+ },[baseDraftKey]);
+ useEffect(()=>{
+  try{setEntryMode(localStorage.getItem("centerpro-sales-view")==="detailed"?"detailed":"pos");}catch{setEntryMode("pos");}
+ },[]);
+ useEffect(()=>{if(!showDraftMenu)return;const close=(e:KeyboardEvent)=>{if(e.key==="Escape")setShowDraftMenu(false);};window.addEventListener("keydown",close);return()=>window.removeEventListener("keydown",close);},[showDraftMenu]);
+ function changeEntryMode(mode:"pos"|"detailed"){
+  setEntryMode(mode);
+  try{localStorage.setItem("centerpro-sales-view",mode);}catch{/* View still works in private browsing. */}
+ }
+ function draftSnapshot():SaleDraft{return {centerId,lines,payments,customerId,notes,checkout,laborSessionId,laborLoadCount,entryMode,requestId:requestId.current};}
+ async function switchSalesDraft(targetKey?:string){
+  if(busy||switchingDraft||!draftReady)return;
+  setSwitchingDraft(true);setShowDraftMenu(false);
+  try{
+   const snapshot=draftSnapshot();
+   if(snapshot.lines.length||snapshot.notes||snapshot.customerId||snapshot.laborSessionId){await savePosDraft(draftKey,snapshot);}
+   else{await clearPosDraft(draftKey);}
+   const target=targetKey??`${baseDraftKey}:${crypto.randomUUID()}`;
+   if(target===draftKey){setSwitchingDraft(false);return;}
+   const suffix=target===baseDraftKey?"":`?draft=${encodeURIComponent(target.slice(baseDraftKey.length+1))}`;
+   window.location.assign(`/dashboard/sales/new${suffix}`);
+  }catch(e){setError(e instanceof Error?e.message:"Could not hold this sale. Retry before starting another.");setSwitchingDraft(false);}
+ }
+
  const searchRef=useRef<HTMLInputElement>(null),centerRef=useRef<HTMLSelectElement>(null),paymentForm=useRef<HTMLFormElement>(null),customerDialog=useRef<HTMLDialogElement>(null),customerNameRef=useRef<HTMLInputElement>(null);
  const center=centers.find(c=>c.id===centerId);
  const locations=(center?.locations??[]).filter(l=>l.is_active&&(center?.allow_multiple_locations||l.is_default));
@@ -45,20 +82,40 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
  const filtered=products.filter(p=>(category==="all"||(p.category?.trim()||"Uncategorized")===category)&&[p.name,p.code,...p.product_qualities.map(q=>q.name)].join(" ").toLowerCase().includes(search.trim().toLowerCase()));
 
  useEffect(()=>{
+  if(!draftBooted)return;
   let live=true;
-  void Promise.all([loadPosDraft<{centerId:string;lines:Line[];payments:Payment[];customerId:string;notes:string;checkout:boolean;laborSessionId?:string;laborLoadCount?:string}>(draftKey),listPosTasks(scopeId,"sale")]).then(([draft,tasks])=>{
-   if(live&&draft){setCenterId(draft.centerId);setLines(draft.lines);setPayments(draft.payments);setCustomerId(draft.customerId);setNotes(draft.notes);setCheckout(draft.checkout);setLaborSessionId(draft.laborSessionId??"");setLaborLoadCount(draft.laborLoadCount??"0");}
-   if(live&&tasks.length){requestId.current=tasks[0].requestId;setOfflineQueued(true);setPendingTotal(Number(tasks[0].payload.totalCents??0)/100);const failed=tasks.find(task=>task.lastError);setOfflineQueueError(failed?.lastError??"");setOfflineNeedsCorrection(Boolean(failed?.needsCorrection));}
+  void Promise.all([loadPosDraft<SaleDraft>(draftKey),listPosDrafts<SaleDraft>(baseDraftKey),listPosTasks(scopeId,"sale")]).then(([draft,drafts,tasks])=>{
+   if(!live)return;
+   setStoredDrafts(drafts.filter(row=>Boolean(row.value?.lines?.length||row.value?.customerId||row.value?.notes||row.value?.laborSessionId)));
+   if(draft){
+    setCenterId(draft.centerId);setLines(draft.lines);setPayments(draft.payments);
+    setCustomerId(draft.customerId);setNotes(draft.notes);setCheckout(draft.checkout);
+    setLaborSessionId(draft.laborSessionId??"");setLaborLoadCount(draft.laborLoadCount??"0");
+    requestId.current=draft.requestId??null;
+   }
+   // Pending sales are separate from unfinished drafts. Never bind a queued sale
+   // from another draft to the current order or block creation of a new sale.
+   const activeTask=tasks.find(task=>task.requestId===requestId.current)||
+     (draftKey===baseDraftKey&&!draft?.lines?.length?tasks[0]:undefined);
+   if(activeTask){
+    requestId.current=activeTask.requestId;setOfflineQueued(true);
+    setPendingTotal(Number(activeTask.payload.totalCents??0)/100);
+    setOfflineQueueError(activeTask.lastError??"");setOfflineNeedsCorrection(Boolean(activeTask.needsCorrection));
+   }
   }).catch(()=>{}).finally(()=>{if(live)setDraftReady(true);});
   return()=>{live=false;};
- },[draftKey,scopeId]);
- useEffect(()=>{if(!draftReady||offlineQueued)return;void savePosDraft(draftKey,{centerId,lines,payments,customerId,notes,checkout,laborSessionId,laborLoadCount}).catch(()=>{});},[draftReady,offlineQueued,draftKey,centerId,lines,payments,customerId,notes,checkout,laborSessionId,laborLoadCount]);
+ },[draftBooted,draftKey,baseDraftKey,scopeId]);
+ useEffect(()=>{
+  if(!draftReady||offlineQueued||switchingDraft)return;
+  void savePosDraft(draftKey,draftSnapshot()).catch(()=>{});
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ },[draftReady,offlineQueued,switchingDraft,draftKey,centerId,lines,payments,customerId,notes,checkout,laborSessionId,laborLoadCount,entryMode]);
  useEffect(()=>{const update=()=>setIsOnline(navigator.onLine);update();window.addEventListener("online",update);window.addEventListener("offline",update);return()=>{window.removeEventListener("online",update);window.removeEventListener("offline",update);};},[]);
  useEffect(()=>{
   let active=true;
   const syncPending=async()=>{
    if(!draftReady||!navigator.onLine||syncLock.current)return;syncLock.current=true;
-   try{const completed=await syncPosTasks(createClient(),scopeId,"sale");if(!active)return;for(const {task,id} of completed){if(task.requestId===requestId.current||offlineQueued){await clearPosDraft(draftKey).catch(()=>{});window.location.assign("/dashboard/sales/"+id);return;}}const tasks=await listPosTasks(scopeId,"sale");if(active){const failed=tasks.find(task=>task.lastError);setOfflineQueueError(failed?.lastError??"");setOfflineNeedsCorrection(Boolean(failed?.needsCorrection));}}
+   try{const completed=await syncPosTasks(createClient(),scopeId,"sale");if(!active)return;for(const {task,id} of completed){if(task.requestId===requestId.current){await clearPosDraft(draftKey).catch(()=>{});window.location.assign("/dashboard/sales/"+id);return;}}const tasks=await listPosTasks(scopeId,"sale");if(active){const failed=tasks.find(task=>task.lastError);setOfflineQueueError(failed?.lastError??"");setOfflineNeedsCorrection(Boolean(failed?.needsCorrection));}}
    finally{syncLock.current=false;}
   };
   window.addEventListener("online",syncPending);window.addEventListener("centerpro-pos-queue",syncPending);void syncPending();
@@ -72,7 +129,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
  },[centerId,refresh,scopeId]);
  useEffect(()=>{
   function keydown(e:KeyboardEvent){
-   if(busy||customerOpen||e.altKey||e.ctrlKey||e.metaKey)return;
+   if(busy||customerOpen||showDraftMenu||e.altKey||e.ctrlKey||e.metaKey)return;
    if(e.key==="F2"&&!checkout){e.preventDefault();searchRef.current?.focus();}
    if(e.key==="F4"&&!checkout){e.preventDefault();centerRef.current?.focus();}
    if(e.key==="F9"&&!checkout){e.preventDefault();if(canCheckout){setError("");setCheckout(true);}}
@@ -80,7 +137,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
    if(e.key==="Escape"&&checkout){e.preventDefault();setCheckout(false);}
   }
   window.addEventListener("keydown",keydown);return()=>window.removeEventListener("keydown",keydown);
- },[busy,customerOpen,checkout,canCheckout,canConfirm]);
+ },[busy,customerOpen,showDraftMenu,checkout,canCheckout,canConfirm]);
  useEffect(()=>{if(customerOpen){customerDialog.current?.showModal();customerNameRef.current?.focus();}else customerDialog.current?.close();},[customerOpen]);
 
  function changeCenter(id:string){
@@ -105,7 +162,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
  function changeLine(key:string,patch:Partial<Line>){setLines(old=>old.map(l=>l.key===key?{...l,...patch}:l));setError("");}
  function stepQty(line:Line,step:number){const max=available(line.quality_id,line.location_id)-used(line.quality_id,line.location_id)+Number(line.quantity);changeLine(line.key,{quantity:String(roundedQty(Math.max(0.001,Math.min(max,Number(line.quantity)+step))))});}
  function changePayment(key:string,patch:Partial<Payment>){setPayments(rows.map(p=>p.key===key?{...p,...patch}:p));setError("");}
- function exit(e:React.MouseEvent<HTMLAnchorElement>){if(busy||(lines.length&&!window.confirm("Leave this sale? Unsaved items will be lost.")))e.preventDefault();}
+ function exit(e:React.MouseEvent<HTMLAnchorElement>){if(busy||switchingDraft)e.preventDefault();}
  async function confirm(e:React.FormEvent){
   e.preventDefault();if(submitLock.current)return;
   if(!canConfirm){setError("Check stock, customer and payment allocations before confirming.");return;}
@@ -134,7 +191,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
   catch(e){setCustomerError(e instanceof Error?e.message:"Customer could not be saved.");}finally{setCustomerBusy(false);customerLock.current=false;}
  }
 
- if(offlineQueued)return <div className="purchase-pos-full sales-pos-full"><header className="pos-topbar"><Link href="/dashboard/sales" className="pos-back"><ArrowLeft/><span>Sales</span></Link><div className="pos-brand"><b>CenterPro</b><small>Sales POS</small></div><OfflinePosStatus scopeId={scopeId} kind="sale"/></header><main className="pos-offline-pending"><article><CloudOff size={48}/><h1>Sale saved · waiting to sync</h1><p>This sale is stored on this device. It has <strong>not</strong> reduced stock, recorded payment or created an invoice yet. CenterPro will check current stock, selling prices and payment details when connected.</p><strong>{money(pendingTotal)}</strong>{offlineQueueError&&<p className="alert error" role="alert">Sync needs attention: {offlineQueueError}</p>}<p>Keep this device and account available until the bill opens after syncing.</p>{offlineNeedsCorrection&&<button className="ghost" onClick={()=>void editPendingSale()}>Review and edit saved sale</button>} <button className="primary" onClick={()=>window.dispatchEvent(new Event("centerpro-pos-queue"))}>Try sync now</button> <Link className="ghost" href="/dashboard/sales">Sales workspace</Link></article></main></div>;
+ if(offlineQueued)return <div className="purchase-pos-full sales-pos-full"><header className="pos-topbar"><Link href="/dashboard/sales" className="pos-back"><ArrowLeft/><span>Sales</span></Link><div className="pos-brand"><b>CenterPro</b><small>Sales POS</small></div><OfflinePosStatus scopeId={scopeId} kind="sale"/></header><main className="pos-offline-pending"><article><CloudOff size={48}/><h1>Sale saved · waiting to sync</h1><p>This sale is stored on this device. It has <strong>not</strong> reduced stock, recorded payment or created an invoice yet. CenterPro will check current stock, selling prices and payment details when connected.</p><strong>{money(pendingTotal)}</strong>{offlineQueueError&&<p className="alert error" role="alert">Sync needs attention: {offlineQueueError}</p>}<p>Keep this device and account available until the bill opens after syncing.</p>{offlineNeedsCorrection&&<button className="ghost" onClick={()=>void editPendingSale()}>Review and edit saved sale</button>} <button className="primary" onClick={()=>window.dispatchEvent(new Event("centerpro-pos-queue"))}>Try sync now</button> <button className="ghost" onClick={()=>window.location.assign(`/dashboard/sales/new?draft=${crypto.randomUUID()}`)}>New sale</button> <Link className="ghost" href="/dashboard/sales">Sales workspace</Link></article></main></div>;
  return <div className="purchase-pos-full sales-pos-full">
   <header className="pos-topbar">
    <Link href="/dashboard/sales" className="pos-back" onClick={exit}><ArrowLeft/><span>Sales</span></Link>
@@ -142,8 +199,40 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
    <label><kbd>F4</kbd> Center<select ref={centerRef} aria-label="Sales center" value={centerId} disabled={busy||checkout||customerOpen} onChange={e=>changeCenter(e.target.value)}>{centers.map(c=><option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>
    <OfflinePosStatus scopeId={scopeId} kind="sale"/>
   </header>
+  <nav className="purchase-order-topbar sales-order-topbar" aria-label="Sales drafts and view">
+   <div className="purchase-order-current" title="Temporary draft reference. Official sale number assigned after confirmation."><span>Order</span><strong>{draftReference}</strong><small>Draft</small></div>
+   <div className="purchase-order-tools">
+    <label className="purchase-order-mode"><span className="purchase-order-mode-label">Sales view</span>
+     <select aria-label="Sales view" value={entryMode} disabled={busy||switchingDraft||checkout} onChange={e=>changeEntryMode(e.target.value as "pos"|"detailed")}>
+      <option value="pos">POS</option><option value="detailed">Detailed</option>
+     </select>
+    </label>
+    <button type="button" className="purchase-order-icon" title="Open saved sales drafts" aria-label={`Open sales drafts (${heldDrafts.length} held)`} aria-expanded={showDraftMenu} aria-controls="sales-drafts-popover" disabled={!draftReady||switchingDraft||busy} onClick={()=>setShowDraftMenu(v=>!v)}><Layers3 size={19} aria-hidden="true"/>{heldDrafts.length>0&&<span className="purchase-order-count">{heldDrafts.length}</span>}</button>
+    <button type="button" className="purchase-order-icon purchase-order-new" title="Hold current sale and start a new one" aria-label="Hold & new sale" disabled={!draftReady||switchingDraft||busy} onClick={()=>void switchSalesDraft()}><Plus size={21} aria-hidden="true"/></button>
+   </div>
+   {showDraftMenu&&<div id="sales-drafts-popover" className="purchase-drafts-popover" role="group" aria-label="Saved sales drafts">
+    <div className="purchase-drafts-popover-head"><strong>Unfinished sales</strong><button type="button" aria-label="Close draft list" onClick={()=>setShowDraftMenu(false)}><X size={17}/></button></div>
+    <div className="purchase-drafts-list">
+     <div className="purchase-drafts-current"><strong>{draftReference}</strong><span>Current draft · {lines.length} lines</span></div>
+     {heldDrafts.map(row=><button type="button" key={row.key} className="purchase-drafts-item" onClick={()=>void switchSalesDraft(row.key)}>
+      <strong>{row.key===baseDraftKey?"D-0001":`D-${row.key.slice(baseDraftKey.length+1).replaceAll("-", "").slice(0,6).toUpperCase()}`}</strong>
+      <span>{centers.find(c=>c.id===row.value.centerId)?.code??"Center"} · {initialCustomers.find(c=>c.id===row.value.customerId)?.name??"Walk-in"} · {row.value.lines.length} lines</span>
+     </button>)}
+     {!heldDrafts.length&&<p className="purchase-drafts-empty">No other unfinished sales on this device.</p>}
+    </div>
+    <small className="purchase-drafts-help">Drafts stay on this device until confirmed.</small>
+   </div>}
+  </nav>
   {!isOnline&&<div className="pos-offline-warning" role="status">Offline: this screen uses the last saved stock snapshot. A sale is only final after server stock and payment validation.</div>}
-  {!checkout?<div className="pos-sale-screen">
+  {!checkout?(entryMode==="detailed"?<DetailedSalesEntry
+   center={center} customers={customers} customerId={customerId} onCustomerChange={setCustomerId}
+   onAddCustomer={()=>{setCustomerError("");setCustomerOpen(true);}} products={products} lines={lines}
+   total={totalCents/100} unitTotals={unitTotals} canCheckout={canCheckout} stockReady={stockReady} stockError={stockError} error={error} isOnline={isOnline}
+   onRetryStock={()=>{setStockError("");setStockReady(false);setRefresh(v=>v+1);}}
+   available={available} used={used} invalidLine={invalidLine} savedPrice={savedPrice}
+   onAddProduct={addProduct} onUpdateLine={changeLine} onRemoveLine={key=>setLines(old=>old.filter(l=>l.key!==key))}
+   onOpenPayment={()=>{setError("");setCheckout(true);}}
+  />:<div className="pos-sale-screen">
    <section className="pos-products" aria-label="Sales products">
     <div className="pos-search"><Search aria-hidden="true"/><input ref={searchRef} autoFocus aria-label="Search products" placeholder="Search products, code or quality…" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button aria-label="Clear search" onClick={()=>{setSearch("");searchRef.current?.focus();}}><X/></button>}<kbd>F2</kbd></div>
     <nav className="pos-categories" aria-label="Product categories"><button className={category==="all"?"active":""} onClick={()=>setCategory("all")}>All products</button>{categories.map(c=><button key={c} className={category===c?"active":""} onClick={()=>setCategory(c)}>{c}</button>)}</nav>
@@ -169,7 +258,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
     })}</div>
     <footer className="pos-cart-footer">{error&&<p className="alert error" role="alert">{error}</p>}<div><span><small>Total quantity</small><b>{unitTotals||"0"}</b></span><span><small>Total amount</small><strong>{money(totalCents/100)}</strong></span></div><button className="primary pos-payment-button" disabled={!canCheckout} onClick={()=>{setError("");setCheckout(true);}}><kbd>F9</kbd> Payment <ArrowRight size={18}/></button></footer>
    </aside>
-  </div>:<div className="pos-payment-screen">
+  </div>):<div className="pos-payment-screen">
    <form id="sales-payment" ref={paymentForm} onSubmit={confirm} className="payment-card">
     <fieldset disabled={busy} className="sales-pos-fieldset"><button type="button" className="payment-back" onClick={()=>setCheckout(false)}><ArrowLeft/>Back to products</button><span className="eyebrow dark">FINAL STEP</span><h1>Split sales payment</h1><p>Allocate the sale total across your payment methods.</p>
     {error&&<div className="alert error" role="alert">{error}</div>}

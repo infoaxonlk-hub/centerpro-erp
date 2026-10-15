@@ -29,3 +29,27 @@
 @media(max-width:850px){.sales-pos-full{position:fixed;min-height:0}.sales-pos-full .pos-sale-screen{display:flex;flex-direction:column;overflow:auto}.sales-pos-full .pos-products{flex-shrink:0}.sales-pos-full .pos-cart{flex-shrink:0}.sales-pos-full .pos-cart-lines{max-height:45dvh;overflow:auto}.sales-pos-full .pos-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sales-pos-full .pos-product{min-height:175px}.sales-pos-full .payment-summary{position:static}.sales-pos-full .pos-topbar select{min-width:0;max-width:65vw}.sales-pos-full .pos-payment-screen{min-height:0}}
 @media(max-width:520px){.sales-pos-full .pos-topbar label{gap:5px;font-size:12px}.sales-pos-full .pos-topbar kbd{display:none}.sales-pos-fieldset>h1{font-size:28px}.sales-pos-full .summary-total strong{font-size:23px}.sales-pos-full .summary-total{gap:10px}.sales-pos-full .split-payment-heading{flex-wrap:wrap}}
 .sales-pos-full .labor-pos-fields{display:grid;grid-template-columns:minmax(0,2fr) minmax(100px,1fr);gap:10px;margin:8px 0}.sales-pos-full .labor-pos-fields label{display:grid;gap:6px;font-size:13px;font-weight:700}.sales-pos-full .labor-pos-fields select,.sales-pos-full .labor-pos-fields input{min-width:0;width:100%;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:#fff;color:var(--ink)}
+
+/* 046: Sales now uses the same compact order/draft bar as Purchases. */
+.sales-pos-full .sales-order-topbar{flex-shrink:0}
+.sales-pos-full .sales-detailed-scroll{flex:1;min-height:0;overflow-y:auto}
+.sales-pos-full .sales-detail-products{max-height:280px}
+.sales-pos-full .sales-detail-products button:disabled{opacity:.5;cursor:not-allowed}
+.sales-pos-full .sales-detail-line{display:grid;grid-template-columns:22px minmax(0,1.3fr) minmax(85px,.85fr) minmax(95px,.85fr) 36px;align-items:end;gap:8px;padding:9px 0;border-top:1px solid var(--line)}
+.sales-pos-full .sales-detail-line label{display:grid;min-width:0;gap:5px;font-size:11px;font-weight:750;color:var(--muted)}
+.sales-pos-full .sales-detail-line select,.sales-pos-full .sales-detail-line input{min-width:0;width:100%;min-height:42px;border:1px solid var(--line);border-radius:8px;padding:7px;background:var(--paper);color:var(--ink);font:inherit}
+.sales-pos-full .sales-detail-index{align-self:center;font-size:12px;color:var(--muted)}
+.sales-pos-full .sales-detail-line>button{height:42px;width:36px;display:grid;place-items:center;border:0;background:#fff0ef;color:#b42318;border-radius:8px}
+.sales-pos-full .sales-detail-availability{grid-column:2/-1;color:var(--muted)}
+.sales-pos-full .sales-detail-add{justify-self:start}
+.sales-pos-full .sales-detail-footer>div{min-width:0}
+.sales-pos-full .sales-detail-footer small{overflow-wrap:anywhere}
+@media(max-width:600px){
+ .sales-pos-full .sales-detail-line{grid-template-columns:18px repeat(2,minmax(0,1fr)) 36px;gap:6px}
+ .sales-pos-full .sales-detail-line label:first-of-type{grid-column:2/5}
+ .sales-pos-full .sales-detail-line label:nth-of-type(2){grid-column:2}
+ .sales-pos-full .sales-detail-line label:nth-of-type(3){grid-column:3}
+ .sales-pos-full .sales-detail-line>button{grid-column:4;grid-row:2}
+ .sales-pos-full .sales-detail-availability{grid-column:2/-1}
+ .sales-pos-full .sales-detail-products{max-height:215px}
+}
