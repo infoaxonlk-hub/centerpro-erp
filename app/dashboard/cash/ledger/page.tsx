@@ -103,10 +103,15 @@ export default async function CashLedgerPage({ searchParams }: { searchParams: P
             {allowedCenters.map(c => <option value={c.id} key={c.id}>{c.code} · {c.name}</option>)}
           </select>
         </label>
-        <label>From date <input type="date" name="from" defaultValue={from} /></label>
-        <label>To date <input type="date" name="to" defaultValue={to} /></label>
         <button type="submit" className="primary" disabled={!allowedCenters.length}>View ledger</button>
-        <Link className="soft cash-gl-reset" href="/dashboard/cash/ledger">Clear filters</Link>
+        <details className="cp-filter-details cp-ledger-extra" open={Boolean(from || to)}>
+          <summary>Date filters{[from,to].filter(Boolean).length>0&&<span className="cp-filter-count">{[from,to].filter(Boolean).length}</span>}</summary>
+          <div className="cp-filter-fields">
+            <label>From date <input type="date" name="from" defaultValue={from} /></label>
+            <label>To date <input type="date" name="to" defaultValue={to} /></label>
+            <div className="cp-filter-actions"><button type="submit" className="primary" disabled={!allowedCenters.length}>Apply</button><Link className="soft cash-gl-reset" href="/dashboard/cash/ledger">Clear</Link></div>
+          </div>
+        </details>
       </form>
 
       {!allowedCenters.length && <p className="panel cash-gl-message">No center is assigned to your account. Ask the Super Admin to assign your center in Users & Access. Other centers' cash records will not be shown.</p>}

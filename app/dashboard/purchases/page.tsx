@@ -58,15 +58,23 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Se
     <div className="page-heading">
       <div><span className="eyebrow dark">PROCUREMENT</span><h1>Purchases</h1><p>Open a PO number to view or print its bill and request cancellation.</p></div>
     </div>
-    <form className="panel purchase-list-filters" method="get">
-      <label className="purchase-list-search">Search PO number<input name="q" defaultValue={q} placeholder="e.g. PO-20260924-0103" /></label>
-      <label>Center<select name="center" defaultValue={center}><option value="">All centers</option>{(centers ?? []).map(c => <option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>
-      <label>Supplier<select name="supplier" defaultValue={supplier}><option value="">All suppliers</option><option value="cash">Cash purchase</option>{(suppliers ?? []).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-      <label>Payment<select name="method" defaultValue={method}><option value="">All methods</option>{methods.map(x => <option key={x} value={x}>{x.replaceAll("_", " ")}</option>)}</select></label>
-      <label>Status<select name="status" defaultValue={status}><option value="">All statuses</option>{statuses.map(x => <option key={x} value={x}>{x}</option>)}</select></label>
-      <label>From<input type="date" name="from" defaultValue={from} /></label>
-      <label>To<input type="date" name="to" defaultValue={to} /></label>
-      <div className="purchase-filter-actions"><button className="primary" type="submit">Apply filters</button><Link className="ghost" href="/dashboard/purchases">Clear</Link></div>
+    <form className="panel purchase-list-filters cp-filter-panel" method="get">
+      <div className="cp-filter-toolbar">
+        <label className="purchase-list-search">Search PO number<input name="q" defaultValue={q} placeholder="Search PO number…" /></label>
+        <button className="primary" type="submit">Search</button>
+      </div>
+      <details className="cp-filter-details" open={Boolean(center || supplier || method || status || from || to)}>
+        <summary>More filters{[center,supplier,method,status,from,to].filter(Boolean).length > 0 && <span className="cp-filter-count">{[center,supplier,method,status,from,to].filter(Boolean).length}</span>}</summary>
+        <div className="cp-filter-fields">
+          <label>Center<select name="center" defaultValue={center}><option value="">All centers</option>{(centers ?? []).map(c => <option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>
+          <label>Supplier<select name="supplier" defaultValue={supplier}><option value="">All suppliers</option><option value="cash">Cash purchase</option>{(suppliers ?? []).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+          <label>Payment<select name="method" defaultValue={method}><option value="">All methods</option>{methods.map(x => <option key={x} value={x}>{x.replaceAll("_", " ")}</option>)}</select></label>
+          <label>Status<select name="status" defaultValue={status}><option value="">All statuses</option>{statuses.map(x => <option key={x} value={x}>{x}</option>)}</select></label>
+          <label>From<input type="date" name="from" defaultValue={from} /></label>
+          <label>To<input type="date" name="to" defaultValue={to} /></label>
+          <div className="purchase-filter-actions cp-filter-actions"><button className="primary" type="submit">Apply filters</button><Link className="ghost" href="/dashboard/purchases">Clear</Link></div>
+        </div>
+      </details>
     </form>
     <section className="panel table-panel purchase-list-table">
       <div className="purchase-list-summary">{total === 0 ? "No purchase orders found" : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total} purchase orders`}</div>

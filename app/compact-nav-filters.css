@@ -1,0 +1,93 @@
+/* CenterPro 045 - compact navigation and progressive filter disclosure. UI only. */
+@media screen {
+  .app-shell .module-cards {
+    display:flex; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden;
+    align-items:center; gap:6px; padding:7px clamp(12px,2vw,28px);
+    scrollbar-width:thin; background:var(--canvas); -webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain; scroll-snap-type:x proximity;
+  }
+  .app-shell .module-cards > a {
+    display:inline-flex; justify-content:center; align-items:center; flex:0 0 auto;
+    min-height:36px; max-width:100%; padding:7px 11px; border-radius:9px;
+    font-size:12px; line-height:1.15; font-weight:700; white-space:nowrap;
+    scroll-snap-align:start;
+  }
+  .app-shell .module-cards > a:first-child {color:var(--muted)}
+  .app-shell .module-cards > a:focus-visible {outline:3px solid var(--brand);outline-offset:2px}
+  .app-shell .module-cards > a.selected {background:var(--brand);border-color:var(--brand);color:white}
+
+  .app-shell .cp-filter-panel {padding:10px 12px; margin-bottom:12px; min-width:0;}
+  .app-shell .cp-filter-toolbar {display:flex;align-items:end;gap:8px;min-width:0;}
+  .app-shell .cp-filter-toolbar > label {min-width:0;flex:1 1 auto;}
+  .app-shell .cp-filter-toolbar input {width:100%;min-width:0;}
+  .app-shell .cp-filter-toolbar button {flex:0 0 auto;min-height:40px;}
+  .app-shell .cp-filter-details {display:block;min-width:0;margin-top:8px;border-top:1px solid var(--line);}
+  .app-shell .cp-filter-details > summary {
+    display:flex;align-items:center;gap:8px;min-height:38px;cursor:pointer;
+    list-style:none;user-select:none;color:var(--ink);font-size:13px;font-weight:750;
+  }
+  .app-shell .cp-filter-details > summary::-webkit-details-marker {display:none}
+  .app-shell .cp-filter-details > summary::before {content:'⚙';font-size:15px;color:var(--brand)}
+  .app-shell .cp-filter-details > summary::after {
+    content:'⌄';margin-left:auto;font-size:20px;line-height:1;color:var(--muted);
+    transition:transform .15s ease;
+  }
+  .app-shell .cp-filter-details[open] > summary::after {transform:rotate(180deg)}
+  .app-shell .cp-filter-details > summary:focus-visible {outline:3px solid var(--brand);outline-offset:2px;border-radius:6px}
+  .app-shell .cp-filter-count {
+    display:inline-block;padding:2px 7px;border-radius:100px;
+    background:var(--brand);color:white;font-size:11px;font-weight:800;
+  }
+  .app-shell .cp-filter-fields {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,165px),1fr));gap:10px;padding:4px 0 8px;align-items:end;}
+  .app-shell .cp-filter-fields > label {min-width:0;display:grid;gap:5px}
+  .app-shell .cp-filter-fields :is(input,select) {width:100%;min-width:0;}
+  .app-shell .cp-filter-actions {display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .app-shell .cp-filter-actions > :is(a,button) {min-height:40px;}
+  .app-shell .cp-filter-section {min-width:0;}
+  .app-shell .cp-filter-section .cp-filter-details {margin-top:8px}
+  .app-shell .cp-filter-section .cp-filter-fields {padding-top:8px;}
+}
+@media screen and (max-width:600px) {
+  .app-shell .module-cards {gap:5px;padding:6px 10px;}
+  .app-shell .module-cards > a {font-size:11px;padding:7px 9px;min-height:34px;}
+  .app-shell .cp-filter-toolbar button {padding:8px 11px;min-height:40px;}
+  .app-shell .cp-filter-panel {padding:9px 11px;}
+  .app-shell .cp-filter-fields {grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+  .app-shell .cp-filter-fields > label:has(select[name="supplier"]) {grid-column:span 2;}
+  .app-shell .cp-filter-actions {grid-column:1/-1;}
+  .app-shell .cp-filter-fields :is(input,select) {font-size:16px;min-height:42px;}
+  .app-shell .cp-filter-toolbar input {font-size:16px;}
+}
+@media screen and (max-width:360px) {
+  .app-shell .cp-filter-fields {grid-template-columns:minmax(0,1fr);}
+  .app-shell .cp-filter-fields > label:has(select[name="supplier"]) {grid-column:auto;}
+}
+@media print { .module-cards,.cp-filter-panel {display:none!important;} }
+
+@media screen {
+ .app-shell .purchase-list-filters.cp-filter-panel {display:block;}
+ .app-shell .purchase-list-filters.cp-filter-panel .purchase-list-search {grid-column:auto;}
+ .app-shell .purchase-list-filters.cp-filter-panel .cp-filter-fields {display:grid;}
+ .app-shell .cash-gl-filters .cp-ledger-extra,.app-shell .bank-statement-filters .cp-ledger-extra {flex:1 1 100%;}
+ .app-shell .cash-gl-filters .cp-filter-fields,.app-shell .bank-statement-filters .cp-filter-fields {display:grid;}
+ .app-shell .cash-gl-filters .cp-filter-fields label,.app-shell .bank-statement-filters .cp-filter-fields label {min-width:0;flex:initial;}
+ .app-shell .stock-filter-panel .cp-filter-details {margin-top:8px;}
+ .app-shell .stock-filter-panel .cp-filter-fields {display:grid;}
+ .app-shell .expense-report .cp-filter-details {margin:8px 0 12px;}
+ .app-shell .expense-report .cp-filter-fields {display:grid;}
+}
+@media screen and (max-width:730px) {
+ .app-shell .cash-gl-filters > button.primary,.app-shell .bank-statement-filters > button.primary {flex:0 0 auto;width:auto;}
+ .app-shell .bank-statement-filters > label,.app-shell .cash-gl-filters > label {flex:1 1 170px;min-width:0;}
+}
+
+@media screen {
+ .app-shell .sales-fields .cp-sales-extra {flex:1 1 100%;width:100%;}
+ .app-shell .sales-fields .cp-filter-fields {display:grid;}
+ .app-shell .sales-fields .cp-filter-fields > label {min-width:0;}
+ .app-shell .report-filters .cp-report-extra {margin-top:8px;}
+ .app-shell .report-filters .cp-filter-fields {display:grid;}
+ .app-shell .report-filters .cp-filter-fields > .report-selects,
+ .app-shell .report-filters .cp-filter-fields > .report-dates {grid-column:1/-1;margin-top:0;}
+ .app-shell .report-filters .report-search {margin-top:8px;}
+}

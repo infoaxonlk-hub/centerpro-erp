@@ -45,11 +45,16 @@ export default async function BankStatementPage({searchParams}:{searchParams:Pro
   <div className="page-heading"><div><span className="eyebrow dark">BANK MANAGEMENT</span><h1>Bank Statement</h1><p>Company Bank Book · Center-wise bank transactions · Debit / Credit / Running Balance</p></div></div>
   <form className="panel bank-statement-filters" action="/dashboard/bank/statement" method="get">
    <label>Bank account<select name="account" defaultValue={selected?.id??""} disabled={!allAccounts.length}>{!allAccounts.length&&<option value="">No company bank accounts</option>}{allAccounts.map(a=><option key={a.id} value={a.id}>{one(a.payment_banks)?.name} · {a.account_number}</option>)}</select></label>
-   <label>Center<select name="center" defaultValue={selectedCenter?.id??""}><option value="">All Centers + Admin</option>{allCenters.map(c=><option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>
-   <label>From<input type="date" name="from" defaultValue={from}/></label>
-   <label>To<input type="date" name="to" defaultValue={to}/></label>
    <button type="submit" className="primary" disabled={!allAccounts.length}>View statement</button>
-   <Link href="/dashboard/bank/statement" className="soft">Clear</Link>
+   <details className="cp-filter-details cp-ledger-extra" open={Boolean(selectedCenter || from || to)}>
+    <summary>More filters{Number(Boolean(selectedCenter))+Number(Boolean(from))+Number(Boolean(to))>0&&<span className="cp-filter-count">{Number(Boolean(selectedCenter))+Number(Boolean(from))+Number(Boolean(to))}</span>}</summary>
+    <div className="cp-filter-fields">
+     <label>Center<select name="center" defaultValue={selectedCenter?.id??""}><option value="">All Centers + Admin</option>{allCenters.map(c=><option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>
+     <label>From<input type="date" name="from" defaultValue={from}/></label>
+     <label>To<input type="date" name="to" defaultValue={to}/></label>
+     <div className="cp-filter-actions"><button type="submit" className="primary" disabled={!allAccounts.length}>Apply filters</button><Link href="/dashboard/bank/statement" className="soft">Clear</Link></div>
+    </div>
+   </details>
   </form>
   {invalidAccount&&<div className="alert error">Bank account is not available to this company.</div>}
   {invalidCenter&&<div className="alert error">Center is not available to this company.</div>}

@@ -25,6 +25,7 @@ import "./offline-pos.css";
 import "./bill-return.css";
 import "./purchase-pos-accessibility.css";
 import "./responsive-layout.css";
+import "./compact-nav-filters.css";
 import { OfflineSupport } from "@/components/offline-pos-status";
 
 export const metadata: Metadata = {
