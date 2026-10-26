@@ -13,7 +13,7 @@ export function AppShell({ children, companyName, name, role, permissions, notif
   return <AppearanceShell permissions={permissions} isAdmin={isAdmin} companyName={companyName} centerNames={assignedCenters}>
     <aside className="sidebar">
       <div className="logo"><span>CP</span><div><strong>CenterPro</strong><small>by InfoAxon</small></div></div>
-      <SidebarNavigation permissions={permissions} isAdmin={isAdmin} />
+      <SidebarNavigation permissions={permissions} isAdmin={isAdmin} isSuperAdmin={role === "super_admin"} />
       <div className="sidebar-foot"><ReceiptText size={18}/><span>Pilot workspace</span></div>
     </aside>
     <section className="workspace">

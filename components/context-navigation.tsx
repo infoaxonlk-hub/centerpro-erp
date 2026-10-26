@@ -30,6 +30,7 @@ const labels: Record<string, string> = {
   centers: "Centers & Locations",
   masters: "Products & Suppliers",
   users: "Users & Access",
+  businesses: "Businesses",
   audit: "Audit Log",
   "bill-requests": "Cancel Requests",
   returns: "Return Requests",
@@ -73,10 +74,10 @@ export function ContextNavigation() {
   const crumbs: { label: string; href?: string }[] = [{ label: "Dashboard", href: "/dashboard" }];
 
   if (parts.length > 2) {
-    const module = parts[1];
-    const moduleHref = `/dashboard/${module}`;
-    const moduleLabel = labels[module] ?? module.replaceAll("-", " ");
-    if (module === "payment-reports") crumbs.push({ label: "Payment Reports", href: "/dashboard/payment-reports/all" });
+    const moduleName = parts[1];
+    const moduleHref = `/dashboard/${moduleName}`;
+    const moduleLabel = labels[moduleName] ?? moduleName.replaceAll("-", " ");
+    if (moduleName === "payment-reports") crumbs.push({ label: "Payment Reports", href: "/dashboard/payment-reports/all" });
     else crumbs.push({ label: moduleLabel, href: moduleHref });
   }
   if (crumbs.at(-1)?.label !== title) crumbs.push({ label: title });

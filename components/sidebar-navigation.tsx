@@ -18,7 +18,6 @@ import {
   Settings,
   ShieldCheck,
   ShoppingCart,
-  Trash2,
   Users,
   Wallet,
   Landmark,
@@ -131,13 +130,14 @@ export function activeNavigation(pathname:string, items:NavItem[]) {
   return items.filter(item=>item.href!=="/dashboard" && (pathname===item.href || pathname.startsWith(item.href+"/") || item.children?.some(c=>pathname===c.href || pathname.startsWith(c.href+"/")))).sort((a,b)=>b.href.length-a.href.length)[0];
 }
 
-export function SidebarNavigation({ permissions, isAdmin }: { permissions: string[]; isAdmin: boolean }) {
+export function SidebarNavigation({ permissions, isAdmin, isSuperAdmin = false }: { permissions: string[]; isAdmin: boolean; isSuperAdmin?: boolean }) {
   const pathname = usePathname();
   const canSee = (item: NavItem) => canSeeNavigation(item, permissions, isAdmin);
   const activeItem = activeNavigation(pathname, sections.flatMap(s=>s.items).filter(canSee));
 
   return (
     <nav className="sidebar-nav" aria-label="Main navigation">
+      {isSuperAdmin && <Link className={`nav-item ${pathname === "/dashboard/businesses" ? "active" : ""}`} href="/dashboard/businesses"><Building2 size={18}/><span>Businesses</span></Link>}
       {sections.map((section) => {
         const visible = section.items.filter(canSee);
         if (!visible.length) return null;
