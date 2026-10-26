@@ -1,4 +1,3 @@
-import {DashboardSummaryPlacement} from "@/components/dashboard-summary-placement";
 import {getDashboardSummary} from "@/lib/dashboard-data";
 import {DashboardMetrics} from "@/components/dashboard-metrics";
 import Link from "next/link";
@@ -85,7 +84,7 @@ export default async function DashboardPage() {
           Manage centers
         </Link>
       </div>
-      <DashboardSummaryPlacement><DashboardMetrics summary={summary}/></DashboardSummaryPlacement>
+      <DashboardMetrics summary={summary}/>
       <section className="dashboard-apps" aria-label="CenterPro modules">
         <div className="dashboard-apps-heading"><div><span className="eyebrow dark">APPLICATIONS</span><h2>Open a workspace</h2></div><p>Quick access to the modules available for your account.</p></div>
         <div className="app-card-grid">{modules.map((module) => {const Icon=module.icon;return <Link href={moduleEnabled(module.key,business.enabledModules)?module.href:restrictedHref(module.href)} className={`app-card ${module.tone} ${moduleEnabled(module.key,business.enabledModules)?"":"module-locked"}`} key={module.href}><span className="app-card-icon"><Icon/></span><span><b>{module.title}</b><small>{module.text}</small></span><i>{moduleEnabled(module.key,business.enabledModules)?"Open":<span className="module-lock"><LockKeyhole size={14}/> Locked</span>}</i></Link>})}</div>

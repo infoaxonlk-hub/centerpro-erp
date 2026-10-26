@@ -1,6 +1,6 @@
 Stock explorer opens with Product cards. The View selector and Appearance → Stock view share a preference saved in the current browser. Detailed table, Stock graph and Movement (FSN) remain available. Filters apply to every view; cards sum each product across matching qualities and locations, with a location breakdown. Different units remain separate.
 
-The dashboard summary appears in grouped cards, app and list navigation:
+In grouped cards and app navigation, open the Dashboard tile to see the business summary. The apps home screen contains only the app launcher. In list navigation the summary appears on the dashboard page:
 
 - Today's purchases and sales: confirmed order totals, including credit, using confirmation time and the Sri Lanka calendar day. Draft and cancelled orders are excluded. Separate returns are not deducted from these gross totals.
 - Purchase order count: all confirmed purchase orders, across all dates.
