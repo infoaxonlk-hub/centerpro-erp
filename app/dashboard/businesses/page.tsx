@@ -1,3 +1,4 @@
+import "./businesses.css";
 import "@/app/company-profile.css";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/access";

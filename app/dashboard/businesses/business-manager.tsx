@@ -68,10 +68,10 @@ export function BusinessManager() {
       </form>
     </section>
     <section className="panel"><h2>Businesses ({businesses.length})</h2>
-      {loading ? <p>Loading businesses...</p> : <div className="table-wrap"><table><thead><tr><th>Business</th><th>Administrators</th><th>Created</th></tr></thead>
+      {loading ? <p>Loading businesses...</p> : <div className="business-table-wrap"><table className="business-table"><thead><tr><th>Business</th><th>Administrators</th><th>Created</th></tr></thead>
         <tbody>{businesses.map(business => <tr key={business.id}>
-          <td>{business.name}</td><td>{business.profiles.filter(p => p.role === "admin").map(p => <div key={p.id}>{p.full_name} · {p.email}{!p.is_active && " (inactive)"}</div>)}</td>
-          <td>{new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Colombo" }).format(new Date(business.created_at))}</td>
+          <td className="business-name">{business.name}</td><td>{business.profiles.filter(p => p.role === "admin").map(p => <div className="business-admin" key={p.id}><strong>{p.full_name}</strong><span>{p.email}</span>{!p.is_active && <small className="status inactive">Inactive</small>}</div>)}</td>
+          <td className="business-created">{new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Colombo" }).format(new Date(business.created_at))}</td>
         </tr>)}</tbody></table>{!businesses.length && <p>No businesses yet.</p>}</div>}
     </section>
   </div>;
