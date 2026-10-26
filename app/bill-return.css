@@ -23,3 +23,5 @@
 .return-card-actions{display:flex;gap:8px;flex-wrap:wrap}
 .status.pending{background:#fff4ce;color:#805b00}
 @media(max-width:650px){.return-request-head,.return-request-line{grid-template-columns:minmax(0,1fr) 76px 92px;gap:8px;padding:10px}.return-request-line input{padding:8px 5px}.return-card-heading,.return-card-footer{align-items:stretch;flex-direction:column}.return-card-actions{width:100%}.return-card-actions button{flex:1}.return-card-heading .ghost{align-self:flex-start}}
+
+.return-request-line .return-sacks{grid-column:1/-1;display:grid;gap:5px;font-size:12px}.return-sacks input{width:100%;min-width:0}

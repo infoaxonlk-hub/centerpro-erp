@@ -1,13 +1,14 @@
 import type {SupabaseClient} from "@supabase/supabase-js";
 import {colomboDay} from "@/lib/report-dates";
 import {stockDirection} from "@/lib/stock-summary";
+import {readAll} from "@/lib/read-all";
 export type DashboardScope={organizationId:string;purchases:boolean;sales:boolean;inventory:boolean;cash:boolean};
 export type UnitStock={unit:string;quantity:number};
 export type HighestStock={productId:string;product:string;code:string;unit:string;quantity:number};
 export type DashboardSummary={
  day:string;todayPurchases:number|null;todayPurchaseCount:number|null;purchaseOrderCount:number|null;
  todaySales:number|null;todaySaleCount:number|null;stock:UnitStock[]|null;highestStock:HighestStock[]|null;
- centerCash:{total:number;centers:{id:string;name:string;balance:number}[]}|null;
+ centerCash:{total:number;centers:{id:string;name:string;balance:number}[]}|null;stockSacks?:number|null;
 };
 export function dashboardDayRange(now:Date){
  const day=colomboDay(now.toISOString()),start=new Date(day+"T00:00:00+05:30");
@@ -49,7 +50,8 @@ export async function readDashboardSummary(client:SupabaseClient,scope:Dashboard
    if(item.quantity>0&&(!highest.has(item.unit)||item.quantity>highest.get(item.unit)!.quantity||
      item.quantity===highest.get(item.unit)!.quantity&&item.product.localeCompare(highest.get(item.unit)!.product)<0))highest.set(item.unit,item);
   }
-  return{totals:[...totals].sort(([a],[b])=>a.localeCompare(b)).map(([unit,quantity])=>({unit,quantity})),
+  const sackRows=await readAll<{delta:number}>(client,"stock_sack_movements","id,delta",scope.organizationId);
+  return{sacks:sackRows.reduce((sum,row)=>sum+Number(row.delta),0),totals:[...totals].sort(([a],[b])=>a.localeCompare(b)).map(([unit,quantity])=>({unit,quantity})),
    highest:[...highest.values()].sort((a,b)=>a.unit.localeCompare(b.unit))};
  }
  async function centerCash(){
@@ -80,5 +82,5 @@ export async function readDashboardSummary(client:SupabaseClient,scope:Dashboard
  if(orders?.error)throw new Error("Purchase order count could not be loaded.");
  return{day,todayPurchases:purchases?.total??null,todayPurchaseCount:purchases?.count??null,
   todaySales:sales?.total??null,todaySaleCount:sales?.count??null,purchaseOrderCount:scope.purchases?orders?.count??0:null,
-  stock:inventory?.totals??null,highestStock:inventory?.highest??null,centerCash:cash};
+  stock:inventory?.totals??null,stockSacks:inventory?.sacks??null,highestStock:inventory?.highest??null,centerCash:cash};
 }

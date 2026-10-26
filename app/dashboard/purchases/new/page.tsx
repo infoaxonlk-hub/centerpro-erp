@@ -26,7 +26,7 @@ export default async function NewPurchasePage() {
     s
       .from("products")
       .select(
-        "id,code,name,category,unit_of_measure,product_qualities(id,name,default_price,is_active,is_base)",
+        "id,code,name,category,unit_of_measure,tracks_sacks,product_qualities(id,name,default_price,is_active,is_base)",
       )
       .eq("is_active", true)
       .order("name"),

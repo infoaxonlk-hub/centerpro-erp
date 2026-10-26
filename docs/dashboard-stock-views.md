@@ -8,4 +8,4 @@ In grouped cards and app navigation, open the Dashboard tile to see the business
 - Total stock: movement balance, grouped by unit.
 - Highest stock: product name and positive quantity, separately for each unit. Its link opens the stock explorer filtered to that product.
 
-Summaries use the signed-in user's business, enabled modules, permissions and database row policies. They include only permitted centers. Summary reads paginate beyond the API row limit. No SQL migration is needed for this change; existing migrations through 048 are assumed.
+Summaries use the signed-in user's business, enabled modules, permissions and database row policies. They include only permitted centers. Summary reads paginate beyond the API row limit. Product sack tracking requires migration 049; see [product-sack-tracking.md](product-sack-tracking.md).

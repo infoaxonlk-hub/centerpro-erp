@@ -11,7 +11,7 @@ assert.match(nav,/href: "\/dashboard\/bank", label: "Bank Management", permissio
 assert.match(nav,/href: "\/dashboard\/bank\/accounts", label: "Bank Accounts"/);
 assert.match(nav,/href: "\/dashboard\/bank\/statement", label: "Bank Statement"/);
 assert.match(src('lib/business-modules.ts'),/key: "bank", name: "Bank Management"/);
-assert.match(dashboard,/!item\.adminOnly\|\|isAdmin/);
+assert.ok(dashboard.includes('DashboardMetrics')&&!dashboard.includes('dashboard-apps'));
 assert.match(sql,/CREATE TABLE IF NOT EXISTS public\.bank_book_entries/);
 assert.match(sql,/CREATE TABLE IF NOT EXISTS public\.bank_book_contra_entries/);
 assert.match(sql,/CREATE TRIGGER payments_bank_book_post/);

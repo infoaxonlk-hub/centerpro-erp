@@ -17,19 +17,21 @@ export default async function SaleReceipt({ params }: { params: Promise<{ id: st
 
   const center = one(r.centers), org = one(r.organizations), user = one(r.profiles);
   const { data: returns, error: returnError } = await s.from("bill_returns")
-    .select("status,bill_return_lines(source_line_id,quantity)")
+    .select("status,bill_return_lines(source_line_id,quantity,sack_count)")
     .eq("bill_type", "sale").eq("bill_id", id).in("status", ["pending", "approved"]);
   if (returnError) throw new Error(returnError.message);
 
+  const returnedSacks=new Map<string,number>();
+  for(const ret of returns??[])for(const line of ret.bill_return_lines??[])returnedSacks.set(line.source_line_id,(returnedSacks.get(line.source_line_id)??0)+Number(line.sack_count??0));
   const returned = new Map<string, number>();
   for (const ret of returns ?? []) for (const line of ret.bill_return_lines ?? [])
     returned.set(line.source_line_id, (returned.get(line.source_line_id) ?? 0) + Number(line.quantity));
 
-  const returnLines = r.sales_order_lines.map((line: { id: string; product_name: string; quality_name: string; unit: string; quantity: number; unit_price: number }) => ({
+  const returnLines = r.sales_order_lines.map((line: { id: string; product_name: string; quality_name: string; unit: string; quantity: number; sack_count?:number; unit_price: number }) => ({
     id: line.id, name: line.product_name, quality: line.quality_name, unit: line.unit,
     quantity: Number(line.quantity),
     available: Math.max(0, Number(line.quantity) - (returned.get(line.id) ?? 0)),
-    unitPrice: Number(line.unit_price),
+    unitPrice: Number(line.unit_price),sacks:Math.max(0,Number(line.sack_count??0)-(returnedSacks.get(line.id)??0)),
   }));
 
   return <SalesReceiptPreview id={id} canRequestReturn={r.status === "confirmed"} returnLines={returnLines} bill={{

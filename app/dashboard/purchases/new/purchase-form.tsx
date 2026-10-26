@@ -74,6 +74,7 @@ type Product = {
   name: string;
   category: string | null;
   unit_of_measure: string;
+  tracks_sacks?: boolean;
   product_qualities: Quality[];
 };
 type Price = { center_id: string; quality_id: string; price: number | string };
@@ -129,7 +130,7 @@ export function PurchaseForm({
   laborSessions: LaborSession[];
 }) {
   const [centerId, setCenterId] = useState(centers[0]?.id ?? "");
-  const [entryMode, setEntryMode] = useState<"pos" | "detailed">("pos");
+  const [preferredEntryMode, setEntryMode] = useState<"pos" | "detailed">("pos");
   const [suppliers, setSuppliers] = useState(initialSuppliers);
   const [supplierId, setSupplierId] = useState("");
   const [showSupplierDialog, setShowSupplierDialog] = useState(false);
@@ -150,6 +151,8 @@ export function PurchaseForm({
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [lines, setLines] = useState<Line[]>([]);
+  const sacksRequired=lines.some(line=>products.find(product=>product.id===line.product_id)?.tracks_sacks);
+  const entryMode=sacksRequired?"detailed":preferredEntryMode;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [checkout, setCheckout] = useState(false);
@@ -222,6 +225,7 @@ export function PurchaseForm({
     return () => window.removeEventListener("centerpro-purchase-view-change", readMode);
   }, []);
   function changeEntryMode(mode: "pos" | "detailed") {
+    if(mode==="pos"&&sacksRequired){notify("Sack-tracked products require detailed purchase entry.","error");return;}
     setEntryMode(mode);
     try {
       localStorage.setItem("centerpro-purchase-view", mode);
@@ -399,7 +403,7 @@ export function PurchaseForm({
     );
   }
   function add(product: Product, quality: Quality) {
-    if (entryMode === "detailed") {
+    if (entryMode === "detailed" || product.tracks_sacks) {
       setLines(old => [...old, {
         key: makeKey(), product_id: product.id, quality_id: quality.id,
         location_id: center?.allow_multiple_locations ? "" : (center?.locations.find(l => l.is_default)?.id ?? ""),
@@ -524,8 +528,8 @@ export function PurchaseForm({
     if (!lines.length) message = "Add at least one purchase item.";
     else if (lines.some((l) => l.quantity <= 0))
       message = entryMode === "detailed" ? "Enter a weight greater than zero for every row." : "Enter a valid quantity for every item.";
-    else if (entryMode === "detailed" && lines.some(l => l.sack_count <= 0 || !Number.isInteger(l.sack_count)))
-      message = "Enter a whole sack count greater than zero for every weight row.";
+    else if (entryMode === "detailed" && lines.some(l => !Number.isInteger(l.sack_count) || l.sack_count<0 || (products.find(p=>p.id===l.product_id)?.tracks_sacks&&l.sack_count===0)))
+      message = "Enter whole sack counts; sack-tracked products require at least one sack per row.";
     else if (
       center?.allow_multiple_locations &&
       lines.some((l) => !l.location_id)
@@ -928,7 +932,7 @@ export function PurchaseForm({
         <div className="purchase-order-tools">
           <label className="purchase-order-mode">
             <span className="purchase-order-mode-label">Purchase view</span>
-            <select aria-label="Purchase view" value={entryMode} disabled={busy || switchingDraft || checkout} onChange={e => changeEntryMode(e.target.value as "pos" | "detailed")}>
+            <select aria-label="Purchase view" value={entryMode} disabled={busy || switchingDraft || checkout || sacksRequired} onChange={e => changeEntryMode(e.target.value as "pos" | "detailed")}>
               <option value="pos">POS</option>
               <option value="detailed">Detailed</option>
             </select>

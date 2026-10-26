@@ -7,7 +7,7 @@ type Location = { id: string; code: string; name: string; is_default: boolean; i
 type Center = { id: string; code: string; name: string; allow_multiple_locations: boolean; locations: Location[] };
 type Supplier = { id: string; name: string; phone: string | null };
 type Quality = { id: string; name: string; default_price: number | string; is_active: boolean; is_base: boolean };
-type Product = { id: string; code: string; name: string; category: string | null; unit_of_measure: string; product_qualities: Quality[] };
+type Product = { id: string; code: string; name: string; category: string | null; unit_of_measure: string; tracks_sacks?:boolean; product_qualities: Quality[] };
 type Line = { key: string; product_id: string; quality_id: string; location_id: string; quantity: number; sack_count: number; actual_price: number };
 
 const money = (n: number) => new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 2 }).format(n);
@@ -138,8 +138,8 @@ export function DetailedPurchaseEntry({
               <div className="detail-weight-rows">
                 {lines.map((line, index) => <div className="detail-weight-row" key={line.key}>
                   <span className="detail-row-number">{index + 1}</span>
-                  <label>Weight (kg)<input data-entry-line={line.key} data-entry-field="weight" type="number" inputMode="decimal" min="0" step="0.01" value={line.quantity || ""} placeholder="0" onKeyDown={e => handleEnter(e, line, "weight")} onChange={e => onUpdateLine(line.key, { quantity: Number(e.target.value) })}/></label>
-                  <label>Sacks<input data-entry-line={line.key} data-entry-field="sacks" type="number" inputMode="numeric" min="0" step="1" value={line.sack_count || ""} placeholder="0" onKeyDown={e => handleEnter(e, line, "sacks")} onChange={e => onUpdateLine(line.key, { sack_count: Number(e.target.value) })}/></label>
+                  <label>Weight ({product.unit_of_measure})<input data-entry-line={line.key} data-entry-field="weight" type="number" inputMode="decimal" min="0" step="0.01" value={line.quantity || ""} placeholder="0" onKeyDown={e => handleEnter(e, line, "weight")} onChange={e => onUpdateLine(line.key, { quantity: Number(e.target.value) })}/></label>
+                  <label>Sacks{!product.tracks_sacks?" (optional)":""}<input data-entry-line={line.key} data-entry-field="sacks" type="number" inputMode="numeric" min="0" step="1" value={line.sack_count || ""} placeholder="0" onKeyDown={e => handleEnter(e, line, "sacks")} onChange={e => onUpdateLine(line.key, { sack_count: Number(e.target.value) })}/></label>
                   <button type="button" aria-label={`Remove weighing ${index + 1}`} onClick={() => onRemoveLine(line.key)}><Trash2 size={17}/></button>
                 </div>)}
               </div>

@@ -1,10 +1,10 @@
 export type Center={id:string;code:string;name:string;allow_multiple_locations:boolean;locations:{id:string;name:string;is_default:boolean;is_active:boolean}[]};
-export type Product={id:string;code:string;name:string;category?:string|null;unit_of_measure:string;product_qualities:{id:string;name:string;is_active:boolean}[]};
+export type Product={id:string;code:string;name:string;category?:string|null;unit_of_measure:string;tracks_sacks?:boolean;product_qualities:{id:string;name:string;is_active:boolean}[]};
 export type Customer={id:string;center_id:string;name:string;phone:string|null;address:string|null};
 export type Price={center_id:string;quality_id:string;price:number|string};
 export type Bank={id:string;account_number:string;branch_name:string;branch_code:string;payment_banks:{name:string;is_active:boolean}|null};
-export type Stock={location_id:string;product_id:string;quality_id:string;quantity:number|string};
-export type Line={key:string;product_id:string;quality_id:string;location_id:string;quantity:string;unit_price:number};
+export type Stock={location_id:string;product_id:string;quality_id:string;quantity:number|string;sacks?:number};
+export type Line={key:string;product_id:string;quality_id:string;location_id:string;quantity:string;sack_count?:number;unit_price:number};
 export type Payment={key:string;method:string;amount:string;bank_account_id:string;reference:string;cheque_number:string;cheque_date:string};
 export type Sale={id:string;center_id:string;customer_id:string|null;customer_name:string;sale_number:string;status:string;total_amount:number|string;paid_amount:number|string;credit_balance:number|string;payment_status:string;confirmed_at:string;sales_order_lines:{product_name:string;quality_name:string;unit:string;quantity:number|string;unit_price:number|string;line_total:number|string}[];sales_payments:{method:string;amount:number|string}[]};
 export const methods={cash:"Cash",bank_transfer:"Bank Transfer",card:"Card",cheque:"Cheque",credit:"Credit"};

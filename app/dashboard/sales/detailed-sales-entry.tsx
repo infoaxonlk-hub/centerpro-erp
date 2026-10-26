@@ -23,6 +23,7 @@ type Props = {
   error: string;
   onRetryStock: () => void;
   available: (qualityId: string, locationId: string) => number;
+  availableSacks?: (qualityId:string,locationId:string)=>number|undefined;
   used: (qualityId: string, locationId: string) => number;
   invalidLine: (line: Line) => boolean;
   savedPrice: (qualityId: string) => number;
@@ -35,7 +36,7 @@ type Props = {
 const number = (value: number) => value.toLocaleString("en-LK", {maximumFractionDigits: 3});
 
 export function DetailedSalesEntry({center, customers, customerId, onCustomerChange, onAddCustomer,
-  products, lines, total, unitTotals, canCheckout, stockReady, stockError, isOnline, error, onRetryStock, available, used, invalidLine,
+  products, lines, total, unitTotals, canCheckout, stockReady, stockError, isOnline, error, onRetryStock, available, availableSacks, used, invalidLine,
   savedPrice, onAddProduct, onUpdateLine, onRemoveLine, onOpenPayment}: Props) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
@@ -102,13 +103,14 @@ export function DetailedSalesEntry({center, customers, customerId, onCustomerCha
           <header><div><strong>{product.name}</strong><small>{qualityName} · {product.unit_of_measure}</small></div>
             <strong>{money(groupLines.reduce((sum, line) => sum + cents(Number(line.quantity) * line.unit_price), 0) / 100)}</strong></header>
           <div className="sales-detail-rows">
-            {groupLines.map((line, index) => <div key={line.key} className={`sales-detail-line${invalidLine(line) ? " sales-invalid" : ""}`}>
+            {groupLines.map((line, index) => <div key={line.key} className={`sales-detail-line${product.tracks_sacks?" sales-sack-line":""}${invalidLine(line) ? " sales-invalid" : ""}`}>
               <strong className="sales-detail-index">{index + 1}</strong>
               <label>Stock location<select value={line.location_id} aria-label={`Location for ${product.name} row ${index + 1}`} onChange={e => onUpdateLine(line.key, {location_id: e.target.value})}>
                 <option value="">Select location</option>
                 {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name} · {number(available(line.quality_id, loc.id))} {product.unit_of_measure}</option>)}
               </select></label>
               <label>Quantity ({product.unit_of_measure})<input aria-label={`Quantity for ${product.name} row ${index + 1}`} type="number" inputMode="decimal" min="0.001" step="0.001" value={line.quantity} onChange={e => onUpdateLine(line.key, {quantity: e.target.value})}/></label>
+              {product.tracks_sacks&&<label>Sacks (available: {availableSacks?.(line.quality_id,line.location_id)??"not counted"}; 0 for loose)<input aria-label={"Sacks for "+product.name+" row "+(index+1)} type="number" min="0" step="1" required value={line.sack_count??""} onChange={e=>onUpdateLine(line.key,{sack_count:e.target.value===""?undefined:Number(e.target.value)})}/></label>}
               <label>Selling price (LKR)<input aria-label={`Selling price for ${product.name} row ${index + 1}`} type="number" inputMode="decimal" min="0.01" step="0.01" value={line.unit_price || ""} placeholder="Enter price" onChange={e => onUpdateLine(line.key, {unit_price: Number(e.target.value)})}/></label>
               <button type="button" title="Remove line" aria-label={`Remove ${product.name} row ${index + 1}`} onClick={() => onRemoveLine(line.key)}><Trash2 size={17}/></button>
               <small className="sales-detail-availability">Available: {number(available(line.quality_id, line.location_id))} {product.unit_of_measure}

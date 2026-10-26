@@ -1,4 +1,5 @@
 "use client";
+import {readStockSacks} from "@/lib/stock-sacks";
 
 import Link from "next/link";
 import {DraftBill} from "@/components/draft-bill";
@@ -13,12 +14,12 @@ import {DetailedSalesEntry} from "./detailed-sales-entry";
 
 type LaborSession={id:string;center_id:string;title:string;operation:string;session_date:string};
 type SaleDraft={centerId:string;lines:Line[];payments:Payment[];customerId:string;notes:string;checkout:boolean;laborSessionId?:string;laborLoadCount?:string;entryMode?:"pos"|"detailed";requestId?:string|null};
-type Props={centers:Center[];customers:Customer[];products:Product[];prices:Price[];banks:Bank[];laborSessions:LaborSession[];organizationName?:string;userName?:string;scopeId:string};
+type Props={organizationId?:string;centers:Center[];customers:Customer[];products:Product[];prices:Price[];banks:Bank[];laborSessions:LaborSession[];organizationName?:string;userName?:string;scopeId:string};
 const newPayment=(amount:number,key="initial"):Payment=>({key,method:"cash",amount:amount.toFixed(2),bank_account_id:"",reference:"",cheque_number:"",cheque_date:""});
 const qty=(n:number)=>n.toLocaleString("en-LK",{maximumFractionDigits:3});
 const roundedQty=(n:number)=>Math.round(n*1000)/1000;
 
-export function SalesPOS({centers,customers:initialCustomers,products,prices,banks,laborSessions,organizationName="CenterPro",userName,scopeId}:Props){
+export function SalesPOS({organizationId,centers,customers:initialCustomers,products,prices,banks,laborSessions,organizationName="CenterPro",userName,scopeId}:Props){
  const [centerId,setCenterId]=useState(centers[0]?.id??"");
  const [stock,setStock]=useState<Stock[]>([]),[stockReady,setStockReady]=useState(false),[stockError,setStockError]=useState(""),[refresh,setRefresh]=useState(0);
  const [lines,setLines]=useState<Line[]>([]),[search,setSearch]=useState(""),[category,setCategory]=useState("all"),[checkout,setCheckout]=useState(false);
@@ -74,7 +75,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
  const rows=payments.length?payments:[newPayment(totalCents/100)];
  const allocated=rows.reduce((n,p)=>n+cents(Number(p.amount)),0),credit=rows.filter(p=>p.method==="credit").reduce((n,p)=>n+cents(Number(p.amount)),0);
  const difference=totalCents-allocated;
- const invalidLine=(l:Line)=>!l.location_id||!Number.isFinite(Number(l.quantity))||Number(l.quantity)<=0||Math.abs(roundedQty(Number(l.quantity))-Number(l.quantity))>0.0000001||roundedQty(used(l.quality_id,l.location_id))>roundedQty(available(l.quality_id,l.location_id))||!Number.isFinite(l.unit_price)||l.unit_price<=0||l.unit_price>=1000000000000||Math.abs(l.unit_price*100-Math.round(l.unit_price*100))>0.00001||cents(Number(l.quantity)*l.unit_price)<=0;
+ const invalidLine=(l:Line)=>(products.find(p=>p.id===l.product_id)?.tracks_sacks&&(!Number.isInteger(l.sack_count)||(l.sack_count??-1)<0||lines.filter(x=>x.quality_id===l.quality_id&&x.location_id===l.location_id).reduce((sum,x)=>sum+(x.sack_count??0),0)>(stock.find(s=>s.quality_id===l.quality_id&&s.location_id===l.location_id)?.sacks??0)))||!l.location_id||!Number.isFinite(Number(l.quantity))||Number(l.quantity)<=0||Math.abs(roundedQty(Number(l.quantity))-Number(l.quantity))>0.0000001||roundedQty(used(l.quality_id,l.location_id))>roundedQty(available(l.quality_id,l.location_id))||!Number.isFinite(l.unit_price)||l.unit_price<=0||l.unit_price>=1000000000000||Math.abs(l.unit_price*100-Math.round(l.unit_price*100))>0.00001||cents(Number(l.quantity)*l.unit_price)<=0;
  const cartInvalid=lines.some(invalidLine);
  const canCheckout=stockReady&&lines.length>0&&!cartInvalid&&Number.isFinite(totalCents)&&totalCents>0;
  const canConfirm=canCheckout&&difference===0&&rows.every(p=>Number.isFinite(Number(p.amount))&&Number(p.amount)>0)&&(!credit||!!customerId);
@@ -124,9 +125,9 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
 
  useEffect(()=>{
   let cancelled=false;if(!centerId)return;
-  async function load(){const cacheKey=`${scopeId}:${centerId}`;const cached=await loadCachedStock<Stock[]>(cacheKey).catch(()=>null);if(cancelled)return;if(cached&&!navigator.onLine){setStock(cached);setStockReady(true);setStockError("");return;}try{const {data,error}=await createClient().rpc("sales_stock",{p_center:centerId});if(cancelled)return;if(error){if(cached){setStock(cached);setStockReady(true);setStockError("Showing saved stock. Final stock is checked when the sale syncs.");return;}setStockError(error.message);return;}setStock(data??[]);setStockReady(true);void saveCachedStock(cacheKey,data??[]).catch(()=>{});}catch{if(!cancelled){if(cached){setStock(cached);setStockReady(true);setStockError("Showing saved stock. Final stock is checked when the sale syncs.");}else setStockError("Stock is unavailable offline. Open this sales POS while connected once to save a stock snapshot.");}}}
+  async function load(){const cacheKey=`${scopeId}:${centerId}`;const cached=await loadCachedStock<Stock[]>(cacheKey).catch(()=>null);if(cancelled)return;if(cached&&!navigator.onLine){setStock(cached);setStockReady(true);setStockError("");return;}try{const {data,error}=await createClient().rpc("sales_stock",{p_center:centerId});if(cancelled)return;if(error){if(cached){setStock(cached);setStockReady(true);setStockError("Showing saved stock. Final stock is checked when the sale syncs.");return;}setStockError(error.message);return;}const sackBalances=organizationId?await readStockSacks(createClient(),organizationId):new Map<string,number>();if(cancelled)return;const withSacks=(data??[]).map((row:Stock)=>({...row,sacks:sackBalances.get([centerId,row.location_id,row.product_id,row.quality_id].join(":"))}));setStock(withSacks);setStockReady(true);void saveCachedStock(cacheKey,withSacks).catch(()=>{});}catch{if(!cancelled){if(cached){setStock(cached);setStockReady(true);setStockError("Showing saved stock. Final stock is checked when the sale syncs.");}else setStockError("Stock is unavailable offline. Open this sales POS while connected once to save a stock snapshot.");}}}
   void load();return()=>{cancelled=true};
- },[centerId,refresh,scopeId]);
+ },[centerId,refresh,scopeId,organizationId]);
  useEffect(()=>{
   function keydown(e:KeyboardEvent){
    if(busy||customerOpen||showDraftMenu||e.altKey||e.ctrlKey||e.metaKey)return;
@@ -229,7 +230,7 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
    onAddCustomer={()=>{setCustomerError("");setCustomerOpen(true);}} products={products} lines={lines}
    total={totalCents/100} unitTotals={unitTotals} canCheckout={canCheckout} stockReady={stockReady} stockError={stockError} error={error} isOnline={isOnline}
    onRetryStock={()=>{setStockError("");setStockReady(false);setRefresh(v=>v+1);}}
-   available={available} used={used} invalidLine={invalidLine} savedPrice={savedPrice}
+   availableSacks={(qualityId,locationId)=>stock.find(s=>s.quality_id===qualityId&&s.location_id===locationId)?.sacks} available={available} used={used} invalidLine={invalidLine} savedPrice={savedPrice}
    onAddProduct={addProduct} onUpdateLine={changeLine} onRemoveLine={key=>setLines(old=>old.filter(l=>l.key!==key))}
    onOpenPayment={()=>{setError("");setCheckout(true);}}
   />:<div className="pos-sale-screen">
@@ -252,8 +253,9 @@ export function SalesPOS({centers,customers:initialCustomers,products,prices,ban
       <div className="pos-line-title"><span>{index+1}</span><div><strong>{p?.name}</strong><small>{p?.product_qualities.find(q=>q.id===l.quality_id)?.name}</small></div><button aria-label={"Remove "+p?.name} onClick={()=>setLines(old=>old.filter(x=>x.key!==l.key))}><Trash2/></button></div>
       <label>Stock location<select aria-label={"Location for "+p?.name} value={l.location_id} onChange={e=>changeLine(l.key,{location_id:e.target.value})}>{locations.map(loc=><option key={loc.id} value={loc.id}>{loc.name} · {qty(available(l.quality_id,loc.id))} {p?.unit_of_measure}</option>)}</select></label>
       <div className="pos-line-values"><label>Quantity ({p?.unit_of_measure})<div className="pos-qty"><button aria-label={"Decrease "+p?.name+" quantity"} onClick={()=>stepQty(l,-1)}><Minus/></button><input aria-label={"Quantity for "+p?.name} type="number" min="0.001" step="0.001" value={l.quantity} onChange={e=>changeLine(l.key,{quantity:e.target.value})}/><button aria-label={"Increase "+p?.name+" quantity"} onClick={()=>stepQty(l,1)}><Plus/></button></div></label><label className="sales-unit-price">Selling price (LKR)<input aria-label={"Selling price for "+p?.name} type="number" min="0.01" max="999999999999.99" step="0.01" value={l.unit_price||""} placeholder="Enter price" onChange={e=>changeLine(l.key,{unit_price:Number(e.target.value)})}/></label></div>
+      {p?.tracks_sacks&&<label>Sacks sold (available: {stock.find(s=>s.quality_id===l.quality_id&&s.location_id===l.location_id)?.sacks??"not counted"}; 0 for loose stock)<input aria-label={"Sacks for "+p.name} type="number" min="0" step="1" required value={l.sack_count??""} onChange={e=>changeLine(l.key,{sack_count:e.target.value===""?undefined:Number(e.target.value)})}/></label>}
       <div className="pos-line-total"><span>Available {qty(available(l.quality_id,l.location_id))} {p?.unit_of_measure}</span><strong>{money(cents(Number(l.quantity)*l.unit_price)/100)}</strong></div>
-      {invalid&&<p className="sales-line-error">Enter a positive selling price (up to 2 decimals) and a quantity within available stock.</p>}
+      {invalid&&<p className="sales-line-error">Check the price, available quantity and whole sack count (zero for loose stock).</p>}
      </article>;
     })}</div>
     <footer className="pos-cart-footer">{error&&<p className="alert error" role="alert">{error}</p>}<div><span><small>Total quantity</small><b>{unitTotals||"0"}</b></span><span><small>Total amount</small><strong>{money(totalCents/100)}</strong></span></div><button className="primary pos-payment-button" disabled={!canCheckout} onClick={()=>{setError("");setCheckout(true);}}><kbd>F9</kbd> Payment <ArrowRight size={18}/></button></footer>

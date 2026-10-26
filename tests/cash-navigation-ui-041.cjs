@@ -15,7 +15,7 @@ assert.ok(cashMenu, 'Cash Manage parent menu must exist');
 assert.equal((cashMenu[0].match(/href: "\/dashboard\/cash\//g) || []).length, 2, 'Cash Management and Cash Ledger are the two submenus');
 assert.ok(cashMenu[0].includes('label: "Cash Management"'), 'Cash Management submenu must exist');
 assert.ok(cashMenu[0].includes('label: "Cash Ledger"'), 'Cash Ledger submenu must exist');
-assert.ok(dashboard.includes('businessModules'), 'Dashboard cards must use the central module catalogue');
+assert.ok(dashboard.includes('DashboardMetrics')&&!dashboard.includes('dashboard-apps'), 'Dashboard shows only business summary');
 assert.ok(read('lib/business-modules.ts').includes('name: "Cash Management"'), 'Central catalogue must expose Cash Management');
 assert.ok(breadcrumb.includes('cash: "Cash Manage"'), 'Breadcrumb must use new name');
 assert.ok(users.includes('label:"Cash Manage"'), 'User permissions label must use new name');

@@ -20,7 +20,7 @@ export function DashboardMetrics({summary}:{summary:DashboardSummary}){
     <strong>{number(summary.purchaseOrderCount)}</strong><small>Confirmed orders, all time</small></article>}
    {summary.stock!==null&&<article className="dashboard-summary-card stock"><span className="dashboard-summary-label"><Boxes size={18}/> Total stock</span>
     {summary.stock.length?summary.stock.map(item=><strong key={item.unit}>{number(item.quantity)} <span className="dashboard-unit">{item.unit}</span></strong>):<strong>0</strong>}
-    <small>Current balance across permitted centers</small></article>}
+    {summary.stockSacks!==undefined&&summary.stockSacks!==null&&<small><b>{number(summary.stockSacks)} sacks</b> recorded</small>}<small>Current balance across permitted centers</small></article>}
    {summary.highestStock!==null&&<article className="dashboard-summary-card highest"><span className="dashboard-summary-label"><PackageSearch size={18}/> {summary.highestStock.length>1?"Highest stock by unit":"Highest stock product"}</span>
     {summary.highestStock.length?summary.highestStock.map(product=><div className="dashboard-top-product" key={product.unit}><Link href={"/dashboard/stock?product="+encodeURIComponent(product.productId)}>{product.product}</Link><strong>{number(product.quantity)} <span className="dashboard-unit">{product.unit}</span></strong></div>):<strong>No positive stock</strong>}
     <small>Product quantity across permitted locations</small></article>}
