@@ -1,7 +1,8 @@
 import {readCashLedger} from "@/lib/cash-ledger";
 import Link from "next/link";
+import {businessModules,moduleEnabled,restrictedHref} from "@/lib/business-modules";
 import { requirePermission } from "@/lib/access";
-import { BellRing, Building2, CalendarClock, CircleDollarSign, PackagePlus, Settings, ShieldCheck, TriangleAlert, Users, Wallet, Boxes, BarChart3, Landmark } from "lucide-react";
+import { BellRing, Building2, CalendarClock, CircleDollarSign, PackagePlus, Settings, ShieldCheck, TriangleAlert, Users, Wallet, Boxes, BarChart3, Landmark, LockKeyhole } from "lucide-react";
 
 const money = new Intl.NumberFormat("en-LK", {
   style: "currency",
@@ -9,24 +10,17 @@ const money = new Intl.NumberFormat("en-LK", {
   maximumFractionDigits: 0,
 });
 
-const appModules = [
-  { href: "/dashboard/purchases", permission: "purchases", title: "Purchases", text: "Create and review purchase orders", icon: PackagePlus, tone: "violet" },
-  { href: "/dashboard/sales", permission: "sales", title: "Sales", text: "Sales, customers and receivables", icon: PackagePlus, tone: "green" },
-  { href: "/dashboard/stock", permission: "stock", title: "Inventory / Stock", text: "Location-wise inventory balances", icon: Boxes, tone: "blue" },
-  { href: "/dashboard/cash", permission: "cash", title: "Cash Manage", text: "Center cash balances, cash issues and cash funding", icon: CircleDollarSign, tone: "green" },
-  { href: "/dashboard/bank", permission: "cash", title: "Bank Management", text: "Company bank accounts, deposits and bank statement", icon: Landmark, tone: "blue" },
-  { href: "/dashboard/expenses", permission: "cash", title: "Expenses", text: "Expense cash, entries and categories", icon: Wallet, tone: "orange" },
-  { href: "/dashboard/payment-reports/all", permission: "payment_reports", title: "Payment Reports", text: "Payments, banks, payables and cheques", icon: BarChart3, tone: "pink" },
-  { href: "/dashboard/centers", permission: "centers", title: "Centers & Locations", text: "Manage centers and stock locations", icon: Building2, tone: "cyan" },
-  { href: "/dashboard/masters", permission: "masters", title: "Products & Suppliers", text: "Products, categories, prices and suppliers", icon: Settings, tone: "yellow" },
-  { href: "/dashboard/users", permission: "users", title: "Users", text: "User accounts and center access", icon: Users, tone: "indigo" },
-  { href: "/dashboard/audit", permission: "audit", title: "Audit", text: "Review important system activity", icon: ShieldCheck, tone: "slate" },
-] as const;
+const moduleIcons: Record<string,typeof PackagePlus> = {purchases:PackagePlus,sales:PackagePlus,inventory:Boxes,stock_transfers:Boxes,stock_adjustments:Boxes,labor:Users,cash:CircleDollarSign,bank:Landmark,expenses:Wallet,payment_reports:BarChart3,cheques:CalendarClock,customer_receivables:BarChart3,supplier_payables:BarChart3,centers:Building2,masters:Settings,users:Users,audit:ShieldCheck};
+const appModules = businessModules.filter(m=>m.key!=="dashboard").map(m=>({
+ href:m.href, key:m.key, title:m.name, permissions:m.permissions as readonly string[], adminOnly:"adminOnly" in m&&m.adminOnly,
+ text:"Open "+m.name.toLowerCase(),icon:moduleIcons[m.key]??PackagePlus,tone:"violet",
+}));
 
 export default async function DashboardPage() {
-  const { supabase, profile } = await requirePermission("dashboard");
+  const { supabase, profile, business } = await requirePermission("dashboard");
   const isAdmin = ["super_admin", "admin"].includes(profile.role);
-  const modules = appModules.filter((module) => profile.permissions.includes(module.permission) && (module.href !== "/dashboard/bank" || isAdmin));
+  const can=(key:string,permission:string)=>moduleEnabled(key,business.enabledModules)&&profile.permissions.includes(permission);
+  const modules = appModules.filter(item => (!item.adminOnly||isAdmin||!moduleEnabled(item.key,business.enabledModules)) && (!moduleEnabled(item.key,business.enabledModules)||item.permissions.some(p=>profile.permissions.includes(p))));
   const [
     { count: centers },
     { count: purchases },
@@ -36,22 +30,22 @@ export default async function DashboardPage() {
     { data: cheques },
     { data: priceAlerts },
   ] = await Promise.all([
-    supabase
+    can("centers","centers") ? supabase
       .from("centers")
       .select("id", { count: "exact", head: true })
-      .eq("is_active", true),
-    supabase
+      .eq("is_active", true) : Promise.resolve({count:0}),
+    can("purchases","purchases") ? supabase
       .from("purchase_orders")
       .select("id", { count: "exact", head: true })
-      .eq("status", "confirmed"),
-    supabase.from("stock_movements").select("quantity,movement_type"),
-    readCashLedger(supabase),
+      .eq("status", "confirmed") : Promise.resolve({count:0}),
+    can("inventory","stock") ? supabase.from("stock_movements").select("quantity,movement_type") : Promise.resolve({data:[]}),
+    can("cash","cash") ? readCashLedger(supabase) : Promise.resolve({data:[]}),
     supabase
       .from("organizations")
       .select("cheque_reminder_days")
       .eq("id", profile.organization_id)
       .single(),
-    isAdmin
+    isAdmin && can("cheques","payment_reports")
       ? supabase
           .from("payments")
           .select(
@@ -61,7 +55,7 @@ export default async function DashboardPage() {
           .in("cheque_status", ["pending", "deposited"])
           .order("cheque_date", { ascending: true })
       : Promise.resolve({ data: [] }),
-    isAdmin
+    isAdmin && can("purchases","purchases")
       ? supabase
           .from("notifications")
           .select("id,title,message,is_read,created_at,centers(name,code)")
@@ -112,7 +106,7 @@ export default async function DashboardPage() {
           <span className="eyebrow dark">OPERATIONS</span>
           <h1>Business overview</h1>
           <p>
-            Live purchasing and inventory position across permitted centers.
+            Live position across your permitted business modules.
           </p>
         </div>
         <Link className="primary" href="/dashboard/centers">
@@ -121,7 +115,7 @@ export default async function DashboardPage() {
       </div>
       <section className="dashboard-apps" aria-label="CenterPro modules">
         <div className="dashboard-apps-heading"><div><span className="eyebrow dark">APPLICATIONS</span><h2>Open a workspace</h2></div><p>Quick access to the modules available for your account.</p></div>
-        <div className="app-card-grid">{modules.map((module) => {const Icon=module.icon;return <Link href={module.href} className={`app-card ${module.tone}`} key={module.href}><span className="app-card-icon"><Icon/></span><span><b>{module.title}</b><small>{module.text}</small></span><i>Open</i></Link>})}</div>
+        <div className="app-card-grid">{modules.map((module) => {const Icon=module.icon;return <Link href={moduleEnabled(module.key,business.enabledModules)?module.href:restrictedHref(module.href)} className={`app-card ${module.tone} ${moduleEnabled(module.key,business.enabledModules)?"":"module-locked"}`} key={module.href}><span className="app-card-icon"><Icon/></span><span><b>{module.title}</b><small>{module.text}</small></span><i>{moduleEnabled(module.key,business.enabledModules)?"Open":<span className="module-lock"><LockKeyhole size={14}/> Locked</span>}</i></Link>})}</div>
       </section>
       <section className="metric-grid">
         <article className="metric accent">
@@ -147,7 +141,7 @@ export default async function DashboardPage() {
           <small>Cash receipts and sales less purchases</small>
         </article>
       </section>
-      {isAdmin && (
+      {isAdmin && can("purchases","purchases") && (
         <section className="panel dashboard-notifications price-alerts">
           <div className="notification-heading">
             <div>
@@ -178,7 +172,7 @@ export default async function DashboardPage() {
                   <div>
                     <b>{row.title}</b>
                     <span>
-                      {row.message} · {c?.code} ·{" "}
+                      {row.message} Â· {c?.code} Â·{" "}
                       {new Date(row.created_at).toLocaleString("en-LK")}
                     </span>
                   </div>
@@ -195,7 +189,7 @@ export default async function DashboardPage() {
           </div>
         </section>
       )}
-      {isAdmin && (
+      {isAdmin && can("cheques","payment_reports") && (
         <section className="panel dashboard-notifications">
           <div className="notification-heading">
             <div>
@@ -235,10 +229,10 @@ export default async function DashboardPage() {
                   {row.diff < 0 ? <TriangleAlert /> : <CalendarClock />}
                   <div>
                     <b>
-                      {row.cheque_number} · {money.format(Number(row.amount))}
+                      {row.cheque_number} Â· {money.format(Number(row.amount))}
                     </b>
                     <span>
-                      {po?.po_number} · {supplier?.name ?? "Supplier"} ·{" "}
+                      {po?.po_number} Â· {supplier?.name ?? "Supplier"} Â·{" "}
                       {c?.code}
                     </span>
                   </div>
@@ -265,5 +259,5 @@ export default async function DashboardPage() {
   );
 }
 function CheckMark() {
-  return <span aria-hidden="true">✓</span>;
+  return <span aria-hidden="true">âœ“</span>;
 }

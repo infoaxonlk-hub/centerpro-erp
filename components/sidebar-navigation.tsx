@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { moduleKeys, routeLocked, restrictedHref } from "@/lib/business-modules";
 import { OfflinePosLink } from "@/components/offline-pos-link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
@@ -21,6 +22,7 @@ import {
   Users,
   Wallet,
   Landmark,
+  LockKeyhole,
 } from "lucide-react";
 
 type NavItem = {
@@ -123,21 +125,23 @@ export const sections: NavSection[] = [
   },
 ];
 
-export function canSeeNavigation(item: {permission?:string;permissionsAny?:string[];adminOnly?:boolean;centerUserOrStock?:boolean}, permissions:string[], isAdmin:boolean) {
+export function canSeeNavigation(item: {href?:string;permission?:string;permissionsAny?:string[];adminOnly?:boolean;centerUserOrStock?:boolean}, permissions:string[], isAdmin:boolean, enabledModules:readonly string[]=moduleKeys) {
+  if (item.href && routeLocked(item.href,enabledModules)) return true;
   return (!item.adminOnly || isAdmin) && (item.centerUserOrStock ? (!isAdmin || permissions.includes("stock")) : item.permissionsAny ? item.permissionsAny.some(p=>permissions.includes(p)) : !item.permission || permissions.includes(item.permission));
 }
 export function activeNavigation(pathname:string, items:NavItem[]) {
   return items.filter(item=>item.href!=="/dashboard" && (pathname===item.href || pathname.startsWith(item.href+"/") || item.children?.some(c=>pathname===c.href || pathname.startsWith(c.href+"/")))).sort((a,b)=>b.href.length-a.href.length)[0];
 }
 
-export function SidebarNavigation({ permissions, isAdmin, isSuperAdmin = false }: { permissions: string[]; isAdmin: boolean; isSuperAdmin?: boolean }) {
+export function SidebarNavigation({ permissions, isAdmin, isSuperAdmin = false, enabledModules = moduleKeys }: { permissions: string[]; isAdmin: boolean; isSuperAdmin?: boolean; enabledModules?: readonly string[] }) {
   const pathname = usePathname();
-  const canSee = (item: NavItem) => canSeeNavigation(item, permissions, isAdmin);
+  const canSee = (item: NavItem) => canSeeNavigation(item, permissions, isAdmin, enabledModules);
   const activeItem = activeNavigation(pathname, sections.flatMap(s=>s.items).filter(canSee));
 
   return (
     <nav className="sidebar-nav" aria-label="Main navigation">
       {isSuperAdmin && <Link className={`nav-item ${pathname === "/dashboard/businesses" ? "active" : ""}`} href="/dashboard/businesses"><Building2 size={18}/><span>Businesses</span></Link>}
+      <Link className="nav-item" href="/dashboard/account"><ShieldCheck size={18}/><span>Business account</span></Link>
       {sections.map((section) => {
         const visible = section.items.filter(canSee);
         if (!visible.length) return null;
@@ -149,18 +153,18 @@ export function SidebarNavigation({ permissions, isAdmin, isSuperAdmin = false }
               const active = item.href === "/dashboard" ? pathname === item.href : activeItem?.href === item.href;
               return (
                 <div className={`nav-group ${active ? "active" : ""}`} key={item.href}>
-                  <Link className={`nav-item ${active ? "active" : ""}`} href={item.href} aria-current={active ? "page" : undefined}>
+                  <Link className={`nav-item ${active ? "active" : ""}`} href={routeLocked(item.href,enabledModules)?restrictedHref(item.href):item.href} aria-current={active ? "page" : undefined}>
                     <Icon size={18} />
-                    <span>{item.label}</span>
+                    <span>{item.label}</span>{routeLocked(item.href,enabledModules)&&<span className="module-lock" title="Module Access Restricted"><LockKeyhole size={14}/></span>}
                   </Link>
                   {item.children && active && (
                     <div className="nav-submenu">
-                      {item.children.filter(child=>canSeeNavigation(child,permissions,isAdmin)).map((child) => {
+                      {item.children.filter(child=>canSeeNavigation(child,permissions,isAdmin,enabledModules)).map((child) => {
                         const childActive = pathname === child.href;
-                        const content = <><span className="nav-sub-dot" /><span>{child.label}</span></>;
-                        return child.href.endsWith("/new")
+                        const content = <><span className="nav-sub-dot" /><span>{child.label}</span>{routeLocked(child.href,enabledModules)&&<LockKeyhole size={14} aria-label="Module Access Restricted"/>}</>;
+                        return !routeLocked(child.href,enabledModules)&&child.href.endsWith("/new")
                           ? <OfflinePosLink className={childActive ? "active" : ""} href={child.href} key={child.href}>{content}</OfflinePosLink>
-                          : <Link className={childActive ? "active" : ""} href={child.href} key={child.href} aria-current={childActive ? "page" : undefined}>{content}</Link>;
+                          : <Link className={childActive ? "active" : ""} href={routeLocked(child.href,enabledModules)?restrictedHref(child.href):child.href} key={child.href} aria-current={childActive ? "page" : undefined}>{content}</Link>;
                       })}
                     </div>
                   )}

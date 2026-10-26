@@ -25,3 +25,7 @@ Production-oriented Spice Collection Center ERP by InfoAxon Software Solutions, 
 7. Start with `npm run dev`.
 
 Never expose the service-role key in browser code or commit `.env.local`.
+
+## Business management and access control
+
+See [the implementation and deployment guide](deployment/BUSINESS_MANAGEMENT_MODULE_ACCESS_GUIDE.md) for business subscriptions, module entitlements, suspension, read-only support inspection, ordered migrations 045–047, tests and rollback instructions.

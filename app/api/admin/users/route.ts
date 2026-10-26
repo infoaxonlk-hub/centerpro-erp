@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { requireBusinessApi, AccessError } from "@/lib/business-access";
+import { permissionEntitled } from "@/lib/business-modules";
 
 async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("UNAUTHENTICATED");
-  const { data: profile } = await supabase.from("profiles").select("organization_id,role,is_active,permissions").eq("id", user.id).single();
-  if (!profile?.is_active || !["super_admin", "admin"].includes(profile.role) || (profile.role!=="super_admin"&&!profile.permissions?.includes("users"))) throw new Error("FORBIDDEN");
-  return {...profile,id:user.id};
+  try {
+    const {user,profile,business}=await requireBusinessApi("users");
+    if (!["super_admin","admin"].includes(profile.role) || (profile.role!=="super_admin"&&!profile.permissions?.includes("users"))) throw new Error("FORBIDDEN");
+    return {...profile,id:user.id,enabledModules:business.enabledModules};
+  }catch(error){
+    if(error instanceof AccessError)throw new Error(error.status===401?"UNAUTHENTICATED":"FORBIDDEN");
+    throw error;
+  }
+}
+function assertAssignedPermissions(values:string[],modules:readonly string[]){
+ if(values.some(permission=>!permissionEntitled(permission,modules)))throw new Error("Cannot assign permissions for a module unavailable to this business.");
 }
 
 const permissionsSchema=z.array(z.enum(["dashboard","sales","purchases","stock","stock_adjustment","labor","cash","payment_reports","centers","users","masters","product_create","product_edit","audit"]));
@@ -35,6 +41,7 @@ export async function POST(request: Request) {
     const admin=createAdminClient();
     const centerIds=[...new Set(input.centerIds)];
     if(centerIds.length){const {data:valid,error:centersError}=await admin.from("centers").select("id").eq("organization_id",current.organization_id).in("id",centerIds);if(centersError||valid?.length!==centerIds.length)return NextResponse.json({error:"Select centers from this organization"},{status:400})}
+    assertAssignedPermissions(input.permissions,current.enabledModules);
     const uniquePermissions=normalizePermissions(input.permissions,input.role);
     const {data:created,error:createError}=await admin.auth.admin.createUser({email:input.email,password:input.password,email_confirm:true,user_metadata:{full_name:input.fullName}});
     if(createError||!created.user) throw createError??new Error("User creation failed");
@@ -72,6 +79,7 @@ export async function PATCH(request:Request){
       const centerIds=[...new Set(input.centerIds)];
       if(input.role==="center_user"&&!centerIds.length)return NextResponse.json({error:"Assign at least one center"},{status:400});
       if(centerIds.length){const {data:valid,error:centersError}=await admin.from("centers").select("id").eq("organization_id",current.organization_id).in("id",centerIds);if(centersError||valid?.length!==centerIds.length)return NextResponse.json({error:"Select centers from this organization"},{status:400})}
+      assertAssignedPermissions(input.permissions,current.enabledModules);
       const permissions=normalizePermissions(input.permissions,input.role);
       const previousCenters=(target.user_center_access??[]).map(access=>access.center_id);
       const {error:profileError}=await admin.from("profiles").update({full_name:input.fullName,phone:input.phone||null,role:input.role,permissions}).eq("id",input.id);if(profileError)throw profileError;

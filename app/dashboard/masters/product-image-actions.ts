@@ -2,7 +2,7 @@
 import {requirePermission} from "@/lib/access";
 export async function saveProductImage(form:FormData):Promise<{url?:string;error?:string}>{
  try{
-  const {supabase:s,profile}=await requirePermission("masters");
+  const {supabase:s,profile}=await requirePermission("masters","masters");
   if(!profile.permissions.includes("product_edit"))return {error:"Product editing permission is required."};
   const id=String(form.get("productId")??""),file=form.get("image");
   if(!(file instanceof File)||!file.size||file.size>2097152)return {error:"Choose a JPG, PNG or WebP image up to 2 MB."};

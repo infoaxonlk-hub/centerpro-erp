@@ -1,11 +1,9 @@
 import "./businesses.css";
 import "@/app/company-profile.css";
 import { redirect } from "next/navigation";
-import { requirePermission } from "@/lib/access";
+import { requireSuperAdmin } from "@/lib/business-access";
 import { BusinessManager } from "./business-manager";
-
 export default async function BusinessesPage() {
-  const { profile } = await requirePermission("users");
-  if (profile.role !== "super_admin") redirect("/dashboard?error=Access denied");
+  try { await requireSuperAdmin(); } catch { redirect("/dashboard?error=Access denied"); }
   return <BusinessManager />;
 }

@@ -1,72 +1,44 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { requireSuperAdmin } from "@/lib/business-access";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { allPermissions } from "@/lib/access";
+import { decorateBusiness, businessSelect, createBusinessSchema, platformFailure, provisionPermissions } from "@/lib/platform-businesses";
 
-async function requireSuperAdmin() {
-  const client = await createClient();
-  const { data: { user } } = await client.auth.getUser();
-  if (!user) throw new Error("UNAUTHENTICATED");
-  const { data: profile, error } = await client.from("profiles").select("role,is_active").eq("id", user.id).single();
-  if (error || !profile?.is_active || profile.role !== "super_admin") throw new Error("FORBIDDEN");
-  return user;
-}
-const schema = z.object({
-  name: z.string().trim().min(2).max(120),
-  adminName: z.string().trim().min(2).max(120),
-  email: z.string().trim().email(),
-  password: z.string().min(8).max(72),
-});
-function failure(error: unknown) {
-  const message = error instanceof Error ? error.message : "Business request failed";
-  return NextResponse.json({ error: message }, { status: message === "UNAUTHENTICATED" ? 401 : message === "FORBIDDEN" ? 403 : 400 });
-}
 export async function GET() {
   try {
     await requireSuperAdmin();
-    const { data, error } = await createAdminClient().from("organizations").select("id,name,created_at,profiles(id,full_name,email,role,is_active)").order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return NextResponse.json(data);
-  } catch (error) { return failure(error); }
+    const admin = createAdminClient();
+    const records: unknown[] = [];
+    for (let offset=0;;offset+=200) {
+      const { data, error } = await admin.from("organizations").select(businessSelect).order("created_at", { ascending: false }).order("id").range(offset,offset+199);
+      if (error) throw new Error("Could not load business records.");
+      records.push(...(data ?? []));
+      if (!data || data.length<200) break;
+    }
+    return Response.json(records.map(decorateBusiness),{headers:{"Cache-Control":"private, no-store"}});
+  } catch (error) { return platformFailure(error); }
 }
 export async function POST(request: Request) {
   try {
-    const actor = await requireSuperAdmin();
-    const input = schema.parse(await request.json());
+    const { user } = await requireSuperAdmin();
+    const input = createBusinessSchema.parse(await request.json());
     const admin = createAdminClient();
     const { data: created, error: authError } = await admin.auth.admin.createUser({
-      email: input.email, password: input.password, email_confirm: true,
+      email: input.adminEmail, password: input.password, email_confirm: true,
       user_metadata: { full_name: input.adminName },
     });
-    if (authError || !created.user) throw new Error(authError?.message ?? "Admin creation failed");
-    let organizationId: string | undefined;
-    try {
-      const { data: organization, error } = await admin.from("organizations").insert({ name: input.name }).select("id").single();
-      if (error || !organization) throw new Error(error?.message ?? "Business creation failed");
-      organizationId = organization.id;
-      const { error: profileError } = await admin.from("profiles").insert({
-        id: created.user.id, organization_id: organization.id, full_name: input.adminName,
-        email: input.email, role: "admin", permissions: [...allPermissions],
-      });
-      if (profileError) throw new Error(profileError.message);
-      const { error: auditError } = await admin.from("audit_logs").insert({
-        organization_id: organization.id, actor_id: actor.id, action: "business_created",
-        entity_type: "organization", entity_id: organization.id,
-        after_data: { name: input.name, admin_id: created.user.id, admin_email: input.email },
-      });
-      if (auditError) throw new Error(auditError.message);
-      return NextResponse.json({ id: organization.id, name: input.name, adminEmail: input.email }, { status: 201 });
-    } catch (error) {
-      const cleanupErrors: string[] = [];
-      const { error: userError } = await admin.auth.admin.deleteUser(created.user.id);
-      if (userError) cleanupErrors.push(userError.message);
-      if (organizationId) {
-        const { error: orgError } = await admin.from("organizations").delete().eq("id", organizationId);
-        if (orgError) cleanupErrors.push(orgError.message);
-      }
-      if (cleanupErrors.length) console.error("Business provisioning cleanup failed", { organizationId, userId: created.user.id, cleanupErrors });
-      throw error;
+    if (authError || !created.user) {
+      return Response.json({ error: "Could not create the administrator. Check that the email is unique and the password meets your authentication policy." }, { status: 400 });
     }
-  } catch (error) { return failure(error); }
+    const { data: id, error } = await admin.rpc("platform_provision_business", {
+      p_actor: user.id, p_admin: created.user.id, p_admin_name: input.adminName, p_admin_email: input.adminEmail,
+      p_permissions: provisionPermissions(input.modules), p_details: input.details,
+      p_subscription: input.subscription, p_modules: input.modules,
+    });
+    if (error || !id) {
+      // Organization, configuration, profile and audit are one DB transaction.
+      const { error: cleanupError } = await admin.auth.admin.deleteUser(created.user.id);
+      if (cleanupError) console.error("Orphan Auth user cleanup required", { userId: created.user.id });
+      throw new Error("Business provisioning transaction failed.");
+    }
+    return Response.json({ id, name: input.details.name, adminEmail: input.adminEmail }, { status: 201 });
+  } catch (error) { return platformFailure(error); }
 }

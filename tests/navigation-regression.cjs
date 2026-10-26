@@ -53,14 +53,15 @@ console.log('PASS: navigation routes, permissions, 3 modes, purchase settings, d
 
 const {CashManager}=require('../app/dashboard/cash/cash-manager.tsx');
 const cashLabels=['Available cash by center','Cash handover history','Accepted cash ledger','Center cash top-ups','Company bank accounts'];
-assert.deepEqual(all.find(x=>x.label==='Cash & Payments').children.map(x=>x.label),cashLabels);
+assert.deepEqual(all.find(x=>x.label==='Cash Manage').children.map(x=>x.label),['Cash Management','Cash Ledger']);
+assert.deepEqual(all.find(x=>x.label==='Bank Management').children.map(x=>x.label),['Bank Accounts','Bank Statement']);
 for(const [i,view] of ['available','handovers','ledger'].entries()){
  const markup=renderToStaticMarkup(React.createElement(CashManager,{view,initialLedger:[],initialHandovers:[],centers:[],initialBalances:[],canIssue:true}));
  assert.ok(markup.includes(cashLabels[i]));
  for(const [j,label] of cashLabels.slice(0,3).entries())if(j!==i)assert.ok(!markup.includes(label));
  assert.equal(markup.includes('Issue cash'),view!=='ledger');
 }
-console.log('PASS: five cash menus and isolated cash sections.');
+console.log('PASS: current Cash Manage / Bank Management menus and isolated legacy cash sections.');
 
 const {LaborManager}=require('../app/dashboard/labor/labor-manager.tsx');
 assert.deepEqual(all.find(x=>x.label==='Labor & Sessions').children.map(x=>x.label),['Laborers','Sessions']);
