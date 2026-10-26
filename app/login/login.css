@@ -1,0 +1,180 @@
+/* Login-only mobile layout; the desktop two-column layout stays in globals.css. */
+.mobile-login-brand,
+.mobile-login-tagline,
+.mobile-login-recovery,
+.mobile-login-footer {
+  display: none;
+}
+
+@media screen and (max-width: 760px) {
+  .login-page.centerpro-sign-in {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: max(32px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+    background:
+      radial-gradient(ellipse at 85% 0%, rgba(124, 58, 237, .45), transparent 65%) 0 0 / 100% 300px no-repeat,
+      linear-gradient(145deg, #17152d, #30205c) 0 0 / 100% 300px no-repeat,
+      var(--canvas);
+  }
+
+  .login-page.centerpro-sign-in .login-brand {
+    display: none;
+  }
+
+  .login-page.centerpro-sign-in .login-form-panel {
+    width: 100%;
+    max-width: 420px;
+    min-height: 0;
+    padding: 0;
+    align-items: stretch;
+    justify-content: flex-start;
+    background: transparent;
+  }
+
+  .centerpro-sign-in .mobile-login-brand {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    color: #fff;
+  }
+
+  .mobile-login-mark {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    border-radius: 15px;
+    background: var(--gold);
+    color: #241638;
+    font-size: 21px;
+    font-weight: 900;
+    letter-spacing: -.04em;
+    box-shadow: 0 6px 20px #0002;
+  }
+
+  .mobile-login-brand > div {
+    display: grid;
+    gap: 2px;
+    text-align: left;
+  }
+
+  .mobile-login-brand strong {
+    font-size: 25px;
+    line-height: 1.15;
+    letter-spacing: -.035em;
+  }
+
+  .mobile-login-brand > div > span {
+    color: #c9c1df;
+    font-size: 12px;
+  }
+
+  .centerpro-sign-in .mobile-login-tagline {
+    display: block;
+    margin: 18px 0 24px;
+    color: #e5dff1;
+    font-size: 15px;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  .centerpro-sign-in .login-form {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 26px 24px 24px;
+    gap: 18px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: var(--paper);
+    box-shadow: 0 14px 45px rgba(23, 21, 45, .09);
+  }
+
+  .centerpro-sign-in .login-form h2 {
+    margin: 7px 0;
+    font-size: 30px;
+    line-height: 1.2;
+  }
+
+  .centerpro-sign-in .login-form > div > p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .centerpro-sign-in .login-form label {
+    min-width: 0;
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .centerpro-sign-in .login-form input {
+    width: 100%;
+    min-width: 0;
+    height: 52px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-size: 16px;
+  }
+
+  .centerpro-sign-in .login-form .primary {
+    width: 100%;
+    min-height: 50px;
+    border-radius: 12px;
+    font-size: 15px;
+  }
+
+  .centerpro-sign-in .mobile-login-recovery {
+    display: block;
+    justify-self: end;
+    margin-top: -5px;
+    padding: 4px 0;
+    color: var(--brand);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .mobile-login-recovery:hover {
+    text-decoration: underline;
+  }
+
+  .mobile-login-recovery:focus-visible {
+    outline: 3px solid var(--brand);
+    outline-offset: 4px;
+    border-radius: 3px;
+  }
+
+  .centerpro-sign-in .login-form .alert {
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
+
+  .centerpro-sign-in .mobile-login-footer {
+    display: block;
+    margin: 22px 0 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+    text-align: center;
+  }
+}
+
+@media screen and (max-width: 760px) and (max-height: 600px) {
+  .login-page.centerpro-sign-in {
+    padding-top: 20px;
+  }
+
+  .centerpro-sign-in .mobile-login-tagline {
+    margin: 12px 0 18px;
+  }
+
+  .centerpro-sign-in .login-form {
+    padding: 22px 20px;
+    gap: 16px;
+  }
+}
