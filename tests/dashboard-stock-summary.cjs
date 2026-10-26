@@ -1,0 +1,27 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),Module=require('node:module'),ts=require('typescript');
+const root=path.resolve(__dirname,'..'),load=Module._load;
+Module._load=function(id,parent,...args){if(id.endsWith('.css'))return{};if(id==='next/link')return{__esModule:true,default:({href,children})=>require('react').createElement('a',{href},children)};if(id.startsWith('@/'))id=path.join(root,id.slice(2));return load.call(this,id,parent,...args)};
+require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,f);
+require.extensions['.tsx']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,f);
+const {readDashboardSummary,dashboardDayRange}=require('../lib/dashboard-summary.ts');
+const {groupProductStock}=require('../lib/stock-summary.ts');
+const now=new Date('2026-10-25T18:30:00Z');
+assert.deepEqual(dashboardDayRange(now),{day:'2026-10-26',start:'2026-10-25T18:30:00.000Z',end:'2026-10-26T18:30:00.000Z'});
+const org='business-a',day='2026-10-26T00:00:00Z';
+const order=(id,extra={})=>({id,organization_id:org,status:'confirmed',confirmed_at:day,total_amount:2,...extra});
+const tables={purchase_orders:[...Array.from({length:1201},(_,i)=>order(String(i))),order('draft',{status:'draft'}),order('other',{organization_id:'business-b'}),order('old',{confirmed_at:'2026-10-25T18:29:59Z'}),order('future',{confirmed_at:'2026-10-26T18:30:00Z'})],sales_orders:[order('s'),order('cancelled',{status:'cancelled'})],stock_movements:[...Array.from({length:1201},(_,i)=>({id:String(i),organization_id:org,product_id:'p',quantity:1,movement_type:'purchase_in',products:{name:'Pepper',code:'P',unit_of_measure:'KG'}})),{id:'out',organization_id:org,product_id:'p',quantity:10,movement_type:'sale_out',products:{name:'Pepper',code:'P',unit_of_measure:'KG'}},{id:'pcs',organization_id:org,product_id:'b',quantity:5000,movement_type:'purchase_in',products:{name:'Bags',code:'B',unit_of_measure:'PCS'}}],cash_accounts:[{id:'cash',organization_id:org,kind:'center',center_id:'c',centers:{name:'Main',code:'01'}},{id:'foreign',organization_id:'business-b',kind:'center'}]};
+let calls=0;const client={from(table){calls++;assert.ok(table in tables);let rows=tables[table],countOnly=false;const q={select(_fields,options){countOnly=options?.head;return q},eq(k,v){if(k==='organization_id')assert.equal(v,org);rows=rows.filter(r=>r[k]===v);return q},gte(k,v){rows=rows.filter(r=>r[k]>=v);return q},lt(k,v){rows=rows.filter(r=>r[k]<v);return q},order(){return q},async range(a,b){return{data:rows.slice(a,b+1),error:null}},then(resolve){assert.ok(countOnly);resolve({count:rows.length,error:null})}};return q},async rpc(name,args){assert.equal(name,'cash_account_balance');assert.deepEqual(args,{p_account:'cash'});return{data:123.45,error:null}}};
+(async()=>{
+ const summary=await readDashboardSummary(client,{organizationId:org,purchases:true,sales:true,inventory:true,cash:true},now);
+ assert.equal(summary.todayPurchases,2402);assert.equal(summary.todayPurchaseCount,1201);assert.equal(summary.purchaseOrderCount,1203);assert.equal(summary.todaySales,2);
+ assert.deepEqual(summary.stock,[{unit:'KG',quantity:1191},{unit:'PCS',quantity:5000}]);assert.equal(summary.highestStock[0].product,'Pepper');assert.equal(summary.highestStock[1].product,'Bags');assert.equal(summary.centerCash.total,123.45);
+ const before=calls,hidden=await readDashboardSummary(client,{organizationId:org,purchases:false,sales:false,inventory:false,cash:false},now);assert.equal(calls,before);for(const key of ['todayPurchases','todaySales','stock','highestStock','centerCash','purchaseOrderCount'])assert.equal(hidden[key],null);
+ const React=require('react'),{renderToStaticMarkup}=require('react-dom/server'),{DashboardMetrics}=require('../components/dashboard-metrics.tsx');
+ const html=renderToStaticMarkup(React.createElement(DashboardMetrics,{summary}));assert.ok(html.includes('Pepper'));assert.ok(html.includes('/dashboard/stock?product=p'));assert.ok(html.includes('PCS'));assert.ok(html.includes('By center'));
+ const restricted=renderToStaticMarkup(React.createElement(DashboardMetrics,{summary:hidden}));assert.ok(!restricted.includes('dashboard-summary-card'));assert.ok(!restricted.includes('Pepper'));
+ await assert.rejects(()=>readDashboardSummary({from(){return{select(){return this},eq(){return this},gte(){return this},lt(){return this},order(){return this},async range(){return{error:{message:'failed'}}}}}},{organizationId:org,purchases:true,sales:false,inventory:false,cash:false},now));
+ const row={key:'1',productId:'p',product:'Pepper',unit:'KG',centerId:'c',locationId:'l',qty:10,value:100};
+ const grouped=groupProductStock([row,{...row,key:'2',qty:-2,value:-20},{...row,key:'3',locationId:'second',qty:3,value:30},{...row,key:'4',unit:'PCS',qty:5}]);
+ assert.equal(grouped.length,2);assert.equal(grouped[0].quantity,11);assert.equal(grouped[0].locations,2);assert.equal(grouped[0].balances.length,3);
+ console.log('PASS: Colombo boundaries, confirmed totals, tenant scope, 1,201-row pagination, permissions, account cash, per-unit stock and product grouping.');
+})().catch(error=>{console.error(error);process.exitCode=1});

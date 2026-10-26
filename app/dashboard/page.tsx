@@ -1,4 +1,6 @@
-import {readCashLedger} from "@/lib/cash-ledger";
+import {DashboardSummaryPlacement} from "@/components/dashboard-summary-placement";
+import {getDashboardSummary} from "@/lib/dashboard-data";
+import {DashboardMetrics} from "@/components/dashboard-metrics";
 import Link from "next/link";
 import {businessModules,moduleEnabled,restrictedHref} from "@/lib/business-modules";
 import { requirePermission } from "@/lib/access";
@@ -22,24 +24,12 @@ export default async function DashboardPage() {
   const can=(key:string,permission:string)=>moduleEnabled(key,business.enabledModules)&&profile.permissions.includes(permission);
   const modules = appModules.filter(item => (!item.adminOnly||isAdmin||!moduleEnabled(item.key,business.enabledModules)) && (!moduleEnabled(item.key,business.enabledModules)||item.permissions.some(p=>profile.permissions.includes(p))));
   const [
-    { count: centers },
-    { count: purchases },
-    { data: stock },
-    { data: cash },
+    summary,
     { data: organization },
     { data: cheques },
     { data: priceAlerts },
   ] = await Promise.all([
-    can("centers","centers") ? supabase
-      .from("centers")
-      .select("id", { count: "exact", head: true })
-      .eq("is_active", true) : Promise.resolve({count:0}),
-    can("purchases","purchases") ? supabase
-      .from("purchase_orders")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "confirmed") : Promise.resolve({count:0}),
-    can("inventory","stock") ? supabase.from("stock_movements").select("quantity,movement_type") : Promise.resolve({data:[]}),
-    can("cash","cash") ? readCashLedger(supabase) : Promise.resolve({data:[]}),
+    getDashboardSummary(),
     supabase
       .from("organizations")
       .select("cheque_reminder_days")
@@ -64,24 +54,6 @@ export default async function DashboardPage() {
           .limit(8)
       : Promise.resolve({ data: [] }),
   ]);
-  const stockQty = (stock ?? []).reduce(
-    (sum, row) =>
-      sum +
-      (["purchase_in", "transfer_in", "adjustment_in"].includes(
-        row.movement_type,
-      )
-        ? Number(row.quantity)
-        : -Number(row.quantity)),
-    0,
-  );
-  const cashBalance = (cash ?? []).reduce(
-    (sum, row) =>
-      sum +
-      (["allocation", "refund", "sale_receipt"].includes(row.movement_type)
-        ? Number(row.amount)
-        : -Number(row.amount)),
-    0,
-  );
   const reminderDays = organization?.cheque_reminder_days ?? 3;
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Colombo",
@@ -113,34 +85,12 @@ export default async function DashboardPage() {
           Manage centers
         </Link>
       </div>
+      <DashboardSummaryPlacement><DashboardMetrics summary={summary}/></DashboardSummaryPlacement>
       <section className="dashboard-apps" aria-label="CenterPro modules">
         <div className="dashboard-apps-heading"><div><span className="eyebrow dark">APPLICATIONS</span><h2>Open a workspace</h2></div><p>Quick access to the modules available for your account.</p></div>
         <div className="app-card-grid">{modules.map((module) => {const Icon=module.icon;return <Link href={moduleEnabled(module.key,business.enabledModules)?module.href:restrictedHref(module.href)} className={`app-card ${module.tone} ${moduleEnabled(module.key,business.enabledModules)?"":"module-locked"}`} key={module.href}><span className="app-card-icon"><Icon/></span><span><b>{module.title}</b><small>{module.text}</small></span><i>{moduleEnabled(module.key,business.enabledModules)?"Open":<span className="module-lock"><LockKeyhole size={14}/> Locked</span>}</i></Link>})}</div>
       </section>
-      <section className="metric-grid">
-        <article className="metric accent">
-          <span>Active centers</span>
-          <strong>{centers ?? 0}</strong>
-          <small>Configured locations included</small>
-        </article>
-        <article className="metric">
-          <span>Confirmed purchases</span>
-          <strong>{purchases ?? 0}</strong>
-          <small>All recorded purchase orders</small>
-        </article>
-        <article className="metric">
-          <span>Stock quantity</span>
-          <strong>
-            {stockQty.toLocaleString("en-LK", { maximumFractionDigits: 3 })} kg
-          </strong>
-          <small>Movement-ledger balance</small>
-        </article>
-        <article className="metric">
-          <span>Available center cash</span>
-          <strong>{money.format(cashBalance)}</strong>
-          <small>Cash receipts and sales less purchases</small>
-        </article>
-      </section>
+
       {isAdmin && can("purchases","purchases") && (
         <section className="panel dashboard-notifications price-alerts">
           <div className="notification-heading">

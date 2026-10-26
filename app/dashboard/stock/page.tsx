@@ -1,7 +1,9 @@
 import {requirePermission} from "@/lib/access";
 import {StockView,type StockBalance,type StockMovementForFSN} from "./stock-view";
 
-export default async function StockPage(){
+export default async function StockPage({searchParams}:{searchParams:Promise<{product?:string|string[]}>}){
+ const params=await searchParams;
+ const initialProduct=Array.isArray(params.product)?params.product[0]:params.product;
  const {supabase:s,profile}=await requirePermission("stock");
  const rows:Awaited<ReturnType<typeof query>>["data"] extends (infer R)[]|null ? R[] : never=[];
  function query(){return s.from("stock_movements").select("id,center_id,location_id,product_id,quality_id,movement_type,quantity,unit_cost,reference_type,reference_id,created_at,centers(name,code),locations(name,code),products(name,code,category,unit_of_measure),product_qualities(name)").order("created_at").order("id")}
@@ -15,5 +17,5 @@ export default async function StockPage(){
  }
  const stock=[...grouped.values()].filter(x=>Math.abs(x.qty)>.0001).sort((a,b)=>a.category.localeCompare(b.category)||a.product.localeCompare(b.product)||a.center.localeCompare(b.center)||a.location.localeCompare(b.location));
  const movements:StockMovementForFSN[]=rows.filter(r=>r.movement_type==="sale_out"||(r.movement_type==="adjustment_in"&&["sales_return","sale_cancellation"].includes(r.reference_type))).map(r=>({centerId:r.center_id,locationId:r.location_id,productId:r.product_id,qualityId:r.quality_id,kind:r.movement_type==="sale_out"?"sale":"return",quantity:Number(r.quantity),date:r.created_at,referenceId:r.reference_id}));
- return <StockView initialStock={stock} fsnMovements={movements} isAdmin={["super_admin","admin"].includes(profile.role)} canAdjust={profile.role==="super_admin"||profile.permissions.includes("stock_adjustment")}/>;
+ return <StockView asOf={new Date().toISOString()} initialProduct={initialProduct} initialStock={stock} fsnMovements={movements} isAdmin={["super_admin","admin"].includes(profile.role)} canAdjust={profile.role==="super_admin"||profile.permissions.includes("stock_adjustment")}/>;
 }

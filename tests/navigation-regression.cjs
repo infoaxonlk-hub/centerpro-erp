@@ -34,7 +34,7 @@ assert.equal(canSeeNavigation(all.find(x=>x.label==='Supplier payables'),['payme
 assert.equal(canSeeNavigation(all.find(x=>x.label==='Users & Access'),['users'],false),false);
 assert.equal(canSeeNavigation(all.find(x=>x.label==='Sales'),['purchases'],false),false);
 function appearance(){delete require.cache[require.resolve('../components/appearance-shell.tsx')];const {AppearanceShell}=require('../components/appearance-shell.tsx');return renderToStaticMarkup(React.createElement(AppearanceShell,{permissions,isAdmin:true,companyName:'Test',children:React.createElement('p',null,'Dashboard content')}));}
-for(const m of ['cards','apps','list']){mode=m;const html=appearance();assert.ok(html.includes('appearance-'+m));if(m==='cards')assert.ok(html.includes('launcher-sections'));if(m==='apps')assert.ok(!html.includes('launcher-sections'));}
+for(const m of ['cards','apps','list']){mode=m;const html=appearance();assert.ok(html.includes('appearance-'+m));assert.equal(html.includes('dashboard-summary-slot'),m!=='list');if(m==='cards')assert.ok(html.includes('launcher-sections'));if(m==='apps')assert.ok(!html.includes('launcher-sections'));}
 mode='cards';selectedGroup='/dashboard/purchases';let html=appearance();for(const name of ['New purchase','Purchase orders','Products','Suppliers'])assert.ok(html.includes(name));
 selectedGroup='/dashboard';assert.ok(appearance().includes('launcher-dashboard-open'));selectedGroup=null;
 const appearanceSource=fs.readFileSync(path.join(root,'components/appearance-shell.tsx'),'utf8');for(const s of ['Purchase POS','Detailed purchase order','centerpro-purchase-view-change','Grouped cards','App view','Upload background image'])assert.ok(appearanceSource.includes(s),`Lost existing setting: ${s}`);
