@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { BusinessRecord } from "@/lib/business-types";
 import { AccessError } from "@/lib/business-access";
-import { businessModules, moduleKeys, normalizeModules } from "@/lib/business-modules";
+import { moduleKeys, normalizeModules, permissionsForModules } from "@/lib/business-modules";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
@@ -58,12 +58,9 @@ export function platformFailure(error: unknown): Response {
   return Response.json({ error: "The business request could not be completed. Please try again or contact InfoAxon Support." }, { status: 500 });
 }
 export function provisionPermissions(modules: readonly string[]) {
-  const permissions = new Set<string>(["dashboard"]);
-  for (const item of businessModules) if (modules.includes(item.key)) for (const p of item.permissions) permissions.add(p);
-  if (permissions.has("masters")) { permissions.add("product_create"); permissions.add("product_edit"); }
-  return [...permissions];
+  return permissionsForModules(modules);
 }
-export const businessSelect = "id,name,business_status,receipt_address,receipt_phone,receipt_email,created_at,updated_at,profiles(id,full_name,email,role,is_active),business_subscriptions(organization_id,plan,status,starts_on,expires_on,trial_ends_on,admin_notes,updated_at),business_module_entitlements(module_key,enabled)";
+export const businessSelect = "id,name,business_status,receipt_address,receipt_phone,receipt_email,created_at,updated_at,profiles(id,full_name,email,role,is_active,permissions),business_subscriptions(organization_id,plan,status,starts_on,expires_on,trial_ends_on,admin_notes,updated_at),business_module_entitlements(module_key,enabled)";
 export async function readPlatformBusiness(id: string) {
   const admin = createAdminClient();
   const { data, error } = await admin.from("organizations").select(businessSelect).eq("id", id).single();

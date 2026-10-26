@@ -28,11 +28,11 @@ First validate against a separate test Supabase project or staging database with
 1. Confirm migrations through `044_multi_tenant_businesses.sql` are already applied, including 039, 042 and 043. Back up the database using the normal Supabase backup/export process.
 2. Run **045_business_access_schema.sql** in the Supabase SQL Editor and wait for its transaction to commit. This adds business status, the module catalogue, subscriptions, entitlements and private history, then backfills existing organizations.
 3. Run **046_business_access_enforcement.sql** and wait for commit. This adds restrictive module/business RLS, delete/write guards, business-aware existing helpers, and guards the current installed RPC overloads. It also adds narrowly scoped Labor/Scrap read helpers while preserving their existing role capabilities.
-4. Run **047_platform_business_management.sql** and wait for commit. This adds service-only atomic configuration/provisioning RPCs with verified platform actors and audit/history records.
-5. Run the read-only checks in `deployment/verify_business_access.sql`. Verify legacy businesses have active subscriptions without expiry and all expected entitlements. Check the new policies, triggers and guarded RPCs.
-6. Configure the Preview environment variables below and deploy the feature branch to Preview only when ready. Exercise the manual checklist below with real test accounts.
-7. For production, schedule a controlled rollout: pause new business provisioning/configuration changes, back up, apply 045 then 046 then 047 in that exact order, then deploy the tested application. Do not change entitlements or business statuses until the new application is ready.
-8. Verify the production release with dedicated demo businesses before resuming platform administration.
+5. Run **047_platform_business_management.sql** and wait for commit. This adds service-only atomic configuration/provisioning RPCs with verified platform actors and audit/history records.
+6. Run the read-only checks in `deployment/verify_business_access.sql`. Verify legacy businesses have active subscriptions without expiry and all expected entitlements. Check the new policies, triggers and guarded RPCs.
+7. Configure the Preview environment variables below and deploy the feature branch to Preview only when ready. Exercise the manual checklist below with real test accounts.
+8. For production, schedule a controlled rollout: pause new business provisioning/configuration changes, back up, apply 045 then 046 then 047 in that exact order, then deploy the tested application. Do not change entitlements or business statuses until the new application is ready.
+9. Verify the production release with dedicated demo businesses before resuming platform administration.
 
 Each new migration is transactional and intended to run once. Do not edit or re-run 044. If a migration fails, its transaction should roll back; investigate the reported prerequisite/SQL error before proceeding. Do not skip to a later migration or remove tenant security to get past a failure.
 
@@ -264,3 +264,7 @@ The following manifest lists application, migration, test and deployment changes
 - tests/cash-navigation-ui-041.cjs
 - tests/multi-tenant-api.mjs
 - tests/navigation-regression.cjs
+
+## Later-enabled modules and existing administrators
+
+Apply migration 048_business_admin_module_permissions.sql after 047. When an existing business administrator cannot see newly enabled modules, use Businesses → Administrator access → Grant enabled-module access. This is an explicit user-permission action; ordinary module saves do not change user permissions. See [the fix and deployment guide](BUSINESS_ADMIN_ACCESS_FIX.md).

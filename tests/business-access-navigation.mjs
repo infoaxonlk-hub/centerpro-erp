@@ -62,3 +62,17 @@ assert.match(read("app/dashboard/restricted/page.tsx"),/This module is not avail
 assert.match(read("components/support-contact.tsx"),/INFOAXON_SUPPORT_URL/);
 assert.ok(!read("public/service-worker.js").includes("cache.put(url.pathname"),"Private operational HTML must not be cached");
 console.log("PASS module catalogue, parent requirements, restricted message, support configuration and safe caching");
+
+const {BusinessAdminAccess}=load("components/business-admin-access.tsx");
+const admin={id:"owner",full_name:"Business Admin",email:"admin@example.test",is_active:true,permissions:["dashboard","audit"]};
+let adminHtml=renderToStaticMarkup(React.createElement(BusinessAdminAccess,{admins:[admin],enabledModules:["dashboard","audit","sales","masters"],disabled:false,onGrant(){}}));
+assert.match(adminHtml,/Missing access: Sales, Products &amp; Suppliers, Create products, Edit products/);
+assert.match(adminHtml,/Grant enabled-module access/);
+assert.ok(!adminHtml.includes('disabled=""'));
+const granted=registry.permissionsForModules(["dashboard","audit","sales","masters"]);
+adminHtml=renderToStaticMarkup(React.createElement(BusinessAdminAccess,{admins:[{...admin,permissions:granted}],enabledModules:["dashboard","audit","sales","masters"],disabled:false,onGrant(){}}));
+assert.match(adminHtml,/All enabled-module permissions are assigned/);
+assert.ok(adminHtml.includes('disabled=""'));
+adminHtml=renderToStaticMarkup(React.createElement(BusinessAdminAccess,{admins:[admin],enabledModules:["dashboard","audit","sales"],disabled:true,onGrant(){}}));
+assert.ok(adminHtml.includes('disabled=""'));
+console.log("PASS administrator access UI distinguishes business entitlements from missing user permissions and disables duplicate/read-only grants");

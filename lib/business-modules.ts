@@ -52,6 +52,7 @@ export function normalizeModules(selected: readonly string[]): BusinessModuleKey
 export type BusinessAccess = {
   organizationId: string; businessName: string; businessStatus: string;
   operational: boolean; reason: string | null; enabledModules: BusinessModuleKey[];
+  userPermissions?: string[]; userRole?: string;
   subscription: { plan: string; status: string; starts_on: string; expires_on: string | null; trial_ends_on: string | null };
 };
 export const suspensionMessage = "Your business account is temporarily suspended. Please contact InfoAxon Support for assistance.";
@@ -60,4 +61,12 @@ export const suspensionMessage = "Your business account is temporarily suspended
 export function permissionEntitled(permission:string,enabled:readonly string[]):boolean {
   if(permission==="product_create"||permission==="product_edit")return moduleEnabled("masters",enabled);
   return businessModules.some(item=>(item.permissions as readonly string[]).includes(permission)&&moduleEnabled(item.key,enabled));
+}
+
+export function permissionsForModules(modules:readonly string[]):string[] {
+  const permissions=new Set<string>(["dashboard"]);
+  for(const item of businessModules)if(moduleEnabled(item.key,modules))for(const permission of item.permissions)permissions.add(permission);
+  if(permissions.has("masters")){permissions.add("product_create");permissions.add("product_edit");}
+  if(permissions.has("stock_adjustment"))permissions.add("stock");
+  return [...permissions];
 }

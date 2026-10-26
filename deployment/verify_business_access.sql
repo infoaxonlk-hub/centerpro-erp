@@ -20,5 +20,5 @@ select p.proname,pg_get_function_identity_arguments(p.oid) arguments,
  has_function_privilege('authenticated',p.oid,'execute') business_user_can_execute,
  has_function_privilege('service_role',p.oid,'execute') service_can_execute
 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
-and p.proname in ('platform_save_business','platform_provision_business','_labor_post_expense','current_business_access')
+and p.proname in ('platform_save_business','platform_provision_business','platform_grant_business_admin_access','_labor_post_expense','current_business_access')
 order by p.proname;

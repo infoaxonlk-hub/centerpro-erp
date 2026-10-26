@@ -21,7 +21,7 @@ function query(table){
   then(resolve,reject){return Promise.resolve({data:table==="organizations"?[record]:[],error:null,count:0}).then(resolve,reject);}
  };return q;
 }
-const service={from:query,async rpc(name,args){state.calls.push({rpc:name,args});return{data:state.rpcError?null:targetId,error:state.rpcError?{message:"sensitive database detail"}:null};},auth:{admin:{
+const service={from:query,async rpc(name,args){state.calls.push({rpc:name,args});return{data:state.rpcError?null:name==="platform_grant_business_admin_access"?["dashboard","sales"]:targetId,error:state.rpcError?{message:"sensitive database detail",code:state.rpcCode}:null};},auth:{admin:{
  async createUser(value){state.calls.push({op:"createAuth",value});return{data:{user:state.authError?null:{id:newUserId}},error:state.authError?{message:"Internal Auth error"}:null};},
  async deleteUser(id){state.calls.push({op:"deleteAuth",id});return{error:null};}
 }}};
@@ -46,17 +46,20 @@ function load(filename){
 const list=load("app/api/admin/businesses/route.ts");
 const detail=load("app/api/admin/businesses/[id]/route.ts");
 const inspection=load("app/api/admin/businesses/[id]/workspace/route.ts");
+const adminAccess=load("app/api/admin/businesses/[id]/admins/[adminId]/access/route.ts");
 const access=load("lib/access.ts");
 const registry=load("lib/business-modules.ts");
 const input={details:{name:"Business B",status:"active",address:"",phone:"",email:""},subscription,modules:["dashboard","purchases"],adminName:"Admin B",adminEmail:"b@example.test",password:"a-valid-password"};
 const request=(body=input,method="POST")=>new Request("http://localhost/api/admin/businesses",{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
 const context={params:Promise.resolve({id:targetId})};
+const adminContext={params:Promise.resolve({id:targetId,adminId:newUserId})};
 for(const override of [{user:null},{profile:{...{id:userId,organization_id:orgId,permissions:["users"]},role:"admin",is_active:true}},{profile:{id:userId,role:"super_admin",is_active:false}}]){
  reset(override);const expected=override.user===null?401:403;
  for(const response of [
   await list.GET(),await list.POST(request()),await detail.GET(new Request("http://localhost"),context),
   await detail.PATCH(request(input,"PATCH"),context),
-  await inspection.GET(new Request("http://localhost?section=sales"),context)
+  await inspection.GET(new Request("http://localhost?section=sales"),context),
+  await adminAccess.POST(request(),adminContext)
  ])assert.equal(response.status,expected);
  assert.equal(state.calls.length,0);
 }
@@ -137,3 +140,26 @@ reset();
 assert.equal((await list.POST(request({...input,subscription:{...subscription,expires_on:"2026-02-30"}}))).status,400);
 assert.ok(!state.calls.some(c=>c.op==="createAuth"));
 console.log("PASS legacy provisioning payloads retain core-only defaults and invalid calendar dates fail before Auth changes");
+
+reset();
+const repaired=await adminAccess.POST(request({permissions:["super_admin"],organizationId:orgId,p_actor:"attacker"}),adminContext);
+assert.equal(repaired.status,200);
+const grantCall=state.calls.find(c=>c.rpc==="platform_grant_business_admin_access").args;
+assert.equal(grantCall.p_actor,userId);
+assert.equal(grantCall.p_org,targetId);
+assert.equal(grantCall.p_admin,newUserId);
+assert.deepEqual(Object.keys(grantCall).sort(),["p_actor","p_admin","p_org"]);
+assert.deepEqual((await repaired.json()).permissions,["dashboard","sales"]);
+reset({rpcError:true,rpcCode:"P0002"});
+assert.equal((await adminAccess.POST(request(),adminContext)).status,404);
+reset({rpcError:true});
+const grantError=await adminAccess.POST(request(),adminContext);
+assert.equal(grantError.status,500);
+assert.ok(!JSON.stringify(await grantError.json()).includes("sensitive"));
+console.log("PASS administrator permission grants bind verified actor and route IDs, ignore client permission arrays, and sanitize failures");
+
+reset();
+const crossOrigin=await adminAccess.POST(new Request("http://localhost/api/admin/businesses",{method:"POST",headers:{Origin:"https://untrusted.example"}}),adminContext);
+assert.equal(crossOrigin.status,403);
+assert.ok(!state.calls.some(c=>c.op==="serviceClient"));
+console.log("PASS cross-origin browser requests cannot trigger administrator permission grants");
