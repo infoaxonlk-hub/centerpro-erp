@@ -12,17 +12,17 @@
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "lucide-react": "latest",
-    "next": "latest",
+    "next": "16.4.3",
     "react": "latest",
     "react-dom": "latest",
-    "zod": "latest"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "eslint": "latest",
-    "eslint-config-next": "latest",
+    "eslint-config-next": "16.4.3",
     "typescript": "latest"
   }
 }
