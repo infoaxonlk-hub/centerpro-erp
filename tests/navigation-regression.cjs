@@ -22,7 +22,7 @@ for(const ext of ['.tsx','.ts'])require.extensions[ext]=(m,f)=>m._compile(ts.tra
 const {sections,canSeeNavigation,activeNavigation}=require('../components/sidebar-navigation.tsx');
 const all=sections.flatMap(s=>s.items),permissions=['dashboard','purchases','sales','stock','stock_adjustment','labor','cash','payment_reports','masters','centers','users','audit'];
 for(const item of all)for(const target of [item,...item.children??[]])assert.ok(fs.existsSync(path.join(root,'app',target.href.split('?')[0],'page.tsx')),`Missing route: ${target.href}`);
-assert.deepEqual(all.find(x=>x.label==='Purchases').children.map(x=>x.label),['New purchase','Purchase orders','Products','Suppliers']);
+assert.deepEqual(all.find(x=>x.label==='Purchases').children.map(x=>x.label),['New purchase','Purchase orders','Lot receipts','Products','Suppliers']);
 assert.deepEqual(all.find(x=>x.label==='Sales').children.map(x=>x.label),['New sale','Sales orders','Sales summary','Products','Customers']);
 assert.ok(all.find(x=>x.label==='Inventory').children.some(x=>x.href.endsWith('/scrap')));
 assert.equal(activeNavigation('/dashboard/sales/receivables',all).label,'Customer receivables');
@@ -35,7 +35,7 @@ assert.equal(canSeeNavigation(all.find(x=>x.label==='Users & Access'),['users'],
 assert.equal(canSeeNavigation(all.find(x=>x.label==='Sales'),['purchases'],false),false);
 function appearance(){delete require.cache[require.resolve('../components/appearance-shell.tsx')];const {AppearanceShell}=require('../components/appearance-shell.tsx');return renderToStaticMarkup(React.createElement(AppearanceShell,{permissions,isAdmin:true,companyName:'Test',children:React.createElement('p',null,'Dashboard content')}));}
 for(const m of ['cards','apps','list']){mode=m;const html=appearance();assert.ok(html.includes('appearance-'+m));assert.ok(!html.includes('dashboard-summary-slot'));assert.ok(!html.includes('launcher-dashboard-open'));if(m==='cards')assert.ok(html.includes('launcher-sections'));if(m==='apps')assert.ok(!html.includes('launcher-sections'));}
-mode='cards';selectedGroup='/dashboard/purchases';let html=appearance();for(const name of ['New purchase','Purchase orders','Products','Suppliers'])assert.ok(html.includes(name));
+mode='cards';selectedGroup='/dashboard/purchases';let html=appearance();for(const name of ['New purchase','Purchase orders','Lot receipts','Products','Suppliers'])assert.ok(html.includes(name));
 for(const m of ['cards','apps']){mode=m;selectedGroup='/dashboard';assert.ok(appearance().includes('launcher-dashboard-open'));}selectedGroup=null;
 const appearanceSource=fs.readFileSync(path.join(root,'components/appearance-shell.tsx'),'utf8');for(const s of ['Purchase POS','Detailed purchase order','centerpro-purchase-view-change','Grouped cards','App view','Upload background image'])assert.ok(appearanceSource.includes(s),`Lost existing setting: ${s}`);
 const {PartyDirectory}=require('../components/party-directory.tsx');const parties=[{id:'s1',name:'Supplier One',phone:'0711234567',address:'Center Road'}],orders=[{id:'o1',partyId:'s1',number:'PO1',date:'2026-10-12',center:'Main',total:1000,due:250,status:'confirmed'},{id:'o2',partyId:'s1',number:'PO2',date:'2026-10-12',center:'Main',total:500,due:500,status:'cancelled'}];

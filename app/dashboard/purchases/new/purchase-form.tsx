@@ -1,4 +1,6 @@
 "use client";
+import {PurchaseLotFields} from "./purchase-lot-fields";
+import {purchaseRowsTotal,splitPurchaseLotRow,type PurchaseLotSelection} from "@/lib/purchase-lots";
 import Link from "next/link";
 import {Bill} from "@/components/bill";
 import {DraftBill} from "@/components/draft-bill";
@@ -75,6 +77,7 @@ type Product = {
   category: string | null;
   unit_of_measure: string;
   tracks_sacks?: boolean;
+  tracks_purchase_lots?: boolean;
   product_qualities: Quality[];
 };
 type Price = { center_id: string; quality_id: string; price: number | string };
@@ -98,6 +101,7 @@ type Line = {
   quantity: number;
   sack_count: number;
   actual_price: number;
+  lot_selection?: PurchaseLotSelection;
 };
 const money = (n: number) =>
   new Intl.NumberFormat("en-LK", {
@@ -453,8 +457,20 @@ export function PurchaseForm({
       old.map((l) => (l.key === key ? { ...l, ...change } : l)),
     );
   }
+  function splitLot(key:string,quantity:number,sacks:number){
+    const line=lines.find(row=>row.key===key);if(!line)return;
+    try{
+      const requiresSacks=Boolean(products.find(p=>p.id===line.product_id)?.tracks_sacks),keyForSplit=makeKey();
+      splitPurchaseLotRow(line,quantity,sacks,requiresSacks);
+      setLines(old=>old.flatMap(row=>{
+        if(row.key!==key)return[row];
+        try{const {remaining,split}=splitPurchaseLotRow(row,quantity,sacks,requiresSacks);return[remaining,{...split,key:keyForSplit}];}
+        catch{return[row];}
+      }));
+    }catch(error){notify(error instanceof Error?error.message:"Could not split this row","error");}
+  }
   const total = useMemo(
-    () => lines.reduce((s, l) => s + l.quantity * l.actual_price, 0),
+    () => purchaseRowsTotal(lines),
     [lines],
   );
   async function createSupplier(fd: FormData) {
@@ -526,6 +542,8 @@ export function PurchaseForm({
   function openPayment() {
     let message = "";
     if (!lines.length) message = "Add at least one purchase item.";
+    else if(lines.some(line=>products.find(product=>product.id===line.product_id)?.tracks_purchase_lots&&((line.lot_selection?.mode==="number"&&!line.lot_selection.number?.trim())||(line.lot_selection?.mode==="existing"&&!line.lot_selection.lot_id))))
+      message="Enter a lot number or select an existing lot for each lot-tracked row.";
     else if (lines.some((l) => l.quantity <= 0))
       message = entryMode === "detailed" ? "Enter a weight greater than zero for every row." : "Enter a valid quantity for every item.";
     else if (entryMode === "detailed" && lines.some(l => !Number.isInteger(l.sack_count) || l.sack_count<0 || (products.find(p=>p.id===l.product_id)?.tracks_sacks&&l.sack_count===0)))
@@ -631,7 +649,7 @@ export function PurchaseForm({
         useCashFarmer: entryMode === "detailed" && (!supplierId || supplierId === "__cash_farmer__"),
         sackCounts: entryMode === "detailed" ? lines.map(line => ({ sack_count: line.sack_count })) : [],
         notes,
-        lines: lines.map(({ product_id, quality_id, location_id, quantity, actual_price }) => ({ product_id, quality_id, location_id, quantity, actual_price })),
+        lines: lines.map(({ product_id, quality_id, location_id, quantity, actual_price,lot_selection }) => ({ product_id, quality_id, location_id, quantity, actual_price,...(lot_selection?{lot_selection}:{}) })),
         payments: payload,
         total: Number(total.toFixed(2)),
       },
@@ -660,7 +678,7 @@ export function PurchaseForm({
     let data: unknown;
     let error: { message: string } | null;
     try {
-      const result = await createClient().rpc("confirm_queued_purchase_with_labor", {
+      const result = await createClient().rpc("confirm_queued_purchase_with_lots", {
         p_request: task.requestId,
         target_center: task.payload.centerId,
         target_supplier: task.payload.supplierId,
@@ -810,7 +828,7 @@ export function PurchaseForm({
     const tasks = await listPosTasks(scopeId, "purchase");
     const task = tasks.find(item => item.requestId === requestId.current) ?? tasks[0];
     if (!task?.needsCorrection) return;
-    const saved = task.payload as { centerId:string; supplierId:string|null; notes:string|null; laborSessionId?:string|null;laborLoadCount?:number;purchaseMode?:"pos"|"detailed"; sackCounts?:Array<{sack_count:number}>; lines:Array<{product_id:string;quality_id:string;location_id:string;quantity:number;actual_price:number}>; payments:Array<{method:PaymentMethod;amount:number;bank_account_id:string|null;reference:string|null;cheque_number:string|null;cheque_date:string|null}> };
+    const saved = task.payload as { centerId:string; supplierId:string|null; notes:string|null; laborSessionId?:string|null;laborLoadCount?:number;purchaseMode?:"pos"|"detailed"; sackCounts?:Array<{sack_count:number}>; lines:Array<{product_id:string;quality_id:string;location_id:string;quantity:number;actual_price:number;lot_selection?:PurchaseLotSelection}>; payments:Array<{method:PaymentMethod;amount:number;bank_account_id:string|null;reference:string|null;cheque_number:string|null;cheque_date:string|null}> };
     await deletePosTask(task.requestId);
     requestId.current = null;
     setCenterId(saved.centerId);
@@ -966,6 +984,8 @@ export function PurchaseForm({
       {!checkout ? (
         entryMode === "detailed" ? (
           <DetailedPurchaseEntry
+            organizationId={organizationId}
+            onSplitLot={splitLot}
             center={center}
             suppliers={suppliers}
             supplierId={supplierId}
@@ -1180,6 +1200,7 @@ export function PurchaseForm({
                         </button>
                       </div>
                     </div>
+                    {product.tracks_purchase_lots&&<PurchaseLotFields organizationId={organizationId} productId={line.product_id} qualityId={line.quality_id} value={line.lot_selection} quantity={line.quantity} sacks={line.sack_count} requireSacks={Boolean(product.tracks_sacks)} onChange={lot_selection=>update(line.key,{lot_selection})} onSplit={(quantity,sacks)=>splitLot(line.key,quantity,sacks)}/>}
                     <div className="pos-line-total">
                       <span>
                         {line.quantity} × {money(line.actual_price)}

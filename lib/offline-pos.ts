@@ -94,7 +94,7 @@ export async function syncPosTasks(client: SupabaseClient, scopeId: string, kind
             p_labor_session: p.laborSessionId || null,
             p_load_count: Number(p.laborLoadCount || 0),
           })
-        : await client.rpc("confirm_queued_purchase_with_labor", {
+        : await client.rpc("confirm_queued_purchase_with_lots", {
             p_request: task.requestId,
             target_center: p.centerId,
             target_supplier: p.supplierId || null,

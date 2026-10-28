@@ -1,4 +1,6 @@
 "use client";
+import {PurchaseLotFields} from "./purchase-lot-fields";
+import type {PurchaseLotSelection} from "@/lib/purchase-lots";
 
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Trash2 } from "lucide-react";
@@ -7,15 +9,17 @@ type Location = { id: string; code: string; name: string; is_default: boolean; i
 type Center = { id: string; code: string; name: string; allow_multiple_locations: boolean; locations: Location[] };
 type Supplier = { id: string; name: string; phone: string | null };
 type Quality = { id: string; name: string; default_price: number | string; is_active: boolean; is_base: boolean };
-type Product = { id: string; code: string; name: string; category: string | null; unit_of_measure: string; tracks_sacks?:boolean; product_qualities: Quality[] };
-type Line = { key: string; product_id: string; quality_id: string; location_id: string; quantity: number; sack_count: number; actual_price: number };
+type Product = { id: string; code: string; name: string; category: string | null; unit_of_measure: string; tracks_sacks?:boolean; tracks_purchase_lots?:boolean; product_qualities: Quality[] };
+type Line = { key: string; product_id: string; quality_id: string; location_id: string; quantity: number; sack_count: number; actual_price: number;lot_selection?:PurchaseLotSelection };
 
 const money = (n: number) => new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 2 }).format(n);
 
 export function DetailedPurchaseEntry({
-  center, suppliers, supplierId, onSupplierChange, onAddSupplier, products, visibleLines, total,
+  organizationId,onSplitLot,center, suppliers, supplierId, onSupplierChange, onAddSupplier, products, visibleLines, total,
   onSelectProduct, onAddWeightRow, onUpdateLine, onRemoveLine, onOpenPayment, onSetError,
 }: {
+  organizationId:string;
+  onSplitLot:(key:string,quantity:number,sacks:number)=>void;
   center?: Center;
   suppliers: Supplier[];
   supplierId: string;
@@ -141,6 +145,7 @@ export function DetailedPurchaseEntry({
                   <label>Weight ({product.unit_of_measure})<input data-entry-line={line.key} data-entry-field="weight" type="number" inputMode="decimal" min="0" step="0.01" value={line.quantity || ""} placeholder="0" onKeyDown={e => handleEnter(e, line, "weight")} onChange={e => onUpdateLine(line.key, { quantity: Number(e.target.value) })}/></label>
                   <label>Sacks{!product.tracks_sacks?" (optional)":""}<input data-entry-line={line.key} data-entry-field="sacks" type="number" inputMode="numeric" min="0" step="1" value={line.sack_count || ""} placeholder="0" onKeyDown={e => handleEnter(e, line, "sacks")} onChange={e => onUpdateLine(line.key, { sack_count: Number(e.target.value) })}/></label>
                   <button type="button" aria-label={`Remove weighing ${index + 1}`} onClick={() => onRemoveLine(line.key)}><Trash2 size={17}/></button>
+                  {product.tracks_purchase_lots&&<PurchaseLotFields organizationId={organizationId} productId={line.product_id} qualityId={line.quality_id} value={line.lot_selection} quantity={line.quantity} sacks={line.sack_count} requireSacks={Boolean(product.tracks_sacks)} onChange={lot_selection=>onUpdateLine(line.key,{lot_selection})} onSplit={(quantity,sacks)=>onSplitLot(line.key,quantity,sacks)}/>}
                 </div>)}
               </div>
             </article>;

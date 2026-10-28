@@ -1,3 +1,5 @@
+import {PurchaseLotReceipts} from "@/components/purchase-lot-receipts";
+import {lotReceiptColumns,mapLotReceipt} from "@/lib/purchase-lot-receipts";
 import Link from "next/link";
 import {notFound} from "next/navigation";
 import {BillDetail} from "@/components/bill-detail";
@@ -23,9 +25,12 @@ export default async function PurchaseBill({params}:{params:Promise<{id:string}>
  for(const ret of returns??[])for(const line of ret.bill_return_lines??[])returnedSacks.set(line.source_line_id,(returnedSacks.get(line.source_line_id)??0)+Number(line.sack_count??0));
  const returned=new Map<string,number>();
  for(const ret of returns??[])for(const line of ret.bill_return_lines??[])returned.set(line.source_line_id,(returned.get(line.source_line_id)??0)+Number(line.quantity));
+ const lotReceipts:Parameters<typeof mapLotReceipt>[0][]=[];
+ for(let offset=0;;offset+=500){const {data,error}=await s.from("purchase_lot_receipts").select(lotReceiptColumns).eq("purchase_id",id).order("id").range(offset,offset+499);if(error)throw new Error("Purchase lot details could not be loaded: "+error.message);lotReceipts.push(...data);if(data.length<500)break;}
  const returnLines=r.purchase_order_lines.map(l=>{const product=one(l.products),quality=one(l.product_qualities);return{id:l.id,name:product?.name??"—",quality:quality?.name??"",unit:product?.unit_of_measure??"",quantity:Number(l.quantity),available:Math.max(0,Number(l.quantity)-(returned.get(l.id)??0)),unitPrice:Number(l.actual_price),sacks:Math.max(0,Number(l.sack_count??0)-(returnedSacks.get(l.id)??0))}});
  return <>
   <nav className="bill-actions"><PrintButton/><CancelBill type="purchase" id={id} disabled={r.status==="cancelled"}/>{r.status==="confirmed"&&<RequestBillReturn type="purchase" billId={id} billNumber={r.po_number} lines={returnLines}/ >}{Number(r.credit_balance)>0&&<Link className="primary" href="/dashboard/payment-reports/payables">Pay credit</Link>}</nav>
   <BillDetail data={{organization:o?.name??"CenterPro",companyDetails:[o?.receipt_address,o?.receipt_phone,o?.receipt_email].filter((value):value is string=>!!value),title:r.status==="cancelled"?"CANCELLED PURCHASE BILL":"PURCHASE BILL",number:r.po_number,date:new Date(r.confirmed_at??"").toLocaleString("en-LK",{timeZone:"Asia/Colombo"}),center:`${c?.code??""} · ${c?.name??""}`,party:p?.name??"Cash purchase",total:Number(r.total_amount),paid:Number(r.paid_amount),credit:Number(r.credit_balance),status:r.status==="cancelled"?"cancelled":r.payment_status,notes:r.notes??undefined,lines:r.purchase_order_lines.map(l=>{const product=one(l.products),quality=one(l.product_qualities);return{name:product?.name??"—",quality:quality?.name,quantity:Number(l.quantity),sacks:Number(l.sack_count??0),unit:product?.unit_of_measure??"",price:Number(l.actual_price),total:Number(l.line_total)}}),payments:r.payments.map(x=>({method:x.method,amount:Number(x.amount),details:x.reference??undefined}))}}/>
+  {!!lotReceipts?.length&&<section className="panel"><h2>Lot receipts</h2><p>Original received quantities, not available stock. Cancellations and returns do not rewrite these receipts.</p><PurchaseLotReceipts receipts={lotReceipts.map(mapLotReceipt)}/></section>}
  </>;
 }

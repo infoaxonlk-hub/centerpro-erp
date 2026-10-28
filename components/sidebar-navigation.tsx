@@ -59,6 +59,7 @@ export const sections: NavSection[] = [
         children: [
           { href: "/dashboard/purchases/new", label: "New purchase" },
           { href: "/dashboard/purchases", label: "Purchase orders" },
+          { href: "/dashboard/purchases/lots", label: "Lot receipts", permission: "purchases" },
           { href: "/dashboard/purchases/products", label: "Products" },
           { href: "/dashboard/purchases/suppliers", label: "Suppliers" },
         ],

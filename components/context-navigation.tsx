@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 const labels: Record<string, string> = {
   dashboard: "Dashboard",
   purchases: "Purchases",
+  lots: "Lot receipts",
   sales: "Sales",
   stock: "Stock",
   labor: "Labor & Sessions",
