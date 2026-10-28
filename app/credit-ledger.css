@@ -1,0 +1,42 @@
+.credit-ledger{min-width:0;max-width:100%}
+.credit-ledger .page-heading p{font-size:14px;line-height:1.6}
+.credit-summary{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:12px;margin-bottom:16px}
+.credit-summary article{min-width:0;background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:18px;display:grid;align-content:start;gap:7px}
+.credit-summary article>span{font-size:12px;font-weight:700;color:var(--muted)}
+.credit-summary strong{font-size:27px;line-height:1.2;letter-spacing:-.035em;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.credit-summary small{font-size:11px;color:var(--muted);line-height:1.4}
+.credit-filters{margin:0 0 16px;padding:14px}
+.credit-search,.credit-filter-fields label{display:grid;gap:6px;min-width:0;font-size:12px;font-weight:650;color:var(--muted)}
+.credit-filters input{display:block;min-width:0;width:100%;max-width:100%;min-height:44px;border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:var(--paper);color:var(--ink);font:inherit;font-size:14px}
+.credit-filter-details summary{padding:13px 0 0;cursor:pointer;font-size:12px;font-weight:700;color:var(--brand)}
+.credit-filter-details summary b{margin-left:9px;padding:3px 6px;border-radius:5px;background:var(--canvas);font-size:10px}
+.credit-filter-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) auto;align-items:end;gap:10px;margin-top:14px}
+.credit-filter-fields button{min-height:44px;white-space:nowrap}
+.credit-filter-results{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:12px;padding-top:10px;font-size:11px;color:var(--muted)}
+.credit-filter-results button{background:none;border:0;color:var(--brand);font:inherit;font-weight:750;cursor:pointer;min-height:32px}
+.credit-mobile-list{display:none}
+.credit-ledger .credit-desktop-table{margin-top:0;overflow-x:auto}
+.credit-desktop-table table{min-width:920px}
+.credit-ledger .credit-desktop-table button{white-space:nowrap;min-width:max-content}
+.credit-payment-dialog{width:min(540px,calc(100vw - 24px));max-width:100%;max-height:calc(100dvh - 24px);overflow:auto}
+.credit-payment-dialog .dialog-head>div{min-width:0;overflow-wrap:anywhere}
+.credit-payment-dialog .icon-btn{flex-shrink:0}
+.credit-payment-dialog :is(input,select){min-width:0;max-width:100%}
+.credit-payment-dialog .form-grid,.credit-payment-dialog label{min-width:0}
+.credit-payment-dialog .dialog-actions button{white-space:nowrap}
+.credit-empty{text-align:center;padding:28px 16px!important}.credit-empty h2{font-size:17px}.credit-empty p{font-size:13px;color:var(--muted)}
+@media(max-width:760px){
+ .credit-ledger .page-heading{margin-bottom:16px}.credit-ledger .page-heading h1{font-size:25px}.credit-ledger .page-heading p{font-size:13px}
+ .credit-summary{gap:10px;margin-bottom:12px}.credit-summary article{padding:14px 12px}.credit-summary strong{font-size:25px}.credit-summary article:last-child strong{font-size:28px}.credit-summary article>small{font-size:10px}
+ .credit-filters{padding:12px;margin-bottom:14px}.credit-filters input{font-size:16px}.credit-filter-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.credit-filter-fields button{grid-column:1/-1}
+ .credit-ledger .credit-desktop-table{display:none}.credit-mobile-list{display:grid;gap:12px}
+ .credit-bill-card{min-width:0;padding:16px;border:1px solid var(--line);border-radius:15px;background:var(--paper);box-shadow:0 2px 5px #17152d04}
+ .credit-bill-card header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}.credit-bill-card h2{font-size:17px;line-height:1.4;margin:0;min-width:0;overflow-wrap:anywhere}
+ .credit-bill-status{flex-shrink:0;max-width:45%;font-size:10px;line-height:1.5;font-weight:750;border-radius:6px;padding:4px 7px}.credit-bill-status.due{background:#fff4df;color:#925600}.credit-bill-status.cleared{background:#e8f7ed;color:#176738}
+ .credit-bill-number{display:inline-block;font-size:12px;line-height:1.5;font-weight:650;color:var(--brand);overflow-wrap:anywhere;text-decoration:none}.credit-bill-number:hover{text-decoration:underline}
+ .credit-bill-meta{display:grid;gap:5px;margin:12px 0;color:var(--muted);font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+ .credit-bill-amounts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:13px 0;margin:0}.credit-bill-amounts div{min-width:0}.credit-bill-amounts dt{font-size:11px;color:var(--muted);margin-bottom:6px}.credit-bill-amounts dd{margin:0;font-size:14px;font-weight:650;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.credit-bill-amounts .credit-amount-due dd{font-size:17px;color:var(--brand);font-weight:800}
+ .credit-bill-card footer{display:grid;gap:10px;margin-top:13px}.credit-phone{font-size:12px;text-decoration:none;color:var(--muted);width:fit-content;min-height:28px;display:inline-flex;align-items:center;overflow-wrap:anywhere;max-width:100%}
+ .credit-bill-card footer .primary{display:block;min-width:0;width:100%;min-height:44px;text-align:center;white-space:nowrap;font-size:14px;line-height:1.4;padding:11px 14px}
+ .credit-payment-dialog{padding:18px}.credit-payment-dialog .form-grid{grid-template-columns:minmax(0,1fr)}.credit-payment-dialog :is(input,select){font-size:16px;min-height:44px}.credit-payment-dialog .dialog-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:8px}.credit-payment-dialog .dialog-actions button{font-size:13px;min-height:44px}
+}
