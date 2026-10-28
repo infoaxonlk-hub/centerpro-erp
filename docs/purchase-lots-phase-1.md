@@ -1,6 +1,6 @@
 # Purchase lots — Phase 1
 
-Implemented locally on `development`. No push, deployment, or remote migration is part of this change.
+Changes are prepared on the development branch for Preview testing. Production promotion and remote migrations are handled separately.
 
 ## Behavior
 
