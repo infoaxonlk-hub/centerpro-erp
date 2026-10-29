@@ -1,17 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import type { BusinessAccess } from "@/lib/business-modules";
 import { moduleEnabled } from "@/lib/business-modules";
+import {sessionFailureStatus} from "@/lib/auth-status";
 
 export class AccessError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 export async function requireAuthenticatedProfile() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new AccessError(401, "Please sign in.");
+  const { data: { user },error:authError } = await supabase.auth.getUser();
+  if (!user){const status=sessionFailureStatus(authError);throw new AccessError(status,status===401?"Please sign in.":"Session verification is temporarily unavailable. Please retry.");}
   const { data: profile, error } = await supabase.from("profiles")
-    .select("id,organization_id,full_name,role,is_active,permissions").eq("id", user.id).single();
-  if (error || !profile?.is_active) throw new AccessError(403, "Your account is inactive.");
+    .select("id,organization_id,full_name,role,is_active,permissions").eq("id", user.id).maybeSingle();
+  if(error)throw new AccessError(503,"Your profile could not be verified. Please retry.");
+  if (!profile?.is_active) throw new AccessError(403, "Your account is inactive or unavailable.");
   return { supabase, user, profile };
 }
 export async function requireSuperAdmin() {
@@ -21,7 +23,7 @@ export async function requireSuperAdmin() {
 }
 export async function readBusinessAccess(supabase: Awaited<ReturnType<typeof createClient>>): Promise<BusinessAccess> {
   const { data, error } = await supabase.rpc("current_business_access");
-  if (error || !data) throw new AccessError(403, "Business access could not be verified. Please contact InfoAxon Support.");
+  if (error || !data || typeof data.operational!=="boolean" || !Array.isArray(data.enabledModules)) throw new AccessError(503, "Business access could not be verified. Please retry or contact InfoAxon Support.");
   return data as BusinessAccess;
 }
 export async function requireBusinessApi(moduleKey: string) {

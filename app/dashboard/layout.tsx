@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { AppShell } from "@/components/app-shell";
 import { allPermissions } from "@/lib/access";
-import { requireAuthenticatedProfile, readBusinessAccess } from "@/lib/business-access";
+import { requireAuthenticatedProfile, readBusinessAccess,AccessError } from "@/lib/business-access";
 import { moduleEnabled, moduleForPath } from "@/lib/business-modules";
 import { BusinessAccessMonitor } from "@/components/business-access-monitor";
 import { FeedbackHost } from "@/components/feedback";
@@ -10,7 +10,7 @@ import "@/app/module-access.css";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   let context;
-  try { context = await requireAuthenticatedProfile(); } catch { redirect("/login?error=Your account is inactive or unavailable"); }
+  try { context = await requireAuthenticatedProfile(); } catch(error) { if(error instanceof AccessError&&error.status>=500)throw error;redirect("/login?error=Your account is inactive or unavailable"); }
   const { supabase, profile } = context;
   const business = await readBusinessAccess(supabase);
   const path = (await headers()).get("x-centerpro-path") ?? "/dashboard";

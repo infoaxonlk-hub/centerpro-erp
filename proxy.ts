@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {sessionFailureStatus} from "@/lib/auth-status";
 
 export async function proxy(request: NextRequest) {
   const forwarded = new Headers(request.headers);
@@ -17,9 +18,16 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-  const { data: { user } } = await supabase.auth.getUser();
-  if (request.nextUrl.pathname.startsWith("/dashboard") && !user) return NextResponse.redirect(new URL("/login", request.url));
-  if (request.nextUrl.pathname === "/login" && user && !request.nextUrl.searchParams.has("error")) return NextResponse.redirect(new URL("/dashboard", request.url));
+  const { data: { user },error } = await supabase.auth.getUser();
+  function preserveSession(target:NextResponse){
+    response.cookies.getAll().forEach(cookie=>target.cookies.set(cookie));
+    target.headers.set("Cache-Control","private, no-store");
+    return target;
+  }
+  if(!user&&error&&sessionFailureStatus(error)===503&&request.nextUrl.pathname!=="/login")return preserveSession(NextResponse.json({error:"Session verification is temporarily unavailable. Please retry."},{status:503}));
+  if (request.nextUrl.pathname.startsWith("/dashboard") && !user) return preserveSession(NextResponse.redirect(new URL("/login", request.url)));
+  if (request.nextUrl.pathname === "/login" && user && !request.nextUrl.searchParams.has("error")) return preserveSession(NextResponse.redirect(new URL("/dashboard", request.url)));
+  response.headers.set("Cache-Control","private, no-store");
   return response;
 }
-export const config = { matcher: ["/dashboard/:path*", "/login"] };
+export const config = { matcher: ["/dashboard/:path*", "/login", "/api/business-access"] };

@@ -13,6 +13,7 @@ export async function requirePermission(permission: AppPermission | readonly App
   let context;
   try { context = await requireAuthenticatedProfile(); }
   catch(error) {
+    if(error instanceof AccessError && error.status>=500)throw error;
     if(error instanceof AccessError && error.status===401) redirect("/login");
     redirect("/login?error=Your account is inactive");
   }
