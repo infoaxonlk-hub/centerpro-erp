@@ -12,6 +12,7 @@ import {
   CircleDollarSign,
   ClipboardList,
   FileCheck2,
+  Factory,
   LayoutDashboard,
   UsersRound,
   PackagePlus,
@@ -79,6 +80,12 @@ export const sections: NavSection[] = [
         { href: "/dashboard/stock/scrap", label: "Scrap stock", centerUserOrStock: true },
       ] },
       { href: "/dashboard/labor", label: "Labor & Sessions", permission: "labor", icon: UsersRound, children: [{href:"/dashboard/labor/laborers",label:"Laborers"},{href:"/dashboard/labor/sessions",label:"Sessions"}] },
+      { href: "/dashboard/manufacturing", label: "Manufacturing", permission: "manufacturing", icon: Factory, children: [
+        { href: "/dashboard/manufacturing", label: "Production orders", permission: "manufacturing" },
+        { href: "/dashboard/manufacturing/orders/new?process=milling", label: "New milling order", permission: "manufacturing" },
+        { href: "/dashboard/manufacturing/orders/new?process=packing", label: "New packing run", permission: "manufacturing" },
+        { href: "/dashboard/manufacturing/recipes", label: "Recipes / BoM", permission: "manufacturing" },
+      ] },
     ],
   },
   {

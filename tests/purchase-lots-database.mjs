@@ -128,7 +128,7 @@ await db.query("select set_config('test.user',$1,false)",[staff]);await db.exec(
 await db.exec("reset role");await db.query("select set_config('test.user','',false)");
 await db.query("update business_module_entitlements set enabled=false where organization_id=$1 and module_key='purchases'",[org]);
 await db.query("select set_config('test.user',$1,false)",[admin]);await db.exec("set role authenticated");
-assert.equal(await count('purchase_lots'),0);await assert.rejects(()=>confirm([line()]),/module|access|restricted/i);
+assert.equal(await count('purchase_lot_receipts'),0);await assert.rejects(()=>confirm([line()]),/module|access|restricted/i);
 await db.exec("reset role");await db.query("select set_config('test.user','',false)");
 await db.query("update business_module_entitlements set enabled=true where organization_id=$1 and module_key='purchases'",[org]);
 await db.query("update business_subscriptions set status='expired' where organization_id=$1",[org]);

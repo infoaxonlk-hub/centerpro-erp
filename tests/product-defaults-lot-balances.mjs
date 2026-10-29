@@ -26,7 +26,7 @@ alter default privileges in schema public grant all on tables to service_role;
 alter default privileges in schema public grant usage,select on sequences to service_role;
 `);
 for (const name of (await readdir(new URL("../supabase/migrations/",import.meta.url)))
-  .filter(name=>name.endsWith(".sql")&&!name.includes("verify")&&!name.startsWith("051_")).sort()) {
+  .filter(name=>name.endsWith(".sql")&&!name.includes("verify")&&Number(name.slice(0,3))<51).sort()) {
   const sql=(await readFile(new URL("../supabase/migrations/"+name,import.meta.url),"utf8"))
     .replace("create extension if not exists pgcrypto;","");
   try { await db.exec(sql); } catch(error) { throw new Error("Migration "+name+": "+error.message); }
@@ -61,7 +61,7 @@ async function confirm(lines,request=randomUUID(),extra={}){
 const historical=await confirm([line(5,9,{mode:'number',number:'HISTORICAL'})]);
 await db.exec('reset role');
 const beforeCosts=(await db.query('select id,unit_cost from stock_movements order by id')).rows;
-await db.exec(await readFile(new URL('../supabase/migrations/051_product_defaults_and_lot_balances.sql',import.meta.url),'utf8'));
+for(const name of (await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(name=>name.endsWith('.sql')&&Number(name.slice(0,3))>=51).sort())await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
 assert.deepEqual((await db.query('select id,unit_cost from stock_movements order by id')).rows,beforeCosts);
 await db.exec('set role authenticated');
 const balances=async()=>(await db.query('select * from stock_lot_balances()')).rows;

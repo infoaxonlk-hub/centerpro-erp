@@ -21,7 +21,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const key = moduleForPath(path);
     if (key && !moduleEnabled(key,business.enabledModules)) redirect("/dashboard/restricted?module="+key);
   }
-  const permissions = profile.role==="super_admin" ? [...allPermissions] : (profile.permissions ?? []);
+  const permissions = profile.role==="super_admin" ? [...allPermissions] : [...(profile.permissions ?? [])];
+  if (business.enabledModules.includes("manufacturing") && permissions.includes("stock") && !permissions.includes("manufacturing")) permissions.push("manufacturing");
   const isAdmin = ["super_admin","admin"].includes(profile.role);
   const {data:organization}=await supabase.from("organizations").select("name").eq("id",profile.organization_id).single();
   const {data:assignments}=business.operational ? await supabase.from("user_center_access")

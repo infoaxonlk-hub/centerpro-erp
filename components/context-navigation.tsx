@@ -10,6 +10,9 @@ const labels: Record<string, string> = {
   lots: "Lot receipts",
   sales: "Sales",
   stock: "Stock",
+  manufacturing: "Manufacturing",
+  orders: "Production orders",
+  recipes: "Recipes / BoM",
   labor: "Labor & Sessions",
   laborers: "Laborers",
   sessions: "Sessions",
@@ -44,6 +47,7 @@ const labels: Record<string, string> = {
 };
 
 function parentHref(pathname: string) {
+  if (pathname.startsWith("/dashboard/manufacturing/")) return "/dashboard/manufacturing";
   if (pathname.startsWith("/dashboard/labor/sessions/")) return "/dashboard/labor/sessions";
   if (/^\/dashboard\/purchases\/[^/]+$/.test(pathname)) return "/dashboard/purchases";
   if (/^\/dashboard\/sales\/[^/]+$/.test(pathname)) return "/dashboard/sales";
@@ -57,6 +61,7 @@ function parentHref(pathname: string) {
 
 function currentTitle(parts: string[]) {
   const last = parts.at(-1) ?? "dashboard";
+  if (parts.includes("manufacturing") && parts.includes("orders")) return last==="new"?"New production order":"Production order";
   if (last === "new") return parts.includes("sales") ? "New Sale" : "New Purchase";
   if (parts.includes("labor") && parts.includes("sessions") && parts.length>3) return "Session details";
   if (!labels[last] && parts.includes("purchases")) return "Purchase Bill";
