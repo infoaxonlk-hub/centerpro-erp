@@ -1,0 +1,1 @@
+export type StockLotBalance={centerId:string;locationId:string;productId:string;qualityId:string;lotId:string|null;lotNumber:string;quantity:number;center:string;location:string;product:string;productCode:string;category:string;quality:string;unit:string};

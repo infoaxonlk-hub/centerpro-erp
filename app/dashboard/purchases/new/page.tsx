@@ -1,5 +1,6 @@
 import { requirePermission } from "@/lib/access";
 import { PurchaseForm } from "./purchase-form";
+import type {LatestPurchasePrice} from "@/lib/product-price-defaults";
 export default async function NewPurchasePage() {
   const { supabase: s, profile } = await requirePermission("purchases");
   const [
@@ -46,6 +47,8 @@ export default async function NewPurchasePage() {
     // Purchase users can attach eligible open sessions for their center; RLS enforces center scope.
     s.from("labor_sessions").select("id,center_id,title,operation,session_date").eq("status","open").in("operation",["purchase","both"]).order("session_date",{ascending:false}),
   ]);
+  const latestPrices:LatestPurchasePrice[]=[];
+  for(let offset=0;;offset+=500){const {data,error}=await s.rpc("latest_purchase_prices").range(offset,offset+499);if(error)throw new Error(error.message);latestPrices.push(...(data??[]));if((data??[]).length<500)break;}
   return (
     <PurchaseForm
       centers={centers ?? []}
@@ -53,6 +56,7 @@ export default async function NewPurchasePage() {
       organizationId={profile.organization_id}
       products={products ?? []}
       prices={prices ?? []}
+      latestPrices={latestPrices}
       bankAccounts={bankAccounts ?? []}
       organizationName={organization?.name ?? "CenterPro"}
       userName={profile.full_name}

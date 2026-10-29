@@ -1,4 +1,5 @@
 "use client";
+import {salesPriceDefault} from "@/lib/product-price-defaults";
 import {readStockSacks} from "@/lib/stock-sacks";
 
 import Link from "next/link";
@@ -147,7 +148,8 @@ export function SalesPOS({organizationId,centers,customers:initialCustomers,prod
   setCenterId(id);setStock([]);setStockReady(false);setStockError("");setLines([]);setPayments([]);setCustomerId("");setNotes("");setLaborSessionId("");setLaborLoadCount("0");setError("");setCheckout(false);requestId.current=null;
  }
  function savedPrice(qualityId:string){
-  const value=Number(prices.find(p=>p.center_id===centerId&&p.quality_id===qualityId)?.price??0);
+  const product=products.find(p=>p.product_qualities.some(q=>q.id===qualityId));
+  const value=salesPriceDefault(product?.default_sales_price,prices.find(p=>p.center_id===centerId&&p.quality_id===qualityId)?.price);
   return Number.isFinite(value)&&value>0?Math.round(value*100)/100:0;
  }
  function addProduct(product:Product,qualityId:string){

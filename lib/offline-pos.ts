@@ -113,6 +113,7 @@ export async function syncPosTasks(client: SupabaseClient, scopeId: string, kind
       if (!id || id === "undefined") throw new Error("Server did not return the posted bill ID.");
       await deletePosTask(task.requestId);
       completed.push({ task, id });
+      if(task.kind==="purchase"&&typeof window!=="undefined")window.dispatchEvent(new Event("centerpro-purchase-confirmed"));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not sync this bill.";
       await updatePosTaskError(task, message, needsCorrection);

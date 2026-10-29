@@ -1,5 +1,5 @@
 export type Center={id:string;code:string;name:string;allow_multiple_locations:boolean;locations:{id:string;name:string;is_default:boolean;is_active:boolean}[]};
-export type Product={id:string;code:string;name:string;category?:string|null;unit_of_measure:string;tracks_sacks?:boolean;product_qualities:{id:string;name:string;is_active:boolean}[]};
+export type Product={id:string;code:string;name:string;category?:string|null;unit_of_measure:string;tracks_sacks?:boolean;default_sales_price?:number|string|null;product_qualities:{id:string;name:string;is_active:boolean}[]};
 export type Customer={id:string;center_id:string;name:string;phone:string|null;address:string|null};
 export type Price={center_id:string;quality_id:string;price:number|string};
 export type Bank={id:string;account_number:string;branch_name:string;branch_code:string;payment_banks:{name:string;is_active:boolean}|null};

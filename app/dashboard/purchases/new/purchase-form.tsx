@@ -1,6 +1,8 @@
 "use client";
 import {PurchaseLotFields} from "./purchase-lot-fields";
 import {purchaseRowsTotal,splitPurchaseLotRow,type PurchaseLotSelection} from "@/lib/purchase-lots";
+import {purchasePriceDefault,type LatestPurchasePrice} from "@/lib/product-price-defaults";
+import {usePurchasePriceDefaults} from "@/lib/use-purchase-price-defaults";
 import Link from "next/link";
 import {Bill} from "@/components/bill";
 import {DraftBill} from "@/components/draft-bill";
@@ -115,7 +117,7 @@ export function PurchaseForm({
   suppliers: initialSuppliers,
   organizationId,
   products,
-  prices,
+  latestPrices = [],
   bankAccounts,
   organizationName,
   userName,
@@ -127,12 +129,14 @@ export function PurchaseForm({
   organizationId: string;
   products: Product[];
   prices: Price[];
+  latestPrices?: LatestPurchasePrice[];
   bankAccounts: BankAccount[];
   organizationName: string;
   userName: string;
   scopeId: string;
   laborSessions: LaborSession[];
 }) {
+  const latestConfirmedPrices=usePurchasePriceDefaults(organizationId,scopeId,latestPrices);
   const [centerId, setCenterId] = useState(centers[0]?.id ?? "");
   const [preferredEntryMode, setEntryMode] = useState<"pos" | "detailed">("pos");
   const [suppliers, setSuppliers] = useState(initialSuppliers);
@@ -399,12 +403,7 @@ export function PurchaseForm({
     const q = products
       .flatMap((p) => p.product_qualities)
       .find((q) => q.id === qid);
-    return Number(
-      prices.find((p) => p.center_id === centerId && p.quality_id === qid)
-        ?.price ??
-        q?.default_price ??
-        0,
-    );
+    return purchasePriceDefault(qid,q?.default_price??0,latestConfirmedPrices);
   }
   function add(product: Product, quality: Quality) {
     if (entryMode === "detailed" || product.tracks_sacks) {
@@ -721,6 +720,7 @@ export function PurchaseForm({
     });
     requestId.current = null;
     setCashBalanceRefresh((value) => value + 1);
+    window.dispatchEvent(new Event("centerpro-purchase-confirmed"));
     notify("Purchase confirmed successfully");
   }
   useEffect(() => {
