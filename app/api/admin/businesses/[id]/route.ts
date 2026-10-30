@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireSuperAdmin, AccessError } from "@/lib/business-access";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { businessConfigurationSchema, platformFailure, readPlatformBusiness } from "@/lib/platform-businesses";
+import { businessConfigurationSchema, platformFailure, readPlatformBusiness,assertSavedBusinessModules,platformRpcError } from "@/lib/platform-businesses";
 type Context = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, context: Context) {
   try {
@@ -27,8 +27,10 @@ export async function PATCH(request: Request, context: Context) {
     });
     if (error) {
       if (error.code === "P0002") throw new AccessError(404, "Business not found.");
-      throw new Error("Business configuration transaction failed.");
+      throw platformRpcError(error.code,"Business configuration save");
     }
-    return Response.json({ ok: true });
+    const business=await readPlatformBusiness(id);
+    assertSavedBusinessModules(business,input.modules);
+    return Response.json({ ok: true,business },{headers:{"Cache-Control":"private, no-store"}});
   } catch (error) { return platformFailure(error); }
 }

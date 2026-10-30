@@ -14,6 +14,7 @@ const proxyModule=load('proxy.ts',{require(id){if(id==='@supabase/ssr')return{cr
  assert.equal(status.sessionFailureStatus({code:'session_expired',status:400}),401);
  assert.equal(status.sessionFailureStatus({status:429}),503);
  assert.ok(proxyModule.config.matcher.includes('/api/business-access'));
+ assert.ok(proxyModule.config.matcher.includes('/api/admin/:path*'));
  refreshed=[{name:'sb-auth-token',value:'fresh-session',options:{path:'/',httpOnly:true,secure:true}}];
  let response=await proxyModule.proxy(new NextRequest('https://preview.test/login'));
  assert.equal(response.status,307);assert.equal(response.headers.get('location'),'https://preview.test/dashboard');assert.equal(response.cookies.get('sb-auth-token').value,'fresh-session');assert.equal(response.cookies.get('sb-auth-token').httpOnly,true);

@@ -174,4 +174,14 @@ assert.deepEqual(await otherProfileSnapshot(),originalOthers);
 await actor(owner);
 await denied(()=>db.query("select assert_business_operation('sales')"));
 console.log("PASS disabling a module still blocks its operations after permission repair, without revoking staff permissions or changing entitlements");
+// Reproduce pre-catalogue businesses and future catalogue additions: an UPDATE
+// alone silently misses the row. The current RPC must materialize it atomically.
+await actor(null);await db.query("delete from business_module_entitlements where organization_id=$1 and module_key='farm_services'",[business]);
+await configure(['dashboard','farm_services','inventory','manufacturing']);
+assert.equal((await db.query("select enabled from business_module_entitlements where organization_id=$1 and module_key='farm_services'",[business])).rows[0]?.enabled,true);
+assert.equal((await db.query('select count(*)::int n from business_module_entitlements where organization_id=$1',[business])).rows[0].n,(await db.query('select count(*)::int n from business_module_catalog')).rows[0].n);
+const repaired=await grant();for(const permission of ['farm_services','farm_services_manage','stock','manufacturing'])assert.ok(repaired.includes(permission),permission);
+await actor(owner);await db.query("select assert_business_operation('farm_services')");await db.query("select assert_business_operation('manufacturing')");
+await configure(['dashboard']);await actor(owner);await denied(()=>db.query("select assert_business_operation('farm_services')"));
+console.log('PASS missing/new module rows are saved, manufacturing/Farm permissions granted, and disabling modules still overrides retained permissions.');
 await db.close();

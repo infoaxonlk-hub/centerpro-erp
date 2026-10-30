@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireSuperAdmin, AccessError } from "@/lib/business-access";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { platformFailure } from "@/lib/platform-businesses";
+import { platformFailure,platformRpcError } from "@/lib/platform-businesses";
 
 type Context = { params: Promise<{ id: string; adminId: string }> };
 export async function POST(request: Request, { params }: Context) {
@@ -16,7 +16,7 @@ export async function POST(request: Request, { params }: Context) {
     if (error) {
       if (error.code === "P0002") throw new AccessError(404, "Active business administrator not found.");
       if (error.code === "42501") throw new AccessError(403, "Platform administrator access required.");
-      throw new Error("Business administrator access could not be updated.");
+      throw platformRpcError(error.code,"Administrator access grant");
     }
     return Response.json({ permissions: data }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) { return platformFailure(error); }

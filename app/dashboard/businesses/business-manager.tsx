@@ -16,7 +16,7 @@ async function jsonRequest(url:string,options?:RequestInit) {
  if(!response.ok)throw new Error(data.error??"The request could not be completed.");
  return data;
 }
-export function BusinessManager() {
+export function BusinessManager({actorId,ownOrganizationId}:{actorId?:string;ownOrganizationId?:string}={}) {
  const dialogRef=useRef<HTMLElement>(null);
  const [businesses,setBusinesses]=useState<BusinessRecord[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
  const [error,setError]=useState(""),[success,setSuccess]=useState(""),[search,setSearch]=useState(""),[filter,setFilter]=useState("all");
@@ -28,6 +28,7 @@ export function BusinessManager() {
    try {
      const result=await jsonRequest("/api/admin/businesses/"+business.id);
      const current:BusinessRecord=result.business;
+     setBusinesses(old=>old.map(item=>item.id===current.id?current:item));
      setDraft({details:{name:current.name,status:current.business_status==="active"?"active":"suspended",address:current.receipt_address??"",phone:current.receipt_phone??"",email:current.receipt_email??""},subscription:current.business_subscriptions??emptyDraft().subscription,
        modules:current.business_module_entitlements.filter(m=>m.enabled).map(m=>m.module_key),adminName:"",adminEmail:"",password:""});
      setHistory(result.history??[]);setEditor({id:current.id,tab,readOnly});
@@ -38,10 +39,16 @@ export function BusinessManager() {
    if(editor.id&&draft.details.status==="suspended"&&!window.confirm("Suspend this business? Existing data will be kept, and business users will lose operational access."))return;
    setBusy(true);setError("");setSuccess("");
    try {
-     await jsonRequest("/api/admin/businesses"+(editor.id?"/"+editor.id:""),{method:editor.id?"PATCH":"POST",headers:{"Content-Type":"application/json"},
+     const result=await jsonRequest("/api/admin/businesses"+(editor.id?"/"+editor.id:""),{method:editor.id?"PATCH":"POST",headers:{"Content-Type":"application/json"},
        body:JSON.stringify(editor.id?{details:draft.details,subscription:draft.subscription,modules:draft.modules}:draft)});
      setSuccess(editor.id?"Business configuration saved. Use Administrator access to grant any missing user permissions.":"Business and administrator created. Share the sign-in email and password securely.");
-     setEditor(null);setDraft(emptyDraft());await refresh();
+     if(editor.id&&editor.tab==="modules"&&result.business){
+       const current:BusinessRecord=result.business;
+       setBusinesses(old=>old.map(item=>item.id===current.id?current:item));
+       setDraft(old=>({...old,modules:current.business_module_entitlements.filter(m=>m.enabled).map(m=>m.module_key)}));
+       setEditor({...editor,tab:"activity"});
+     }else{setEditor(null);setDraft(emptyDraft());}
+     await refresh();
    }catch(error){setError(error instanceof Error?error.message:"Unable to save business.");}finally{setBusy(false);}
  }
  async function changeStatus(business:BusinessRecord) {
@@ -88,6 +95,7 @@ export function BusinessManager() {
    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
  }
  const selected=businesses.find(b=>b.id===editor?.id);
+ const ownBusiness=businesses.find(b=>b.id===ownOrganizationId);
  const savedModules=selected?.business_module_entitlements.filter(m=>m.enabled).map(m=>m.module_key)??[];
  const moduleChangesPending=!!editor?.id&&[...savedModules].sort().join(",")!==[...draft.modules].sort().join(",");
  const updateSubscription=(values:Partial<Subscription>)=>setDraft({...draft,subscription:{...draft.subscription,...values}});
@@ -95,6 +103,7 @@ export function BusinessManager() {
   <div className="page-heading"><div><span className="eyebrow dark">INFOAXON PLATFORM</span><h1>Businesses</h1><p>Manage business workspaces, subscriptions and module access.</p></div>
    <button className="primary" disabled={busy} onClick={()=>{setDraft(emptyDraft());setHistory([]);setEditor({id:null,readOnly:false,tab:"information"});setError("");setSuccess("");}}><Plus size={17}/> Create business</button></div>
   {error&&<p className="alert error" role="alert">{error}</p>}{!editor&&success&&<p className="business-success" role="status">{success}</p>}
+  {ownBusiness&&<section className="panel business-own-workspace"><div><h2>Your ERP workspace: {ownBusiness.name}</h2><p>Your Super Admin role has all user permissions. Business modules and subscription settings still apply to this workspace. Other businesses open in read-only inspection.</p><p>{ownBusiness.access_summary?.operational?"Workspace active":"Check this workspace's status and subscription before operating."}</p></div><div className="business-buttons"><Link className="primary" href={ownBusiness.access_summary?.operational?"/dashboard":"/dashboard/account"}>Open my ERP workspace</Link><button type="button" className="ghost" disabled={busy} onClick={()=>void open(ownBusiness,"modules")}>Manage my modules</button></div></section>}
   <div className="metric-grid"><article className="metric"><span>Total businesses</span><strong>{businesses.length}</strong></article>
    <article className="metric"><span>Active businesses</span><strong>{businesses.filter(b=>b.business_status==="active").length}</strong></article>
    <article className="metric"><span>Suspended</span><strong>{businesses.filter(b=>b.business_status==="suspended").length}</strong></article>
@@ -122,6 +131,7 @@ export function BusinessManager() {
    <header><div><h2>{editor.id?draft.details.name:"Create business"}</h2><p>{editor.id??"Create the workspace and its first administrator."}</p></div><button className="ghost" aria-label="Close business details" disabled={busy} onClick={()=>{setEditor(null);setDraft(emptyDraft());}}><X size={18}/></button></header>
    {error&&<p className="alert error" role="alert">{error}</p>}
    {success&&<p className="business-success" role="status">{success}</p>}
+   {editor.readOnly&&<p className="alert" role="status">This view is read-only. <button type="button" className="ghost" disabled={busy} onClick={()=>setEditor({...editor,readOnly:false})}>Enable editing</button></p>}
    <nav className="business-tabs" aria-label="Business sections">{["information","subscription","modules","activity"].map(tab=><button type="button" key={tab} className={editor.tab===tab?"primary":"ghost"} onClick={()=>setEditor({...editor,tab})}>{tab==="information"?"Business information":tab==="modules"?"Module Access":tab==="activity"?"Administrators & history":"Subscription"}</button>)}</nav>
    <form noValidate onSubmit={save}><fieldset disabled={busy||editor.readOnly}>
     <div hidden={editor.tab!=="information"}><h3>Business information</h3><div className="company-profile-grid">
@@ -148,7 +158,7 @@ export function BusinessManager() {
    </fieldset>
    <div hidden={editor.tab!=="activity"}>
     {moduleChangesPending&&<p className="alert error">Save module changes before granting administrator access.</p>}
-    {editor.id&&<BusinessAdminAccess admins={selected?.profiles.filter(p=>p.role==="admin")??[]} enabledModules={savedModules}
+    {editor.id&&<BusinessAdminAccess admins={selected?.profiles.filter(p=>p.role==="admin"||(p.id===actorId&&p.role==="super_admin"))??[]} enabledModules={savedModules}
       disabled={busy||editor.readOnly||moduleChangesPending} onGrant={admin=>void grantAdminAccess(admin)}/>}
     {!editor.id&&<p>The administrator will be created when you save.</p>}
     {editor.id&&<p><Link className="ghost" href={"/dashboard/businesses/"+editor.id+"/workspace"}>Open Workspace — read-only</Link></p>}

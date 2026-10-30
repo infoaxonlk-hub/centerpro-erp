@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript');
+function load(file,overrides={}){const m={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{module:m,exports:m.exports,Response,Headers,URL,console,require:id=>id in overrides?overrides[id]:require(id)});return m.exports;}
+class AccessError extends Error{constructor(status,message){super(message);this.status=status;}}
+const registry=load('lib/business-modules.ts'),id='b5334131-d2a9-4676-8cb6-92e8be5b356c',adminId='df69935c-7497-44f2-b5ae-c02563d86fc2';let partial=false,rpcCode=null;
+const details={name:'Store',status:'active',address:'',phone:'',email:''},subscription={plan:'Custom',status:'active',starts_on:'2026-10-30',expires_on:null,trial_ends_on:null,admin_notes:''};
+let business={id,...details,business_status:'active',business_subscriptions:subscription,business_module_entitlements:[{module_key:'dashboard',enabled:true}]};
+const client={from:()=>({select:()=>({eq:()=>({single:async()=>({data:business})})})}),rpc:async(_name,args)=>{if(rpcCode)return{error:{code:rpcCode}};business={...business,business_module_entitlements:args.p_modules.filter(m=>!partial||m!=='farm_services').map(module_key=>({module_key,enabled:true}))};return{};}};
+const auth={AccessError,requireSuperAdmin:async()=>({user:{id:adminId}})},platform=load('lib/platform-businesses.ts',{'@/lib/business-access':auth,'@/lib/business-modules':registry,'@/lib/supabase/admin':{createAdminClient:()=>client}});
+const api=load('app/api/admin/businesses/[id]/route.ts',{'@/lib/business-access':auth,'@/lib/supabase/admin':{createAdminClient:()=>client},'@/lib/platform-businesses':platform});
+const grant=load('app/api/admin/businesses/[id]/admins/[adminId]/access/route.ts',{'@/lib/business-access':auth,'@/lib/supabase/admin':{createAdminClient:()=>client},'@/lib/platform-businesses':platform});
+const context={params:Promise.resolve({id})},request=()=>new Request('https://preview.test/api/admin/businesses/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({details,subscription,modules:['dashboard','farm_services']})});
+(async()=>{partial=true;let response=await api.PATCH(request(),context);assert.equal(response.status,409);assert.match((await response.json()).error,/059_platform_module_save_repair/);
+ partial=false;response=await api.PATCH(request(),context);assert.equal(response.status,200);assert.ok((await response.json()).business.business_module_entitlements.some(m=>m.module_key==='farm_services'&&m.enabled));
+ rpcCode='PGRST202';response=await grant.POST(new Request('https://preview.test/api/admin/businesses/'+id+'/admins/'+adminId+'/access',{method:'POST'}),{params:Promise.resolve({id,adminId})});assert.equal(response.status,503);assert.match((await response.json()).error,/059/);
+ response=await grant.POST(new Request('https://preview.test/api/admin/businesses/'+id+'/admins/'+adminId+'/access',{method:'POST',headers:{origin:'https://foreign.test'}}),{params:Promise.resolve({id,adminId})});assert.equal(response.status,403);
+ console.log('PASS platform API rejects partial module saves, returns verified saved business, explains missing migrations and preserves administrator origin checks.');
+})().catch(e=>{console.error(e);process.exitCode=1});

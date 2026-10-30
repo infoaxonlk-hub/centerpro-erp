@@ -50,6 +50,16 @@ export const createBusinessSchema = z.preprocess(value => {
   };
 },modernCreateBusinessSchema);
 export type BusinessConfiguration = z.infer<typeof businessConfigurationSchema>;
+export function assertSavedBusinessModules(business:BusinessRecord,requested:readonly string[]){
+  const saved=business.business_module_entitlements.filter(item=>item.enabled).map(item=>item.module_key).sort();
+  if(saved.join(',')!==normalizeModules(requested).sort().join(','))throw new AccessError(409,'Module changes were not fully saved. Apply migration 059_platform_module_save_repair.sql, then save again.');
+}
+export function platformRpcError(code:string|undefined,action:string){
+  const safeCode=code&&/^[A-Z0-9]{5,10}$/.test(code)?code:'unknown';
+  if(code==='PGRST202'||code==='42883')return new AccessError(503,action+' is unavailable. Apply the platform migrations through 059 and retry.');
+  console.error('Platform operation failed',{action,code:safeCode});
+  return new AccessError(503,action+' failed (database code '+safeCode+'). No success has been confirmed. Retry or share this code with support.');
+}
 export function platformFailure(error: unknown): Response {
   if (error instanceof AccessError) return Response.json({ error: error.message }, { status: error.status });
   if(error instanceof SyntaxError)return Response.json({error:"Invalid JSON request."},{status:400});
