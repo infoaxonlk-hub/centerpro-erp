@@ -2,6 +2,8 @@
 
 Changes are prepared on the development branch for Preview testing. Production promotion and remote migrations are handled separately.
 
+Update: migration 054 replaces the original split-row behavior below with one lot and one total weighing per product per purchase. Historical confirmed split receipts are retained. See [current process and receipt QA](qa/product-process-and-purchase-lot-test-cases.md) for current rules and held/offline draft correction.
+
 ## Behavior
 
 - Products & Suppliers → create/edit → **Track purchase lots**. Existing products remain disabled. Sack tracking is independent.

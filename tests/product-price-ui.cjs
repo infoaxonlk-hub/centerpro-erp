@@ -36,7 +36,7 @@ function purchaseCase(sacks){
   remembered=[{...latest[0],price:88}];view=render().find(e=>e.type===Detailed);assert.equal(view.props.visibleLines[0].actual_price,7.55);
   view.props.onUpdateLine(key,{lot_selection:{mode:'existing',lot_id:'old-lot'}});
   view=render().find(e=>e.type===Detailed);assert.equal(view.props.visibleLines[0].actual_price,7.55);
-  view.props.onAddWeightRow(view.props.visibleLines[0]);view=render().find(e=>e.type===Detailed);assert.equal(view.props.visibleLines[1].actual_price,7.55);
+  assert.equal(view.props.onAddWeightRow,undefined);assert.equal(view.props.onSplitLot,undefined);
  }else{
   assert.equal(render().find(e=>e.props['data-price']===0).props.value,14);
   render().find(e=>e.props['data-price']===0).props.onChange({target:{value:'7.55'}});
@@ -55,6 +55,7 @@ purchaseCase(false);purchaseCase(true);
  const {MastersManager}=load('app/dashboard/masters/masters-manager.tsx',{require(id){
   if(id==='react')return masterHooks.react;
   if(id==='@/lib/supabase/client')return{createClient:()=>({async rpc(name,args){rpcCalls.push({name,args});return{error:null};},from(){return{select(){return{async order(){return{data:[existing]};}};}};}})};
+  if(id.endsWith('.css'))return{};
   if(id.startsWith('@/')||id==='./product-import')return new Proxy({},{get:()=>()=>null});
   return require(id);
  }});
@@ -64,12 +65,12 @@ purchaseCase(false);purchaseCase(true);
  renderMaster().find(e=>e.type==='button'&&text(e)==='Add product').props.onClick();
  let form=renderMaster().find(e=>e.type==='form');
  for(const name of ['price','sales_price','costing_method','tracks_purchase_lots'])assert.ok(elements(form).some(e=>e.props.name===name));
- const fd={get:name=>({code:'P',name:'Product',unit:'KG',price:'9',sales_price:'25',costing_method:'FIFO',tracks_purchase_lots:'yes',tracks_sacks:'no'})[name]??null};
+ const fd={has:()=>true,get:name=>({code:'P',name:'Product',unit:'KG',price:'9',sales_price:'25',costing_method:'FIFO',tracks_purchase_lots:'yes',tracks_sacks:'no'})[name]??null};
  await form.props.action(fd);assert.equal(rpcCalls[0].args.global_price,9);assert.equal(rpcCalls[0].args.product_default_sales_price,25);assert.equal(rpcCalls[0].args.product_costing_method,'FIFO');
  renderMaster().find(e=>e.type==='button'&&text(e)==='Edit').props.onClick();form=renderMaster().find(e=>e.type==='form');
  for(const name of ['purchase_q','sales_price','costing_method','tracks_purchase_lots'])assert.ok(elements(form).some(e=>e.props.name===name));
  assert.equal(elements(form).find(e=>e.props.name==='sales_price').props.defaultValue,25);
- await form.props.action({get:name=>name==='purchase_q'?'11':fd.get(name)});
+ await form.props.action({has:()=>true,get:name=>name==='purchase_q'?'11':fd.get(name)});
  assert.equal(rpcCalls[1].name,'edit_product_defaults');assert.equal(rpcCalls[1].args.p_prices[0].price,11);assert.equal(rpcCalls[1].args.p_sales,25);
 
  const salesHooks=harness();const {SalesPOS}=load('app/dashboard/sales/sales-pos.tsx',{require(id){

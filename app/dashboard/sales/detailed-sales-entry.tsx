@@ -43,7 +43,7 @@ export function DetailedSalesEntry({center, customers, customerId, onCustomerCha
   const [showPicker, setShowPicker] = useState(true);
   const categories = useMemo(() => [...new Set(products.map(p => p.category?.trim() || "Uncategorized"))].sort(), [products]);
   const locations = (center?.locations ?? []).filter(l => l.is_active && (center?.allow_multiple_locations || l.is_default));
-  const choices = useMemo<Choice[]>(() => products.flatMap(product => product.product_qualities
+  const choices = useMemo<Choice[]>(() => products.filter(product=>product.can_be_sold!==false).flatMap(product => product.product_qualities
     .filter(quality => quality.is_active)
     .map(quality => ({product, quality}))), [products]);
   const filtered = choices.filter(({product, quality}) =>

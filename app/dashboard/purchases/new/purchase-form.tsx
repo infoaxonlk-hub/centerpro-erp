@@ -1,6 +1,6 @@
 "use client";
 import {PurchaseLotFields} from "./purchase-lot-fields";
-import {purchaseRowsTotal,splitPurchaseLotRow,type PurchaseLotSelection} from "@/lib/purchase-lots";
+import {purchaseRowsTotal,type PurchaseLotSelection} from "@/lib/purchase-lots";
 import {purchasePriceDefault,type LatestPurchasePrice} from "@/lib/product-price-defaults";
 import {usePurchasePriceDefaults} from "@/lib/use-purchase-price-defaults";
 import Link from "next/link";
@@ -72,7 +72,7 @@ type Quality = {
   is_active: boolean;
   is_base: boolean;
 };
-type Product = {
+type Product = {can_be_sold?:boolean;can_be_purchased?:boolean;can_be_manufactured?:boolean;
   id: string;
   code: string;
   name: string;
@@ -389,7 +389,7 @@ export function PurchaseForm({
     }
   }
   const activeProducts = products.filter((p) =>
-    p.product_qualities.some((q) => q.is_active),
+    p.can_be_purchased!==false && p.product_qualities.some((q) => q.is_active),
   );
   const categories = [
     ...new Set(activeProducts.map((p) => p.category).filter(Boolean)),
@@ -406,39 +406,14 @@ export function PurchaseForm({
     return purchasePriceDefault(qid,q?.default_price??0,latestConfirmedPrices);
   }
   function add(product: Product, quality: Quality) {
-    if (entryMode === "detailed" || product.tracks_sacks) {
-      setLines(old => [...old, {
-        key: makeKey(), product_id: product.id, quality_id: quality.id,
+    if(product.can_be_purchased===false){notify("This product cannot be purchased.","error");return;}
+    if(lines.some(l=>l.product_id===product.id)){notify("This product already has its single lot/weighing. Edit its total quantity instead.","error");setQualityProduct(null);return;}
+    const key=makeKey();
+    setLines(old => old.some(l=>l.product_id===product.id)?old:[...old, {
+        key, product_id: product.id, quality_id: quality.id,
         location_id: center?.allow_multiple_locations ? "" : (center?.locations.find(l => l.is_default)?.id ?? ""),
-        quantity: 0, sack_count: 0, actual_price: rate(quality.id),
+        quantity: entryMode === "detailed" || product.tracks_sacks ? 0 : 1, sack_count: 0, actual_price: rate(quality.id),
       }]);
-      setQualityProduct(null);
-      return;
-    }
-    const existing = lines.find(
-      (l) => l.product_id === product.id && l.quality_id === quality.id,
-    );
-    if (existing)
-      setLines((old) =>
-        old.map((l) =>
-          l.key === existing.key ? { ...l, quantity: l.quantity + 1 } : l,
-        ),
-      );
-    else
-      setLines((old) => [
-        ...old,
-        {
-          key: makeKey(),
-          product_id: product.id,
-          quality_id: quality.id,
-          location_id: center?.allow_multiple_locations
-            ? ""
-            : (center?.locations.find((l) => l.is_default)?.id ?? ""),
-          quantity: 1,
-          sack_count: 0,
-          actual_price: rate(quality.id),
-        },
-      ]);
     setQualityProduct(null);
   }
   function selectProduct(product: Product) {
@@ -446,27 +421,10 @@ export function PurchaseForm({
     if (qs.length > 1) setQualityProduct(product);
     else if (qs[0]) add(product, qs[0]);
   }
-  function addWeightRow(line: Line) {
-    const key = makeKey();
-    setLines(old => [...old, { ...line, key, quantity: 0, sack_count: 0 }]);
-    return key;
-  }
   function update(key: string, change: Partial<Line>) {
     setLines((old) =>
       old.map((l) => (l.key === key ? { ...l, ...change } : l)),
     );
-  }
-  function splitLot(key:string,quantity:number,sacks:number){
-    const line=lines.find(row=>row.key===key);if(!line)return;
-    try{
-      const requiresSacks=Boolean(products.find(p=>p.id===line.product_id)?.tracks_sacks),keyForSplit=makeKey();
-      splitPurchaseLotRow(line,quantity,sacks,requiresSacks);
-      setLines(old=>old.flatMap(row=>{
-        if(row.key!==key)return[row];
-        try{const {remaining,split}=splitPurchaseLotRow(row,quantity,sacks,requiresSacks);return[remaining,{...split,key:keyForSplit}];}
-        catch{return[row];}
-      }));
-    }catch(error){notify(error instanceof Error?error.message:"Could not split this row","error");}
   }
   const total = useMemo(
     () => purchaseRowsTotal(lines),
@@ -541,6 +499,8 @@ export function PurchaseForm({
   function openPayment() {
     let message = "";
     if (!lines.length) message = "Add at least one purchase item.";
+    else if(new Set(lines.map(l=>l.product_id)).size!==lines.length) message="Only one lot and total weighing per product is allowed. Remove duplicate rows from this held draft.";
+    else if(lines.some(l=>!products.some(p=>p.id===l.product_id&&p.can_be_purchased!==false))) message="A saved product is no longer available for purchasing. Remove it before continuing.";
     else if(lines.some(line=>products.find(product=>product.id===line.product_id)?.tracks_purchase_lots&&((line.lot_selection?.mode==="number"&&!line.lot_selection.number?.trim())||(line.lot_selection?.mode==="existing"&&!line.lot_selection.lot_id))))
       message="Enter a lot number or select an existing lot for each lot-tracked row.";
     else if (lines.some((l) => l.quantity <= 0))
@@ -985,18 +945,16 @@ export function PurchaseForm({
         entryMode === "detailed" ? (
           <DetailedPurchaseEntry
             organizationId={organizationId}
-            onSplitLot={splitLot}
             center={center}
             suppliers={suppliers}
             supplierId={supplierId}
             onSupplierChange={setSupplierId}
             onAddSupplier={() => { setSupplierError(""); setShowSupplierDialog(true); }}
-            products={activeProducts}
+            products={products}
             visibleLines={lines}
             total={total}
             totalSacks={totalSacks}
             onSelectProduct={selectProduct}
-            onAddWeightRow={addWeightRow}
             onUpdateLine={update}
             onRemoveLine={key => setLines(old => old.filter(line => line.key !== key))}
             onOpenPayment={openPayment}
@@ -1200,7 +1158,7 @@ export function PurchaseForm({
                         </button>
                       </div>
                     </div>
-                    {product.tracks_purchase_lots&&<PurchaseLotFields organizationId={organizationId} productId={line.product_id} qualityId={line.quality_id} value={line.lot_selection} quantity={line.quantity} sacks={line.sack_count} requireSacks={Boolean(product.tracks_sacks)} onChange={lot_selection=>update(line.key,{lot_selection})} onSplit={(quantity,sacks)=>splitLot(line.key,quantity,sacks)}/>}
+                    {product.tracks_purchase_lots&&<PurchaseLotFields organizationId={organizationId} productId={line.product_id} qualityId={line.quality_id} value={line.lot_selection} onChange={lot_selection=>update(line.key,{lot_selection})}/>}
                     <div className="pos-line-total">
                       <span>
                         {line.quantity} × {money(line.actual_price)}

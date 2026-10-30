@@ -16,7 +16,7 @@ export async function SalesScreen({start="history"}:{start?:"history"|"new"|"cus
   loaded=await Promise.all([
    rows("centers","id,code,name,is_active,allow_multiple_locations,locations(id,name,is_default,is_active)"),
    rows("customers","id,center_id,name,phone,address"),
-   rows("products","id,code,name,category,unit_of_measure,tracks_sacks,default_sales_price,is_active,product_qualities(id,name,is_active)"),
+   rows("products","id,code,name,category,unit_of_measure,can_be_sold,can_be_purchased,can_be_manufactured,tracks_sacks,default_sales_price,is_active,product_qualities(id,name,is_active)"),
    rows("sales_prices","center_id,quality_id,price"),
    rows("bank_accounts","id,account_number,branch_name,branch_code,is_active,payment_banks(name,is_active)"),
    start==="new"?Promise.resolve([]):rows("sales_orders","id,center_id,customer_id,customer_name,sale_number,status,total_amount,paid_amount,credit_balance,payment_status,confirmed_at,sales_order_lines(product_name,quality_name,unit,quantity,unit_price,line_total),sales_payments(method,amount)")

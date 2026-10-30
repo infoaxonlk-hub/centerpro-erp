@@ -147,7 +147,7 @@ await db.query("select review_bill_cancellation($1,true,'Approved')",[purchaseCa
 assert.equal(await qty(cancelledLot),0);
 assert.equal(Number((await prices()).find(r=>r.quality_id===quality).price),12);
 const beforeFailure=await count('stock_lot_allocations');
-await assert.rejects(()=>confirm([line(1,10,{mode:'number',number:'ROLLBACK-051'}),line(1,10,{mode:'existing',lot_id:randomUUID()})]),/does not belong/);
+await assert.rejects(()=>confirm([line(1,10,{mode:'existing',lot_id:randomUUID()})]),/does not belong/);
 assert.equal(await count('stock_lot_allocations'),beforeFailure);
 assert.equal(Number((await prices()).find(r=>r.quality_id===quality).price),12);
 // Equal transaction timestamps have a stable purchase ID then entry-order tie-break.
@@ -159,12 +159,14 @@ await db.query('insert into purchase_order_lines(purchase_order_id,product_id,qu
 await db.exec('set role authenticated');
 const tieExpected=[{id:historical.purchase_id,price:9},{id:first.purchase_id,price:10},{id:second.purchase_id,price:12}].sort((a,b)=>b.id.localeCompare(a.id))[0];
 assert.equal(Number((await prices()).find(r=>r.quality_id===quality).price),tieExpected.price);
-const splitPrices=await confirm([line(1,31,{mode:'existing',lot_id:a}),line(1,32,{mode:'existing',lot_id:b})]);
+await assert.rejects(()=>confirm([line(1,31,{mode:'existing',lot_id:a}),line(1,32,{mode:'existing',lot_id:b})]),/one lot and total weighing/i);
+const splitPrices=await confirm([line(1,32,{mode:'existing',lot_id:b})]);
 assert.equal((await prices()).find(r=>r.quality_id===quality).purchase_id,splitPrices.purchase_id);
 assert.equal(Number((await prices()).find(r=>r.quality_id===quality).price),32);
-// Two identical-price rows still retain the exact lot identity on a line return.
+// Identical-price receipts in separate purchases retain exact lot identity on return.
 const equalRows=['EXACT-A','EXACT-B'].map(number=>({product_id:configured,quality_id:configuredQuality,location_id:loc,quantity:1,actual_price:19,lot_selection:{mode:'number',number}}));
-const equalPurchase=await confirm(equalRows);
+await confirm([equalRows[0]]);
+const equalPurchase=await confirm([equalRows[1]]);
 const exactReceipts=(await rows('purchase_lot_receipts')).filter(r=>r.purchase_id===equalPurchase.purchase_id);
 const exactB=(await rows('purchase_lots')).find(l=>l.lot_number==='EXACT-B').id;
 const exactReturn=(await db.query("select request_bill_return('purchase',$1,'Return exact B',$2::jsonb) id",[equalPurchase.purchase_id,JSON.stringify([{line_id:exactReceipts.find(r=>r.lot_id===exactB).purchase_line_id,quantity:1}])])).rows[0].id;

@@ -76,12 +76,12 @@ export function SalesPOS({organizationId,centers,customers:initialCustomers,prod
  const rows=payments.length?payments:[newPayment(totalCents/100)];
  const allocated=rows.reduce((n,p)=>n+cents(Number(p.amount)),0),credit=rows.filter(p=>p.method==="credit").reduce((n,p)=>n+cents(Number(p.amount)),0);
  const difference=totalCents-allocated;
- const invalidLine=(l:Line)=>(products.find(p=>p.id===l.product_id)?.tracks_sacks&&(!Number.isInteger(l.sack_count)||(l.sack_count??-1)<0||lines.filter(x=>x.quality_id===l.quality_id&&x.location_id===l.location_id).reduce((sum,x)=>sum+(x.sack_count??0),0)>(stock.find(s=>s.quality_id===l.quality_id&&s.location_id===l.location_id)?.sacks??0)))||!l.location_id||!Number.isFinite(Number(l.quantity))||Number(l.quantity)<=0||Math.abs(roundedQty(Number(l.quantity))-Number(l.quantity))>0.0000001||roundedQty(used(l.quality_id,l.location_id))>roundedQty(available(l.quality_id,l.location_id))||!Number.isFinite(l.unit_price)||l.unit_price<=0||l.unit_price>=1000000000000||Math.abs(l.unit_price*100-Math.round(l.unit_price*100))>0.00001||cents(Number(l.quantity)*l.unit_price)<=0;
+ const invalidLine=(l:Line)=>!products.some(p=>p.id===l.product_id&&p.can_be_sold!==false)||(products.find(p=>p.id===l.product_id)?.tracks_sacks&&(!Number.isInteger(l.sack_count)||(l.sack_count??-1)<0||lines.filter(x=>x.quality_id===l.quality_id&&x.location_id===l.location_id).reduce((sum,x)=>sum+(x.sack_count??0),0)>(stock.find(s=>s.quality_id===l.quality_id&&s.location_id===l.location_id)?.sacks??0)))||!l.location_id||!Number.isFinite(Number(l.quantity))||Number(l.quantity)<=0||Math.abs(roundedQty(Number(l.quantity))-Number(l.quantity))>0.0000001||roundedQty(used(l.quality_id,l.location_id))>roundedQty(available(l.quality_id,l.location_id))||!Number.isFinite(l.unit_price)||l.unit_price<=0||l.unit_price>=1000000000000||Math.abs(l.unit_price*100-Math.round(l.unit_price*100))>0.00001||cents(Number(l.quantity)*l.unit_price)<=0;
  const cartInvalid=lines.some(invalidLine);
  const canCheckout=stockReady&&lines.length>0&&!cartInvalid&&Number.isFinite(totalCents)&&totalCents>0;
  const canConfirm=canCheckout&&difference===0&&rows.every(p=>Number.isFinite(Number(p.amount))&&Number(p.amount)>0)&&(!credit||!!customerId);
  const unitTotals=[...lines.reduce((totals,l)=>{const unit=products.find(p=>p.id===l.product_id)?.unit_of_measure??"";totals.set(unit,(totals.get(unit)??0)+Number(l.quantity));return totals;},new Map<string,number>())].map(([unit,n])=>qty(n)+" "+unit).join(" · ");
- const filtered=products.filter(p=>(category==="all"||(p.category?.trim()||"Uncategorized")===category)&&[p.name,p.code,...p.product_qualities.map(q=>q.name)].join(" ").toLowerCase().includes(search.trim().toLowerCase()));
+ const filtered=products.filter(p=>p.can_be_sold!==false&&(category==="all"||(p.category?.trim()||"Uncategorized")===category)&&[p.name,p.code,...p.product_qualities.map(q=>q.name)].join(" ").toLowerCase().includes(search.trim().toLowerCase()));
 
  useEffect(()=>{
   if(!draftBooted)return;
@@ -153,6 +153,7 @@ export function SalesPOS({organizationId,centers,customers:initialCustomers,prod
   return Number.isFinite(value)&&value>0?Math.round(value*100)/100:0;
  }
  function addProduct(product:Product,qualityId:string){
+  if(product.can_be_sold===false){setError("This product cannot be sold.");return;}
   const stocked=locations.filter(l=>available(qualityId,l.id)-used(qualityId,l.id)>=0.001);
   const location=stocked.find(l=>l.is_default)??stocked[0];
   if(!stockReady||!location)return;
@@ -226,7 +227,7 @@ export function SalesPOS({organizationId,centers,customers:initialCustomers,prod
     <small className="purchase-drafts-help">Drafts stay on this device until confirmed.</small>
    </div>}
   </nav>
-  {!isOnline&&<div className="pos-offline-warning" role="status">Offline: this screen uses the last saved stock snapshot. A sale is only final after server stock and payment validation.</div>}
+  {lines.some(l=>!products.some(p=>p.id===l.product_id&&p.can_be_sold!==false))&&<div className="alert error" role="alert">A saved product is no longer available for sales. Remove it from this draft before continuing.</div>}{!isOnline&&<div className="pos-offline-warning" role="status">Offline: this screen uses the last saved stock snapshot. A sale is only final after server stock and payment validation.</div>}
   {!checkout?(entryMode==="detailed"?<DetailedSalesEntry
    center={center} customers={customers} customerId={customerId} onCustomerChange={setCustomerId}
    onAddCustomer={()=>{setCustomerError("");setCustomerOpen(true);}} products={products} lines={lines}

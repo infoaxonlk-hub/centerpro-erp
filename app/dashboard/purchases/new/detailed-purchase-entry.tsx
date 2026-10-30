@@ -9,17 +9,16 @@ type Location = { id: string; code: string; name: string; is_default: boolean; i
 type Center = { id: string; code: string; name: string; allow_multiple_locations: boolean; locations: Location[] };
 type Supplier = { id: string; name: string; phone: string | null };
 type Quality = { id: string; name: string; default_price: number | string; is_active: boolean; is_base: boolean };
-type Product = { id: string; code: string; name: string; category: string | null; unit_of_measure: string; tracks_sacks?:boolean; tracks_purchase_lots?:boolean; product_qualities: Quality[] };
+type Product = {can_be_sold?:boolean;can_be_purchased?:boolean;can_be_manufactured?:boolean; id: string; code: string; name: string; category: string | null; unit_of_measure: string; tracks_sacks?:boolean; tracks_purchase_lots?:boolean; product_qualities: Quality[] };
 type Line = { key: string; product_id: string; quality_id: string; location_id: string; quantity: number; sack_count: number; actual_price: number;lot_selection?:PurchaseLotSelection };
 
 const money = (n: number) => new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 2 }).format(n);
 
 export function DetailedPurchaseEntry({
-  organizationId,onSplitLot,center, suppliers, supplierId, onSupplierChange, onAddSupplier, products, visibleLines, total,
-  onSelectProduct, onAddWeightRow, onUpdateLine, onRemoveLine, onOpenPayment, onSetError,
+  organizationId,center, suppliers, supplierId, onSupplierChange, onAddSupplier, products, visibleLines, total,
+  onSelectProduct, onUpdateLine, onRemoveLine, onOpenPayment, onSetError,
 }: {
   organizationId:string;
-  onSplitLot:(key:string,quantity:number,sacks:number)=>void;
   center?: Center;
   suppliers: Supplier[];
   supplierId: string;
@@ -30,7 +29,6 @@ export function DetailedPurchaseEntry({
   total: number;
   totalSacks: number;
   onSelectProduct: (product: Product) => void;
-  onAddWeightRow: (line: Line) => string;
   onUpdateLine: (key: string, change: Partial<Line>) => void;
   onRemoveLine: (key: string) => void;
   onOpenPayment: () => void;
@@ -44,7 +42,7 @@ export function DetailedPurchaseEntry({
     else setShowProductPicker(false);
   }, [visibleLines.length]);
   const categories = useMemo(() => [...new Set(products.map(p => p.category).filter(Boolean))] as string[], [products]);
-  const filtered = products.filter(p => p.product_qualities.some(q => q.is_active) && (category === "all" || p.category === category) && `${p.code} ${p.name}`.toLowerCase().includes(search.toLowerCase().trim()));
+  const filtered = products.filter(p => p.can_be_purchased!==false && p.product_qualities.some(q => q.is_active) && (category === "all" || p.category === category) && `${p.code} ${p.name}`.toLowerCase().includes(search.toLowerCase().trim()));
   const groups = useMemo(() => {
     const map = new Map<string, { product: Product; quality: Quality; lines: Line[] }>();
     for (const line of visibleLines) {
@@ -61,13 +59,6 @@ export function DetailedPurchaseEntry({
   const farmerName = supplierId === "__cash_farmer__" || !supplierId
     ? "Cash Farmer"
     : suppliers.find(supplier => supplier.id === supplierId)?.name ?? "Select farmer";
-  function addRowAndFocus(line: Line) {
-    const newKey = onAddWeightRow(line);
-    requestAnimationFrame(() => {
-      document.querySelector<HTMLInputElement>(`[data-entry-line="${newKey}"][data-entry-field="weight"]`)?.focus();
-    });
-  }
-
   function handleEnter(event: React.KeyboardEvent<HTMLInputElement>, line: Line, field: "weight" | "sacks") {
     if (event.key !== "Enter") return;
     event.preventDefault();
@@ -75,7 +66,7 @@ export function DetailedPurchaseEntry({
       document.querySelector<HTMLInputElement>(`[data-entry-line="${line.key}"][data-entry-field="sacks"]`)?.focus();
       return;
     }
-    addRowAndFocus(line);
+    onOpenPayment();
   }
 
   return (
@@ -108,7 +99,7 @@ export function DetailedPurchaseEntry({
               {filtered.map(product => {
                 const qualities = product.product_qualities.filter(q => q.is_active);
                 const quality = qualities.length === 1 ? qualities[0] : null;
-                return <button key={product.id} type="button" className="detail-product-choice" onClick={() => onSelectProduct(product)}>
+                return <button key={product.id} type="button" className="detail-product-choice" disabled={visibleLines.some(l=>l.product_id===product.id)} title={visibleLines.some(l=>l.product_id===product.id)?"Already selected. Edit its single total weighing.":undefined} onClick={() => onSelectProduct(product)}>
                   <span><strong>{product.name}</strong><small>{product.code} · {product.category || "Uncategorized"} · {product.unit_of_measure}</small></span>
                   <b>{quality ? "＋ Select" : `${qualities.length} qualities`}</b>
                 </button>;
@@ -131,7 +122,7 @@ export function DetailedPurchaseEntry({
             const productSacks = lines.reduce((sum, line) => sum + (Number(line.sack_count) || 0), 0);
             const productTotal = lines.reduce((sum, line) => sum + ((Number(line.quantity) || 0) * (Number(line.actual_price) || 0)), 0);
             return <article className="detail-product-group" key={`${product.id}:${quality.id}`}>
-              <header><div><strong>{product.name}</strong><small>{quality.is_base ? "No quality" : quality.name} · {product.unit_of_measure}</small></div><button type="button" className="detail-add-row" onClick={() => addRowAndFocus(lines[0])}><Plus size={15}/> Add weighing</button></header>
+              <header><div><strong>{product.name}</strong><small>{quality.is_base ? "No quality" : quality.name} · {product.unit_of_measure}</small></div><small>One total weighing per product</small></header>
               <div className="detail-product-summary" aria-live="polite">
                 <div><small>Total weight</small><strong>{productWeight.toLocaleString("en-LK", { maximumFractionDigits: 3 })} {product.unit_of_measure}</strong></div>
                 <div><small>Total sacks</small><strong>{productSacks.toLocaleString("en-LK")}</strong></div>
@@ -145,7 +136,7 @@ export function DetailedPurchaseEntry({
                   <label>Weight ({product.unit_of_measure})<input data-entry-line={line.key} data-entry-field="weight" type="number" inputMode="decimal" min="0" step="0.01" value={line.quantity || ""} placeholder="0" onKeyDown={e => handleEnter(e, line, "weight")} onChange={e => onUpdateLine(line.key, { quantity: Number(e.target.value) })}/></label>
                   <label>Sacks{!product.tracks_sacks?" (optional)":""}<input data-entry-line={line.key} data-entry-field="sacks" type="number" inputMode="numeric" min="0" step="1" value={line.sack_count || ""} placeholder="0" onKeyDown={e => handleEnter(e, line, "sacks")} onChange={e => onUpdateLine(line.key, { sack_count: Number(e.target.value) })}/></label>
                   <button type="button" aria-label={`Remove weighing ${index + 1}`} onClick={() => onRemoveLine(line.key)}><Trash2 size={17}/></button>
-                  {product.tracks_purchase_lots&&<PurchaseLotFields organizationId={organizationId} productId={line.product_id} qualityId={line.quality_id} value={line.lot_selection} quantity={line.quantity} sacks={line.sack_count} requireSacks={Boolean(product.tracks_sacks)} onChange={lot_selection=>onUpdateLine(line.key,{lot_selection})} onSplit={(quantity,sacks)=>onSplitLot(line.key,quantity,sacks)}/>}
+                  {product.tracks_purchase_lots&&<PurchaseLotFields organizationId={organizationId} productId={line.product_id} qualityId={line.quality_id} value={line.lot_selection} onChange={lot_selection=>onUpdateLine(line.key,{lot_selection})}/>}
                 </div>)}
               </div>
             </article>;
