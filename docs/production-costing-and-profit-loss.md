@@ -1,5 +1,7 @@
 # Production valuation and management P&L
 
+Migration 057 adds BoM planning and immutable order snapshots while retaining the 056 valuation engine. Actual BoM operation costs are aggregated once into the existing production-cost posting; independently configured output destinations receive their allocated stock value. See [BoM workflow](manufacturing-bom-workflow.md).
+
 ## Accounting boundary and active method
 
 CenterPro has cash and bank double-entry **subledgers**, but no full chart of accounts, WIP/inventory general-ledger posting engine, or prior P&L report. Migration 056 extends the existing stock movement/physical lot allocation ledger; it does not invent GL accounts, duplicate payments, or create supplier bills. The new Payments → Profit & Loss page is an accrual **management** report over recorded sales, valuation movements and expenses, not a statutory financial statement.

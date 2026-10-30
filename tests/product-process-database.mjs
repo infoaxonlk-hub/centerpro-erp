@@ -49,7 +49,7 @@ const beforeQuality=(await db.query('select id from product_qualities where prod
 const historicalLines=[1,2].map(quantity=>({product_id:beforeMigration,quality_id:beforeQuality,location_id:loc,quantity,actual_price:10}));
 const historical=(await db.query("select * from confirm_queued_purchase_with_lots($1,$2,$3,'Historical',$4::jsonb,$5::jsonb)",[randomUUID(),center,supplier,JSON.stringify(historicalLines),JSON.stringify([{method:'credit',amount:30}])])).rows[0];
 await db.exec('reset role');await db.query("select set_config('test.user','',false)");
-for(const name of ['054_product_process_and_single_purchase_receipt.sql','055_purchase_multiple_weighings_single_lot.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
+for(const name of (await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(name=>name.endsWith('.sql')&&Number(name.slice(0,3))>=54).sort())await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
 await db.query("select set_config('test.user',$1,false)",[admin]);await db.exec('set role authenticated');
 assert.deepEqual((await db.query('select can_be_sold,can_be_purchased,can_be_manufactured from products where id=$1',[beforeMigration])).rows[0],{can_be_sold:true,can_be_purchased:true,can_be_manufactured:true});
 assert.equal((await db.query('select count(*)::int n from purchase_order_lines where purchase_order_id=$1',[historical.purchase_id])).rows[0].n,2);
