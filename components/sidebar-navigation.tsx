@@ -112,6 +112,7 @@ export const sections: NavSection[] = [
         children: [
           { href: "/dashboard/payment-reports/all", label: "All Payments" },
           { href: "/dashboard/payment-reports/bank", label: "Bank Transactions" },
+          { href: "/dashboard/payment-reports/profit-loss", label: "Profit & Loss" },
         ],
       },
     ],

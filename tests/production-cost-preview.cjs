@@ -1,0 +1,21 @@
+const assert=require('node:assert/strict'),ts=require('typescript'),fs=require('node:fs'),vm=require('node:vm');
+const moduleBox={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/production-cost-preview.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{module:moduleBox,exports:moduleBox.exports});
+const{productionMaterialPreview:preview}=moduleBox.exports;
+const lots=[{center_id:'c',location_id:'l',product_id:'p',quality_id:'q',lot_id:'expensive',available_quantity:10,inventory_value:300,received_at:'2026-02-01'},{center_id:'c',location_id:'l',product_id:'p',quality_id:'q',lot_id:'cheap',available_quantity:10,inventory_value:100,received_at:'2026-01-01'}];
+const row=(quantity,lot_id='')=>({product_id:'p',quality_id:'q',quantity,lot_id});
+assert.equal(preview([row(4,'expensive')],lots,'c','l'),120);
+assert.equal(preview([row(12)],lots,'c','l'),160);
+assert.equal(preview([row(8),row(4)],lots,'c','l'),160);
+assert.equal(preview([row(21)],lots,'c','l'),null);
+assert.equal(preview([row(1)],[{...lots[0],inventory_value:undefined}],'c','l'),null);
+assert.equal(preview([row(1)],lots,'another-center','l'),null);
+console.log('PASS selected/oldest remaining lot valuation preview, repeated inputs, stock shortage, missing valuation and center scoping.');
+
+const stock=moduleBox.exports.productionStockPreview;
+assert.equal(stock([row(4,'expensive')],lots,'c','l')[0].available,10);
+assert.equal(stock([row(12,'expensive')],lots,'c','l')[0].shortage,2);
+assert.equal(stock([row(8,'cheap'),row(4,'cheap')],lots,'c','l')[1].shortage,2);
+assert.equal(stock([row(1)],lots,'another-center','l')[0].shortage,1);
+assert.equal(stock([{...row(1),source_selection:'legacy'}],lots,'c','l')[0].available,0);
+assert.equal(stock([row(1)],[{...lots[0],inventory_value:undefined}],'c','l')[0].available,10);
+console.log('PASS component stock availability, shortage, repeated rows, location/lot/Legacy scoping and quantity independent of valuation.');

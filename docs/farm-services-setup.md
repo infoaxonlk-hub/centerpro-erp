@@ -1,12 +1,12 @@
 # Farm Services setup and QA
 
-Implemented locally on **developemnt-farmermodule**, the existing remote branch spelling explicitly selected by the user. It starts at `0bd1fea` (migration 055). The user explicitly chose to keep this older baseline; main was not merged. No feature commit, push, deployment or remote migration was performed.
+Initially implemented on **developemnt-farmermodule**, the existing remote branch spelling explicitly selected by the user, starting at `0bd1fea` (migration 055). The user subsequently authorized production integration: main's BoM, production costing and Tamil receipt changes are retained alongside Farm Services. No migration was executed against a remote database by the coding agent.
 
 ## Database setup
 
-The only new migration is **supabase/migrations/058_farm_services.sql**. Apply the entire file once after the existing migrations on the target database. It is transactional and reloads PostgREST. Do not edit or rerun previously applied files.
+Farm Services uses **supabase/migrations/058_farm_services.sql**. The subsequent **059_platform_module_save_repair.sql** repairs platform module persistence and administrator permission grants; see [platform access repair](platform-access-repair.md). Apply the entire file once after the existing migrations on the target database. It is transactional and reloads PostgREST. Do not edit or rerun previously applied files.
 
-Numbers 056 and 057 are already used on main for production valuation/BoMs. They are intentionally not reused by this branch. A database at this branch's 055 can apply 058 directly. A database already at main's 057 applies 058 after 057; do not roll back or rerun 056/057. Both baselines were exercised in isolated PostgreSQL tests. This does not merge newer main application features into this older branch. Review the eventual branch integration before deploying its application code over main.
+Numbers 056 and 057 are already used on main for production valuation/BoMs. They are intentionally not reused by this branch. A database at this branch's 055 can apply 058 directly. A database already at main's 057 applies 058 after 057; do not roll back or rerun 056/057. Both baselines were exercised in isolated PostgreSQL tests. The production integration retains main's newer application features as well as Farm Services.
 
 Migration 058:
 

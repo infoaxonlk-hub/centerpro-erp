@@ -62,7 +62,7 @@ const historical=await confirm([line(5,9,{mode:'number',number:'HISTORICAL'})]);
 await db.exec('reset role');
 const beforeCosts=(await db.query('select id,unit_cost from stock_movements order by id')).rows;
 for(const name of (await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(name=>name.endsWith('.sql')&&Number(name.slice(0,3))>=51).sort())await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
-assert.deepEqual((await db.query('select id,unit_cost from stock_movements order by id')).rows,beforeCosts);
+assert.deepEqual((await db.query('select id,unit_cost from stock_movements order by id')).rows.map(r=>({...r,unit_cost:Number(r.unit_cost)})),beforeCosts.map(r=>({...r,unit_cost:Number(r.unit_cost)})));
 await db.exec('set role authenticated');
 const balances=async()=>(await db.query('select * from stock_lot_balances()')).rows;
 const qty=async(lotId=null,location=loc)=>Number((await balances()).find(r=>r.lot_id===lotId&&r.location_id===location&&r.product_id===product)?.available_quantity??0);

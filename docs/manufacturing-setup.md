@@ -1,5 +1,7 @@
 # Manufacturing integration
 
+Migration 057 extends this module with reusable milling/packing BoMs and planned-versus-actual orders. See [BoM workflow and setup](manufacturing-bom-workflow.md). Migration 056 production valuation remains in use.
+
 Imported from `centerpro-erp-development-manufacturing-final.zip` into the existing `development` checkout. Only the manufacturing directory, migration 052 and the four related shared application files were imported. Existing environment files, dependencies, purchases, sales, stock features and earlier migrations were retained. No remote migrations, pushes or deployments were performed during setup.
 
 ## Available features
