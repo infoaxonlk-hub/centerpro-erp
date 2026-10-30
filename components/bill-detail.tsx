@@ -6,7 +6,7 @@ import "@/app/bill-detail.css";
 const money = (value: number) => new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(value);
 
 export function BillDetail({ data: bill }: { data: BillData }) {
-  const [language, setLanguage] = useState<"en" | "si">("en");
+  const [language, setLanguage] = useState<"en" | "si" | "ta">("en");
   const isPurchase = bill.title.includes("PURCHASE");
   const weighingBill = isPurchase && bill.lines.some(line => Number(line.sacks ?? 0) > 0);
   const displayLines = getBillDisplayLines(bill);
@@ -15,7 +15,7 @@ export function BillDetail({ data: bill }: { data: BillData }) {
     <div className="bill-detail-screen">
       <header className="bill-detail-heading">
         <div><span className="eyebrow dark">{isPurchase ? "PURCHASES" : "SALES"} / BILL DETAILS</span><h1>{bill.number}</h1><p>{isPurchase ? "Purchase bill" : "Customer invoice"} · {bill.date}</p></div>
-        <div className="bill-detail-tools"><div className="bill-language" aria-label="Receipt language"><button type="button" className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}>English</button><button type="button" className={language === "si" ? "active" : ""} onClick={() => setLanguage("si")}>සිංහල</button></div><span className={`bill-detail-status ${cancelled ? "cancelled" : bill.credit ? "due" : "paid"}`}>{cancelled ? "Cancelled" : bill.credit ? "Payment due" : "Paid"}</span></div>
+        <div className="bill-detail-tools"><div className="bill-language" aria-label="Receipt language"><button type="button" className={language === "en" ? "active" : ""} onClick={() => setLanguage("en")}>English</button><button type="button" className={language === "si" ? "active" : ""} onClick={() => setLanguage("si")}>සිංහල</button><button type="button" className={language === "ta" ? "active" : ""} aria-pressed={language === "ta"} onClick={() => setLanguage("ta")} lang="ta">தமிழ்</button></div><span className={`bill-detail-status ${cancelled ? "cancelled" : bill.credit ? "due" : "paid"}`}>{cancelled ? "Cancelled" : bill.credit ? "Payment due" : "Paid"}</span></div>
       </header>
 
       <section className="bill-detail-summary" aria-label="Bill totals">

@@ -173,7 +173,7 @@ export function PurchaseForm({
     status: string;
     payments: PaymentLine[];
   } | null>(null);
-  const [receiptLanguage, setReceiptLanguage] = useState<"en" | "si">("en");
+  const [receiptLanguage, setReceiptLanguage] = useState<"en" | "si" | "ta">("en");
   const [selectedProduct, setSelectedProduct] = useState(0);
   const [selectedLine, setSelectedLine] = useState(0);
   const [draftReady, setDraftReady] = useState(false);
@@ -819,7 +819,7 @@ export function PurchaseForm({
             </p>
             <strong>{money(done.total)}</strong>
             <div>
-              <div className="bill-language receipt-language" aria-label="Receipt language"><button type="button" className={receiptLanguage === "en" ? "active" : ""} onClick={() => setReceiptLanguage("en")}>English</button><button type="button" className={receiptLanguage === "si" ? "active" : ""} onClick={() => setReceiptLanguage("si")}>සිංහල</button></div>
+              <div className="bill-language receipt-language" aria-label="Receipt language"><button type="button" className={receiptLanguage === "en" ? "active" : ""} onClick={() => setReceiptLanguage("en")}>English</button><button type="button" className={receiptLanguage === "si" ? "active" : ""} onClick={() => setReceiptLanguage("si")}>සිංහල</button><button type="button" className={receiptLanguage === "ta" ? "active" : ""} aria-pressed={receiptLanguage === "ta"} onClick={() => setReceiptLanguage("ta")} lang="ta">தமிழ்</button></div>
               <button
                 className="ghost print-receipt-button"
                 onClick={() => window.print()}

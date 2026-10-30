@@ -17,7 +17,7 @@ type Props = {
 const money = (value: number) => new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR" }).format(value);
 
 export function SalesReceiptPreview({ id, bill, canRequestReturn, returnLines }: Props) {
-  const [language, setLanguage] = useState<"en" | "si">("en");
+  const [language, setLanguage] = useState<"en" | "si" | "ta">("en");
   const cancelled = bill.status === "cancelled";
   const due = Number(bill.credit ?? 0);
   const statusText = cancelled ? "Cancelled" : due > 0 ? "Credit balance" : "Paid";
@@ -49,7 +49,7 @@ export function SalesReceiptPreview({ id, bill, canRequestReturn, returnLines }:
         <span>80mm POS receipt · Preview only</span>
         <div className="bill-language" aria-label="Receipt language">
           <button type="button" className={language === "en" ? "active" : ""} aria-pressed={language === "en"} onClick={() => setLanguage("en")}>English</button>
-          <button type="button" className={language === "si" ? "active" : ""} aria-pressed={language === "si"} onClick={() => setLanguage("si")}>සිංහල</button>
+          <button type="button" className={language === "si" ? "active" : ""} aria-pressed={language === "si"} onClick={() => setLanguage("si")}>සිංහල</button><button type="button" className={language === "ta" ? "active" : ""} aria-pressed={language === "ta"} onClick={() => setLanguage("ta")} lang="ta">தமிழ்</button>
         </div>
       </div>
       <Bill data={{ ...bill, language }} />
