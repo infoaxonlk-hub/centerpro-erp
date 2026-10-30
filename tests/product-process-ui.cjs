@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 function harness(){const values=[];let cursor=0;return{react:{...React,useState(initial){const i=cursor++;if(!(i in values))values[i]=typeof initial==='function'?initial():initial;return[values[i],v=>{values[i]=typeof v==='function'?v(values[i]):v}]},useRef(v){const i=cursor++;return values[i]??(values[i]={current:v})},useMemo:fn=>fn(),useEffect(){},useLayoutEffect(){}},render(Component,props){cursor=0;return Component(props)}};}
 function elements(node,result=[]){if(!node||typeof node!=='object')return result;if(Array.isArray(node)){node.forEach(n=>elements(n,result));return result;}if(node.props){result.push(node);elements(node.props.children,result);}return result;}
 const text=node=>typeof node==='string'||typeof node==='number'?String(node):Array.isArray(node)?node.map(text).join(''):node?.props?text(node.props.children):'';
-function load(file,hooks,overrides={}){const module={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,console,crypto:require('node:crypto').webcrypto,setTimeout,clearTimeout,require(id){if(id==='react')return hooks.react;if(id in overrides)return overrides[id];if(id.endsWith('.css'))return{};if(id==='@/lib/product-price-defaults')return load('lib/product-price-defaults.ts',hooks);if(id==='@/lib/purchase-lots')return load('lib/purchase-lots.ts',hooks);if(id.startsWith('@/')||id==='next/link')return new Proxy({},{get:()=>()=>null});return require(id)}},{filename:file});return module.exports;}
+function load(file,hooks,overrides={}){const module={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,{module,exports:module.exports,console,crypto:require('node:crypto').webcrypto,setTimeout,clearTimeout,requestAnimationFrame:fn=>fn(),document:{querySelector:()=>({focus(){}})},require(id){if(id==='react')return hooks.react;if(id in overrides)return overrides[id];if(id.endsWith('.css'))return{};if(id==='@/lib/product-price-defaults')return load('lib/product-price-defaults.ts',hooks);if(id==='@/lib/purchase-lots')return load('lib/purchase-lots.ts',hooks);if(id.startsWith('@/')||id==='next/link')return new Proxy({},{get:()=>()=>null});return require(id)}},{filename:file});return module.exports;}
 const center={id:'c',code:'C',name:'Center',allow_multiple_locations:false,locations:[{id:'l',code:'MAIN',name:'Main',is_default:true,is_active:true}]};
 const products=Array.from({length:8},(_,mask)=>({id:'p'+mask,code:'P'+mask,name:'Product'+mask,category:null,unit_of_measure:'KG',is_active:true,can_be_sold:!!(mask&1),can_be_purchased:!!(mask&2),can_be_manufactured:!!(mask&4),tracks_purchase_lots:true,product_qualities:[{id:'q'+mask,name:'Standard',default_price:10,is_active:true,is_base:true}]}));
 (async()=>{
@@ -29,13 +29,25 @@ const products=Array.from({length:8},(_,mask)=>({id:'p'+mask,code:'P'+mask,name:
  assert.equal(cards.length,4);for(const card of cards)assert.ok(![0,1,4,5].some(mask=>text(card).includes('Product'+mask)));
  cards[0].props.onClick();cards[0].props.onClick(); // Batched stale events cannot create duplicates.
  render().find(e=>e.type==='button'&&e.props.className?.startsWith('pos-product ')).props.onClick();
- assert.equal(render().filter(e=>e.type===lotMarker).length,1);assert.ok(notifications.some(n=>n[0].includes('single lot/weighing')));
- // Detailed view provides no add-weighing or split callback, even for restored rows.
+ assert.equal(render().filter(e=>e.type===lotMarker).length,1);assert.ok(notifications.some(n=>n[0].includes('Add weighing')));
+ // Detailed view restores multiple weighings while keeping a single product lot.
  render().find(e=>e.type==='select'&&e.props['aria-label']==='Purchase view').props.onChange({target:{value:'detailed'}});
- const detail=render().find(e=>e.type===detailedMarker);assert.equal(detail.props.onAddWeightRow,undefined);assert.equal(detail.props.onSplitLot,undefined);
+ let detail=render().find(e=>e.type===detailedMarker);assert.equal(typeof detail.props.onAddWeightRow,'function');assert.equal(detail.props.onSplitLot,undefined);
+ const first=detail.props.visibleLines[0];detail.props.onUpdateLine(first.key,{lot_selection:{mode:'number',number:'SHARED'}});detail=render().find(e=>e.type===detailedMarker);detail.props.onAddWeightRow(detail.props.visibleLines[0]);
+ detail=render().find(e=>e.type===detailedMarker);assert.equal(detail.props.visibleLines.length,2);assert.equal(detail.props.visibleLines[1].lot_selection.number,'SHARED');
+ detail.props.onUpdateLine(first.key,{lot_selection:{mode:'number',number:'CHANGED'}});detail=render().find(e=>e.type===detailedMarker);assert.ok(detail.props.visibleLines.every(l=>l.lot_selection.number==='CHANGED'));
  const dh=harness(),{DetailedPurchaseEntry}=load('app/dashboard/purchases/new/detailed-purchase-entry.tsx',dh,{'./purchase-lot-fields':{PurchaseLotFields:lotMarker}});
  const dprops={...detail.props,visibleLines:[]};let de=elements(dh.render(DetailedPurchaseEntry,dprops));
  assert.equal(de.filter(e=>e.props.className==='detail-product-choice').length,4);
+ const wh=harness(),Weighing=load('app/dashboard/purchases/new/detailed-purchase-entry.tsx',wh,{'./purchase-lot-fields':{PurchaseLotFields:lotMarker}}).DetailedPurchaseEntry;
+ let weights=elements(wh.render(Weighing,detail.props));
+ assert.equal(weights.filter(e=>e.type===lotMarker).length,1);
+ assert.equal(weights.filter(e=>e.props['data-entry-field']==='weight').length,2);
+ weights.find(e=>e.type==='button'&&text(e).includes('Add weighing')).props.onClick();
+ detail=render().find(e=>e.type===detailedMarker);assert.equal(detail.props.visibleLines.length,3);
+ weights=elements(wh.render(Weighing,detail.props));
+ weights.find(e=>e.props['data-entry-field']==='sacks').props.onKeyDown({key:'Enter',preventDefault(){}});
+ detail=render().find(e=>e.type===detailedMarker);assert.equal(detail.props.visibleLines.length,4);
  const lotHooks=harness(),{PurchaseLotFields}=load('app/dashboard/purchases/new/purchase-lot-fields.tsx',lotHooks);
  assert.ok(!text(lotHooks.render(PurchaseLotFields,{organizationId:'org',productId:'p',qualityId:'q',onChange(){}})).includes('Split'));
  const sh=harness(),{SalesPOS}=load('app/dashboard/sales/sales-pos.tsx',sh,{'./types':load('app/dashboard/sales/types.ts',sh),'./detailed-sales-entry':{DetailedSalesEntry:()=>null}});
@@ -51,5 +63,5 @@ const products=Array.from({length:8},(_,mask)=>({id:'p'+mask,code:'P'+mask,name:
  assert.equal(choices.length,2);
  assert.deepEqual(elements(choices[0]).filter(e=>e.type==='option'&&e.props.value).map(e=>e.props.value),['p2','p3','p4','p5','p6']);
  assert.deepEqual(elements(choices[1]).filter(e=>e.type==='option'&&e.props.value).map(e=>e.props.value),['p4','p5','p6','p7']);
- console.log('PASS all process checkbox combinations create/edit, sales/purchase selectors, duplicate product prevention, no weighing/split actions, manufacturing inputs with stock and outputs without stock.');
+ console.log('PASS process combinations, sales/purchase selectors, shared product lot across added weighings, no lot splitting, manufacturing inputs with stock and outputs without stock.');
 })().catch(e=>{console.error(e);process.exitCode=1});

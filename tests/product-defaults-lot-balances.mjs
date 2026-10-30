@@ -159,8 +159,8 @@ await db.query('insert into purchase_order_lines(purchase_order_id,product_id,qu
 await db.exec('set role authenticated');
 const tieExpected=[{id:historical.purchase_id,price:9},{id:first.purchase_id,price:10},{id:second.purchase_id,price:12}].sort((a,b)=>b.id.localeCompare(a.id))[0];
 assert.equal(Number((await prices()).find(r=>r.quality_id===quality).price),tieExpected.price);
-await assert.rejects(()=>confirm([line(1,31,{mode:'existing',lot_id:a}),line(1,32,{mode:'existing',lot_id:b})]),/one lot and total weighing/i);
-const splitPrices=await confirm([line(1,32,{mode:'existing',lot_id:b})]);
+await assert.rejects(()=>confirm([line(1,31,{mode:'existing',lot_id:a}),line(1,32,{mode:'existing',lot_id:b})]),/one quality and one lot/i);
+const splitPrices=await confirm([line(1,31,{mode:'existing',lot_id:b}),line(1,32,{mode:'existing',lot_id:b})]);
 assert.equal((await prices()).find(r=>r.quality_id===quality).purchase_id,splitPrices.purchase_id);
 assert.equal(Number((await prices()).find(r=>r.quality_id===quality).price),32);
 // Identical-price receipts in separate purchases retain exact lot identity on return.

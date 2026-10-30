@@ -69,7 +69,7 @@ assert.equal(await count('purchase_lots'),1);
 assert.deepEqual((await rows('purchase_lot_receipts')).map(r=>Number(r.unit_purchase_price)).sort((a,b)=>a-b),[10,12,15]);
 assert.equal(Number((await db.query("select unit_cost from stock_movements where reference_id=$1",[first.purchase_id])).rows[0].unit_cost),10);
 assert.equal(Number((await db.query("select total_amount from purchase_orders where id=$1",[second.purchase_id])).rows[0].total_amount),60);
-await assert.rejects(()=>confirm([line(4,10,{mode:'number',number:'SPLIT-A'}),{...line(6,10,{mode:'number',number:'SPLIT-B'}),location_id:loc2}]),/one lot and total weighing/i);
+await assert.rejects(()=>confirm([line(4,10,{mode:'number',number:'SPLIT-A'}),{...line(6,10,{mode:'number',number:'SPLIT-B'}),location_id:loc2}]),/one quality and one lot/i);
 const single=await confirm([line(10,10,{mode:'number',number:'SINGLE'})]);
 assert.equal((await rows('purchase_lot_receipts')).filter(r=>r.purchase_id===single.purchase_id).length,1);
 await assert.rejects(()=>db.query("select * from confirm_queued_purchase($1,$2,$3,'Bypass',$4::jsonb,$5::jsonb)",[randomUUID(),center,supplier,JSON.stringify([line()]),JSON.stringify([{method:'credit',amount:100}])]),/lot assignments/i);
@@ -95,10 +95,19 @@ const sackProduct=(await db.query("select create_product_with_pricing('SACKLOT',
 const sackQuality=(await db.query("select id from product_qualities where product_id=$1",[sackProduct])).rows[0].id;
 const session=(await db.query("insert into labor_sessions(organization_id,center_id,title,operation,created_by) values($1,$2,'Lot labor','purchase',$3) returning id",[org,center,admin])).rows[0].id;
 const detailedRequest=randomUUID();
-const detailed=await confirm([{product_id:sackProduct,quality_id:sackQuality,location_id:loc,quantity:10,actual_price:12}],detailedRequest,{detailed:true,sacks:[{sack_count:3}],session,loads:2});
+const detailed=await confirm([{product_id:sackProduct,quality_id:sackQuality,location_id:loc,quantity:4,actual_price:10},{product_id:sackProduct,quality_id:sackQuality,location_id:loc,quantity:6,actual_price:12}],detailedRequest,{detailed:true,sacks:[{sack_count:1},{sack_count:2}],session,loads:2});
 assert.equal((await db.query("select labor_session_id from purchase_orders where id=$1",[detailed.purchase_id])).rows[0].labor_session_id,session);
 assert.equal(Number((await db.query("select sum(delta) n from stock_sack_movements where product_id=$1",[sackProduct])).rows[0].n),3);
-assert.equal((await db.query("select count(*)::int n from purchase_lot_receipts where purchase_id=$1",[detailed.purchase_id])).rows[0].n,1);
+assert.equal((await db.query("select count(*)::int n from purchase_lot_receipts where purchase_id=$1",[detailed.purchase_id])).rows[0].n,2);
+assert.equal((await db.query("select count(distinct lot_id)::int n from purchase_lot_receipts where purchase_id=$1",[detailed.purchase_id])).rows[0].n,1);
+assert.equal((await db.query("select sum(received_quantity)::numeric quantity,sum(received_quantity*unit_purchase_price)::numeric amount from purchase_lot_receipts where purchase_id=$1",[detailed.purchase_id])).rows[0].quantity,'10.000');
+assert.equal(Number((await db.query('select total_amount from purchase_orders where id=$1',[detailed.purchase_id])).rows[0].total_amount),112);
+const sharedManual=await confirm([line(2,10,{mode:'number',number:' weigh-shared '}),line(2,10,{mode:'number',number:'WEIGH-SHARED'})]);
+const sharedReceipts=(await rows('purchase_lot_receipts')).filter(r=>r.purchase_id===sharedManual.purchase_id);
+assert.equal(sharedReceipts.length,2);assert.equal(new Set(sharedReceipts.map(r=>r.lot_id)).size,1);
+assert.equal((await db.query('select count(*)::int n from stock_lot_allocations where receipt_id=any($1::uuid[])',[sharedReceipts.map(r=>r.id)])).rows[0].n,2);
+const sharedExisting=await confirm([line(1,13,{mode:'existing',lot_id:lot.id}),line(3,15,{mode:'existing',lot_id:lot.id})]);
+assert.deepEqual((await rows('purchase_lot_receipts')).filter(r=>r.purchase_id===sharedExisting.purchase_id).map(r=>r.lot_id),[lot.id,lot.id]);
 
 await db.query("update labor_sessions set status='closed' where id=$1",[session]);
 assert.equal((await confirm([],detailedRequest,{session})).purchase_id,detailed.purchase_id);
@@ -146,5 +155,5 @@ await db.query("update organizations set business_status='suspended' where id=$1
 await db.query("select set_config('test.user',$1,false)",[admin]);await db.exec("set role authenticated");
 assert.equal(await count('purchase_lots'),0);assert.equal(await count('purchase_lot_receipts'),0);
 await assert.rejects(()=>confirm([line()]),/business|suspend|access/i);
-console.log('PASS lot defaults, auto/manual/reuse, single receipt, split rejection, immutable costs/assignments, rollback, bypass prevention, idempotent offline retry, sack/labor/cost preservation, tenant and subscription guards.');
+console.log('PASS shared auto/manual/existing lot across multiple weighings, individual costs and stock allocations, split rejection, rollback, idempotent retry, sacks/labor and tenant/subscription guards.');
 await db.close();

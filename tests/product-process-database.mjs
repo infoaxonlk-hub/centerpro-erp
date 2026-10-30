@@ -26,7 +26,7 @@ alter default privileges in schema public grant all on tables to service_role;
 alter default privileges in schema public grant usage,select on sequences to service_role;
 `);
 for (const name of (await readdir(new URL("../supabase/migrations/",import.meta.url)))
-  .filter(name=>name.endsWith(".sql")&&!name.includes("verify")&&!name.startsWith('054_')).sort()) {
+  .filter(name=>name.endsWith(".sql")&&!name.includes("verify")&&Number(name.slice(0,3))<54).sort()) {
   const sql=(await readFile(new URL("../supabase/migrations/"+name,import.meta.url),"utf8"))
     .replace("create extension if not exists pgcrypto;","");
   try { await db.exec(sql); } catch(error) { throw new Error("Migration "+name+": "+error.message); }
@@ -48,7 +48,9 @@ const beforeMigration=(await db.query("select create_product_with_pricing('BEFOR
 const beforeQuality=(await db.query('select id from product_qualities where product_id=$1',[beforeMigration])).rows[0].id;
 const historicalLines=[1,2].map(quantity=>({product_id:beforeMigration,quality_id:beforeQuality,location_id:loc,quantity,actual_price:10}));
 const historical=(await db.query("select * from confirm_queued_purchase_with_lots($1,$2,$3,'Historical',$4::jsonb,$5::jsonb)",[randomUUID(),center,supplier,JSON.stringify(historicalLines),JSON.stringify([{method:'credit',amount:30}])])).rows[0];
-await db.exec('reset role');await db.query("select set_config('test.user','',false)");await db.exec(await readFile(new URL('../supabase/migrations/054_product_process_and_single_purchase_receipt.sql',import.meta.url),'utf8'));await db.query("select set_config('test.user',$1,false)",[admin]);await db.exec('set role authenticated');
+await db.exec('reset role');await db.query("select set_config('test.user','',false)");
+for(const name of ['054_product_process_and_single_purchase_receipt.sql','055_purchase_multiple_weighings_single_lot.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
+await db.query("select set_config('test.user',$1,false)",[admin]);await db.exec('set role authenticated');
 assert.deepEqual((await db.query('select can_be_sold,can_be_purchased,can_be_manufactured from products where id=$1',[beforeMigration])).rows[0],{can_be_sold:true,can_be_purchased:true,can_be_manufactured:true});
 assert.equal((await db.query('select count(*)::int n from purchase_order_lines where purchase_order_id=$1',[historical.purchase_id])).rows[0].n,2);
 // The migration must not make historical split receipts impossible to reverse.
@@ -96,16 +98,16 @@ assert.deepEqual(receipts.map(r=>Number(r.received_quantity)).sort(),[3,4]);
 assert.equal((await db.query('select count(*)::int n from stock_movements where reference_id=$1',[receipt.purchase_id])).rows[0].n,2);
 const before=(await db.query('select (select count(*) from purchase_orders) orders,(select count(*) from purchase_lots) lots,(select count(*) from stock_movements) moves')).rows[0];
 const l=await lineFor(purchased,1);
-await assert.rejects(()=>purchase([l,{...l,location_id:loc2}]),/one lot and total weighing/);
+await assert.rejects(()=>purchase([{...l,lot_selection:{mode:'number',number:'A'}},{...l,location_id:loc2,lot_selection:{mode:'number',number:'B'}}]),/one quality and one lot/);
 const extraQuality=(await db.query("insert into product_qualities(product_id,name,default_price) values($1,'Extra',10) returning id",[purchased])).rows[0].id;
-await assert.rejects(()=>purchase([l,{...l,quality_id:extraQuality}]),/one lot and total weighing/);
+await assert.rejects(()=>purchase([l,{...l,quality_id:extraQuality}]),/one quality and one lot/);
 assert.deepEqual((await db.query('select (select count(*) from purchase_orders) orders,(select count(*) from purchase_lots) lots,(select count(*) from stock_movements) moves')).rows[0],before);
 // Old purchase RPC also cannot bypass the line trigger.
 await assert.rejects(async()=>db.query("select * from confirm_queued_purchase($1,$2,$3,'Bypass',$4::jsonb,$5::jsonb)",[randomUUID(),center,supplier,JSON.stringify([await lineFor(manufactured)]),JSON.stringify([{method:'credit',amount:100}])]),/cannot be purchased/);
 // An earlier saved draft must be checked again after process flags change.
 const draft=(await db.query("insert into purchase_orders(organization_id,center_id,supplier_id,po_number,status,payment_method,created_by) values($1,$2,$3,'FLAG-DRAFT','draft','credit',$4) returning id",[org,center,supplier,admin])).rows[0].id;
 await db.query('insert into purchase_order_lines(purchase_order_id,product_id,quality_id,location_id,quantity,system_price,actual_price) values($1,$2,$3,$4,1,10,10)',[draft,purchased,await qualityFor(purchased),loc]);
-await assert.rejects(()=>db.query('insert into purchase_order_lines(purchase_order_id,product_id,quality_id,location_id,quantity,system_price,actual_price) values($1,$2,$3,$4,1,10,10)',[draft,purchased,extraQuality,loc2]),/one lot and total weighing/);
+await assert.rejects(()=>db.query('insert into purchase_order_lines(purchase_order_id,product_id,quality_id,location_id,quantity,system_price,actual_price) values($1,$2,$3,$4,1,10,10)',[draft,purchased,extraQuality,loc2]),/one quality and one lot/);
 await editFlags(purchased,false,false,false);
 await assert.rejects(()=>db.query("update purchase_orders set status='confirmed' where id=$1",[draft]),/cannot be purchased/);
 await editFlags(purchased,false,true,false);

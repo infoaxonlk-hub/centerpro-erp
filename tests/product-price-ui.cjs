@@ -36,7 +36,8 @@ function purchaseCase(sacks){
   remembered=[{...latest[0],price:88}];view=render().find(e=>e.type===Detailed);assert.equal(view.props.visibleLines[0].actual_price,7.55);
   view.props.onUpdateLine(key,{lot_selection:{mode:'existing',lot_id:'old-lot'}});
   view=render().find(e=>e.type===Detailed);assert.equal(view.props.visibleLines[0].actual_price,7.55);
-  assert.equal(view.props.onAddWeightRow,undefined);assert.equal(view.props.onSplitLot,undefined);
+  assert.equal(view.props.onSplitLot,undefined);view.props.onAddWeightRow(view.props.visibleLines[0]);
+  view=render().find(e=>e.type===Detailed);assert.equal(view.props.visibleLines[1].actual_price,7.55);assert.equal(view.props.visibleLines[1].lot_selection.lot_id,'old-lot');
  }else{
   assert.equal(render().find(e=>e.props['data-price']===0).props.value,14);
   render().find(e=>e.props['data-price']===0).props.onChange({target:{value:'7.55'}});

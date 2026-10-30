@@ -16,7 +16,7 @@ const money = (n: number) => new Intl.NumberFormat("en-LK", { style: "currency",
 
 export function DetailedPurchaseEntry({
   organizationId,center, suppliers, supplierId, onSupplierChange, onAddSupplier, products, visibleLines, total,
-  onSelectProduct, onUpdateLine, onRemoveLine, onOpenPayment, onSetError,
+  onSelectProduct, onAddWeightRow, onUpdateLine, onRemoveLine, onOpenPayment, onSetError,
 }: {
   organizationId:string;
   center?: Center;
@@ -29,6 +29,7 @@ export function DetailedPurchaseEntry({
   total: number;
   totalSacks: number;
   onSelectProduct: (product: Product) => void;
+  onAddWeightRow: (line: Line) => string;
   onUpdateLine: (key: string, change: Partial<Line>) => void;
   onRemoveLine: (key: string) => void;
   onOpenPayment: () => void;
@@ -66,7 +67,11 @@ export function DetailedPurchaseEntry({
       document.querySelector<HTMLInputElement>(`[data-entry-line="${line.key}"][data-entry-field="sacks"]`)?.focus();
       return;
     }
-    onOpenPayment();
+    addRowAndFocus(line);
+  }
+  function addRowAndFocus(line:Line){
+    const key=onAddWeightRow(line);
+    requestAnimationFrame(()=>document.querySelector<HTMLInputElement>(`[data-entry-line="${key}"][data-entry-field="weight"]`)?.focus());
   }
 
   return (
@@ -122,7 +127,7 @@ export function DetailedPurchaseEntry({
             const productSacks = lines.reduce((sum, line) => sum + (Number(line.sack_count) || 0), 0);
             const productTotal = lines.reduce((sum, line) => sum + ((Number(line.quantity) || 0) * (Number(line.actual_price) || 0)), 0);
             return <article className="detail-product-group" key={`${product.id}:${quality.id}`}>
-              <header><div><strong>{product.name}</strong><small>{quality.is_base ? "No quality" : quality.name} · {product.unit_of_measure}</small></div><small>One total weighing per product</small></header>
+              <header><div><strong>{product.name}</strong><small>{quality.is_base ? "No quality" : quality.name} · {product.unit_of_measure}</small></div><button type="button" className="detail-add-row" onClick={()=>addRowAndFocus(lines[0])}><Plus size={15}/> Add weighing</button></header>
               <div className="detail-product-summary" aria-live="polite">
                 <div><small>Total weight</small><strong>{productWeight.toLocaleString("en-LK", { maximumFractionDigits: 3 })} {product.unit_of_measure}</strong></div>
                 <div><small>Total sacks</small><strong>{productSacks.toLocaleString("en-LK")}</strong></div>
@@ -130,13 +135,13 @@ export function DetailedPurchaseEntry({
               </div>
               <label className="detail-price-field">Purchase price per kg (LKR)<input type="number" min="0" step="0.01" value={price} onChange={e => lines.forEach(line => onUpdateLine(line.key, { actual_price: Number(e.target.value) }))}/></label>
               {center?.allow_multiple_locations && <label className="detail-location-field">Stock location<select value={lines[0]?.location_id ?? ""} onChange={e => lines.forEach(line => onUpdateLine(line.key, { location_id: e.target.value }))}><option value="">Select location</option>{center.locations.filter(l => l.is_active).map(location => <option key={location.id} value={location.id}>{location.code} · {location.name}</option>)}</select></label>}
+              {product.tracks_purchase_lots&&<PurchaseLotFields organizationId={organizationId} productId={product.id} qualityId={quality.id} value={lines[0]?.lot_selection} onChange={lot_selection=>onUpdateLine(lines[0].key,{lot_selection})}/>}
               <div className="detail-weight-rows">
                 {lines.map((line, index) => <div className="detail-weight-row" key={line.key}>
                   <span className="detail-row-number">{index + 1}</span>
                   <label>Weight ({product.unit_of_measure})<input data-entry-line={line.key} data-entry-field="weight" type="number" inputMode="decimal" min="0" step="0.01" value={line.quantity || ""} placeholder="0" onKeyDown={e => handleEnter(e, line, "weight")} onChange={e => onUpdateLine(line.key, { quantity: Number(e.target.value) })}/></label>
                   <label>Sacks{!product.tracks_sacks?" (optional)":""}<input data-entry-line={line.key} data-entry-field="sacks" type="number" inputMode="numeric" min="0" step="1" value={line.sack_count || ""} placeholder="0" onKeyDown={e => handleEnter(e, line, "sacks")} onChange={e => onUpdateLine(line.key, { sack_count: Number(e.target.value) })}/></label>
                   <button type="button" aria-label={`Remove weighing ${index + 1}`} onClick={() => onRemoveLine(line.key)}><Trash2 size={17}/></button>
-                  {product.tracks_purchase_lots&&<PurchaseLotFields organizationId={organizationId} productId={line.product_id} qualityId={line.quality_id} value={line.lot_selection} onChange={lot_selection=>onUpdateLine(line.key,{lot_selection})}/>}
                 </div>)}
               </div>
             </article>;

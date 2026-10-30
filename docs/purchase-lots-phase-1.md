@@ -2,7 +2,7 @@
 
 Changes are prepared on the development branch for Preview testing. Production promotion and remote migrations are handled separately.
 
-Update: migration 054 replaces the original split-row behavior below with one lot and one total weighing per product per purchase. Historical confirmed split receipts are retained. See [current process and receipt QA](qa/product-process-and-purchase-lot-test-cases.md) for current rules and held/offline draft correction.
+Update: migration 055 restores multiple weighings with **one shared lot per product**. Migration 054's single-weighing limit is superseded. Historical confirmed split receipts are retained. See [current process and receipt QA](qa/product-process-and-purchase-lot-test-cases.md) for current rules and held/offline draft correction.
 
 ## Behavior
 

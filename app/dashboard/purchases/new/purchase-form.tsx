@@ -1,6 +1,6 @@
 "use client";
 import {PurchaseLotFields} from "./purchase-lot-fields";
-import {purchaseRowsTotal,type PurchaseLotSelection} from "@/lib/purchase-lots";
+import {purchaseRowsTotal,purchaseProductLotError,type PurchaseLotSelection} from "@/lib/purchase-lots";
 import {purchasePriceDefault,type LatestPurchasePrice} from "@/lib/product-price-defaults";
 import {usePurchasePriceDefaults} from "@/lib/use-purchase-price-defaults";
 import Link from "next/link";
@@ -407,7 +407,7 @@ export function PurchaseForm({
   }
   function add(product: Product, quality: Quality) {
     if(product.can_be_purchased===false){notify("This product cannot be purchased.","error");return;}
-    if(lines.some(l=>l.product_id===product.id)){notify("This product already has its single lot/weighing. Edit its total quantity instead.","error");setQualityProduct(null);return;}
+    if(lines.some(l=>l.product_id===product.id)){notify("This product is already selected. Use Add weighing to record more weights in its shared lot.","error");setQualityProduct(null);return;}
     const key=makeKey();
     setLines(old => old.some(l=>l.product_id===product.id)?old:[...old, {
         key, product_id: product.id, quality_id: quality.id,
@@ -422,10 +422,9 @@ export function PurchaseForm({
     else if (qs[0]) add(product, qs[0]);
   }
   function update(key: string, change: Partial<Line>) {
-    setLines((old) =>
-      old.map((l) => (l.key === key ? { ...l, ...change } : l)),
-    );
+    setLines(old=>{const source=old.find(row=>row.key===key);return old.map(l=>l.key===key?{...l,...change}:change.lot_selection&&l.product_id===source?.product_id?{...l,lot_selection:change.lot_selection}:l)});
   }
+  function addWeightRow(line:Line){const key=makeKey();setLines(old=>{const source=old.find(row=>row.key===line.key);return source?[...old,{...source,key,quantity:0,sack_count:0}]:old});return key;}
   const total = useMemo(
     () => purchaseRowsTotal(lines),
     [lines],
@@ -499,7 +498,7 @@ export function PurchaseForm({
   function openPayment() {
     let message = "";
     if (!lines.length) message = "Add at least one purchase item.";
-    else if(new Set(lines.map(l=>l.product_id)).size!==lines.length) message="Only one lot and total weighing per product is allowed. Remove duplicate rows from this held draft.";
+    else if(purchaseProductLotError(lines)) message=purchaseProductLotError(lines);
     else if(lines.some(l=>!products.some(p=>p.id===l.product_id&&p.can_be_purchased!==false))) message="A saved product is no longer available for purchasing. Remove it before continuing.";
     else if(lines.some(line=>products.find(product=>product.id===line.product_id)?.tracks_purchase_lots&&((line.lot_selection?.mode==="number"&&!line.lot_selection.number?.trim())||(line.lot_selection?.mode==="existing"&&!line.lot_selection.lot_id))))
       message="Enter a lot number or select an existing lot for each lot-tracked row.";
@@ -955,6 +954,7 @@ export function PurchaseForm({
             total={total}
             totalSacks={totalSacks}
             onSelectProduct={selectProduct}
+            onAddWeightRow={addWeightRow}
             onUpdateLine={update}
             onRemoveLine={key => setLines(old => old.filter(line => line.key !== key))}
             onOpenPayment={openPayment}

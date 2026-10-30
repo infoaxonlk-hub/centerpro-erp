@@ -38,6 +38,6 @@ export function PurchaseLotFields({organizationId,productId,qualityId,value,onCh
    <div className="purchase-lot-results">{lots.map(lot=><button type="button" aria-pressed={value?.lot_id===lot.id} key={lot.id} onClick={()=>onChange({mode:"existing",lot_id:lot.id,number:lot.lot_number})}>{lot.lot_number}</button>)}</div>
    {message&&<small role="status">{message}</small>}
   </div>}
-  <small>One lot and one total received quantity per product in this purchase order.</small>
+  <small>One lot per product. All weighings for this product use this lot.</small>
  </div>;
 }
