@@ -29,7 +29,9 @@ const lots=[{center_id:'c',location_id:'l',product_id:'raw',quality_id:'q-raw',l
  assert.equal(render().find(e=>e.props['aria-label']==='Actual consumption component').props.value,22);field('Quantity to produce').props.onChange({target:{value:'12'}});
  await render().find(e=>e.type==='button'&&text(e)==='Save draft').props.onClick();
  const sent=calls[0].args.p_data;assert.equal(sent.bom_revision,1);assert.equal(sent.production_quantity,12);assert.equal(sent.inputs[0].quantity,22);assert.equal(sent.inputs[0].lot_id,'actual');assert.equal(sent.operations[0].actual_quantity,3);assert.equal(sent.operations[1].actual_quantity,22);assert.equal(sent.outputs[1].quantity,3.5);assert.equal(sent.outputs[0].destination_location_id,undefined);assert.equal(sent.operations[0].cost_rate,undefined);
- await render().find(e=>e.type==='button'&&text(e)==='Complete production').props.onClick();await render().find(e=>e.type==='button'&&text(e)==='Complete production').props.onClick();
+ await render().find(e=>e.type==='button'&&text(e)==='Complete production').props.onClick();
+ assert.ok(render().some(e=>e.props.role==='alert'&&text(e).includes('Failed to fetch')),'Completion error must remain visible beside the action buttons');
+ await render().find(e=>e.type==='button'&&text(e)==='Complete production').props.onClick();
  assert.equal(new Set(calls.filter(c=>c.name==='save_bom_manufacturing_order').map(c=>c.args.p_order_id)).size,1);assert.equal(completions,2);assert.ok(paths.at(-1).startsWith('/dashboard/manufacturing/orders/'));
  // The editor has planned components/operations/destinations, never source lots.
  const eh=harness(),editorCalls=[];
