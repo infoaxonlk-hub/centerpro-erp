@@ -1,5 +1,7 @@
 # Product processes and shared purchase lot QA
 
+For migration 056's manufacturing/accounting scenarios, also run [production costing and P&L QA](production-costing-test-cases.md).
+
 ## Setup and delivery
 
 Work on `development`. Apply migration 054 after 052/053, then apply `supabase/migrations/055_purchase_multiple_weighings_single_lot.sql` **once** in Supabase SQL Editor. If 054 is already applied, run only 055. Execute the entire file, including its transaction and schema reload notification. Do not re-run older migrations. This change does not modify historical stock, prices, payments, sacks, lots or costing.

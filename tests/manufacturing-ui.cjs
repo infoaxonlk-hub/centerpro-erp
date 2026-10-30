@@ -17,22 +17,25 @@ const product={id:'p',code:'P',name:'Product',category:null,unit_of_measure:'KG'
 const hooks=harness(),calls=[],paths=[];let completionAttempts=0;
 const {ManufacturingOrderForm}=load('app/dashboard/manufacturing/manufacturing-order-form.tsx',{require(id){
  if(id==='react')return hooks.react;
+ if(id==='@/lib/production-cost-preview')return load('lib/production-cost-preview.ts');
  if(id==='next/navigation')return{useRouter:()=>({push:path=>paths.push(path),refresh(){}})};
  if(id==='@/components/feedback')return{notify(){}};
  if(id==='@/lib/supabase/client')return{createClient:()=>({async rpc(name,args){calls.push({name,args:structuredClone(args)});if(name==='save_manufacturing_order')return{data:[{order_id:args.p_order_id,order_number:'MO-TEST'}],error:null};completionAttempts++;return completionAttempts===1?{error:{message:'Failed to fetch'}}:{error:null};}})};
  if(id==='next/link')return{__esModule:true,default:()=>null};
  return require(id);
 }});
-const draft={id:'saved-draft',order_number:'MO-TEST',process_type:'milling',method:'own',center_id:'c',location_id:'l',order_date:'2026-10-29',rice_variety:'Standard',recipe_id:null,supplier_id:null,operation_cost_basis:'per_kg',operation_cost_rate:2,operation_hours:0,external_mill_fee_per_kg:0,notes:'Keep this note',manufacturing_order_inputs:[{id:'i',input_kind:'raw_material',product_id:'p',quality_id:'q',lot_id:'lot',quantity:20,sack_count:2}],manufacturing_order_outputs:[{id:'o',output_kind:'main',product_id:'out',quality_id:'outq',quantity:15,sack_count:0}]};
-const props={initialOrder:draft,initialProcess:'milling',centers:[center],products:[{...product,tracks_sacks:true},{...product,id:'out',product_qualities:[{...product.product_qualities[0],id:'outq'}]}],lots:[{center_id:'c',location_id:'l',product_id:'p',quality_id:'q',lot_id:'lot',lot_number:'LOT',available_quantity:100}],recipes:[],suppliers:[]};
+const draft={id:'saved-draft',order_number:'MO-TEST',process_type:'milling',method:'own',center_id:'c',location_id:'l',order_date:'2026-10-29',rice_variety:'Standard',recipe_id:null,supplier_id:null,operation_expense_id:'labor-expense',operation_cost_basis:'per_kg',operation_cost_rate:2,operation_hours:0,external_mill_fee_per_kg:0,notes:'Keep this note',manufacturing_order_inputs:[{id:'i',input_kind:'raw_material',product_id:'p',quality_id:'q',lot_id:'lot',quantity:20,sack_count:2}],manufacturing_order_outputs:[{id:'o',output_kind:'main',product_id:'out',quality_id:'outq',quantity:15,sack_count:0,cost_share_percent:100}]};
+const props={initialOrder:draft,initialProcess:'milling',centers:[center],products:[{...product,tracks_sacks:true},{...product,id:'out',product_qualities:[{...product.product_qualities[0],id:'outq'}]}],lots:[{center_id:'c',location_id:'l',product_id:'p',quality_id:'q',lot_id:'lot',lot_number:'LOT',available_quantity:100,inventory_value:1000}],recipes:[],suppliers:[],expenses:[{id:'labor-expense',center_id:'c',payee:'Labor',amount:30,expense_date:'2026-10-29',reference:null}]};
 const render=()=>elements(hooks.render(ManufacturingOrderForm,props));
 function text(node){return typeof node==='string'||typeof node==='number'?String(node):Array.isArray(node)?node.map(text).join(''):node?.props?text(node.props.children):'';}
 const button=label=>render().find(e=>e.type==='button'&&text(e).toLowerCase().includes(label));
 (async()=>{
  assert.ok(render().some(e=>e.type==='input'&&e.props.value==='Keep this note')||render().some(e=>e.type==='textarea'&&e.props.value==='Keep this note'));
  assert.ok(render().some(e=>e.type==='label'&&text(e).includes('Sack count (0 for loose stock)')));
+ assert.ok(render().some(e=>e.type==='strong'&&text(e)==='LKR 230.00'));
  await button('save draft').props.onClick();
  assert.equal(calls[0].args.p_order_id,'saved-draft');assert.equal(calls[0].args.p_data.inputs[0].quantity,20);assert.equal(calls[0].args.p_data.inputs[0].sack_count,2);assert.equal(calls[0].args.p_data.inputs[0].lot_id,'lot');
+ assert.equal(calls[0].args.p_data.operation_expense_id,'labor-expense');assert.equal(calls[0].args.p_data.outputs[0].cost_share_percent,100);
  await button('complete').props.onClick();await button('complete').props.onClick();
  assert.deepEqual(calls.filter(c=>c.name==='save_manufacturing_order').map(c=>c.args.p_order_id),['saved-draft','saved-draft','saved-draft']);
  assert.equal(calls.filter(c=>c.name==='complete_manufacturing_order').length,2);assert.equal(paths.at(-1),'/dashboard/manufacturing');

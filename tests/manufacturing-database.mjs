@@ -90,7 +90,7 @@ const second=(await db.query('select * from save_manufacturing_order(null,$1::js
 assert.equal(Number((await db.query('select * from complete_manufacturing_order($1)',[second.order_id])).rows[0].total_cost),200);
 const externalPayload={...payload,method:'external',supplier_id:supplier,external_mill_fee_per_kg:3,inputs:[{...payload.inputs[0],quantity:2}],outputs:[{output_kind:'main',product_id:plain,quality_id:plainQuality,quantity:1}]};
 const external=(await db.query('select * from save_manufacturing_order(null,$1::jsonb)',[JSON.stringify(externalPayload)])).rows[0];
-assert.equal(Number((await db.query('select * from complete_manufacturing_order($1)',[external.order_id])).rows[0].total_cost),26);
+assert.equal(Number((await db.query('select * from complete_manufacturing_order($1)',[external.order_id])).rows[0].total_cost),30);
 const sacked=(await db.query("select create_product_with_pricing('SACKED','Sacked paddy',null,'KG',10,true,true) id")).rows[0].id;
 const sackedQuality=(await db.query('select id from product_qualities where product_id=$1',[sacked])).rows[0].id;
 await confirm([{product_id:sacked,quality_id:sackedQuality,location_id:loc,quantity:10,actual_price:10}],randomUUID(),{detailed:true,sacks:[{sack_count:2}]});
