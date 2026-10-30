@@ -1,5 +1,19 @@
 type Input={product_id:string;quality_id:string;lot_id?:string|null;quantity:string|number;source_selection?:string};
 type Lot={center_id:string;location_id:string;product_id:string;quality_id:string;lot_id:string|null;available_quantity:string|number;inventory_value?:string|number;received_at?:string};
+
+// Quantity-only preview: missing valuation must not be labelled missing stock.
+// Consume each pool once across repeated component rows, as completion does.
+export function productionStockPreview(inputs:readonly Input[],lots:readonly Lot[],center:string,location:string){
+ const pools=lots.filter(l=>l.center_id===center&&l.location_id===location).map(l=>({...l,remaining:Math.max(0,Number(l.available_quantity))}))
+  .sort((a,b)=>a.lot_id===null?-1:b.lot_id===null?1:(a.received_at??'').localeCompare(b.received_at??'')||a.lot_id.localeCompare(b.lot_id));
+ const round=(n:number)=>Math.round(n*1e6)/1e6;
+ return inputs.map(input=>{
+  const matching=pools.filter(l=>l.product_id===input.product_id&&l.quality_id===input.quality_id&&(input.source_selection==='legacy'?l.lot_id===null:!input.lot_id||l.lot_id===input.lot_id));
+  const available=round(matching.reduce((sum,l)=>sum+l.remaining,0)),required=Math.max(0,Number(input.quantity)||0);
+  let need=required;for(const pool of matching){const take=Math.min(need,pool.remaining);pool.remaining-=take;need-=take;}
+  return {available,required,remaining:round(Math.max(0,available-required)),shortage:round(Math.max(0,required-available))};
+ });
+}
 // Mirror physical oldest-lot consumption, including multiple input/package rows.
 // Missing cached valuation never falls back to product/default/selling prices.
 export function productionMaterialPreview(inputs:readonly Input[],lots:readonly Lot[],center:string,location:string):number|null{

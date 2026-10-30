@@ -23,6 +23,12 @@ const lots=[{center_id:'c',location_id:'l',product_id:'raw',quality_id:'q-raw',l
  render().find(e=>e.props['aria-label']==='Actual operation hours').props.onChange({target:{value:'3'}});
  render().find(e=>e.props['aria-label']==='Actual output byproduct').props.onChange({target:{value:'3.5'}});
  assert.ok(render().some(e=>e.type==='strong'&&text(e).includes('257.00')));
+ assert.ok(render().some(e=>e.type==='h1'&&text(e)==='Manufacturing Order'));
+ assert.ok(render().some(e=>e.props.className==='manufacturing-order-sheet'));
+ assert.ok(render().some(e=>e.props.className==='bom-stock-balance sufficient'&&text(e).includes('78 KG')));
+ render().find(e=>e.props['aria-label']==='Actual consumption component').props.onChange({target:{value:'102'}});
+ assert.ok(render().some(e=>e.props.className==='bom-stock-balance shortage'&&text(e).includes('2 KG short')));
+ render().find(e=>e.props['aria-label']==='Actual consumption component').props.onChange({target:{value:'22'}});
  assert.ok(render().some(e=>text(e).includes('Destination')&&text(e).includes('By-product store')));
  // Rerenders / a changed target must not silently replace actual values.
  field('Quantity to produce').props.onChange({target:{value:'18'}});await render().find(e=>e.type==='button'&&text(e)==='Save draft').props.onClick();assert.equal(calls.length,0);

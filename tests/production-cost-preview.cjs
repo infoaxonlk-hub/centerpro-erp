@@ -10,3 +10,12 @@ assert.equal(preview([row(21)],lots,'c','l'),null);
 assert.equal(preview([row(1)],[{...lots[0],inventory_value:undefined}],'c','l'),null);
 assert.equal(preview([row(1)],lots,'another-center','l'),null);
 console.log('PASS selected/oldest remaining lot valuation preview, repeated inputs, stock shortage, missing valuation and center scoping.');
+
+const stock=moduleBox.exports.productionStockPreview;
+assert.equal(stock([row(4,'expensive')],lots,'c','l')[0].available,10);
+assert.equal(stock([row(12,'expensive')],lots,'c','l')[0].shortage,2);
+assert.equal(stock([row(8,'cheap'),row(4,'cheap')],lots,'c','l')[1].shortage,2);
+assert.equal(stock([row(1)],lots,'another-center','l')[0].shortage,1);
+assert.equal(stock([{...row(1),source_selection:'legacy'}],lots,'c','l')[0].available,0);
+assert.equal(stock([row(1)],[{...lots[0],inventory_value:undefined}],'c','l')[0].available,10);
+console.log('PASS component stock availability, shortage, repeated rows, location/lot/Legacy scoping and quantity independent of valuation.');
