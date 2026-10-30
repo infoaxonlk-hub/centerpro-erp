@@ -14,6 +14,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE),root=path.resolve(__dirn
  for(const width of [360,390]){const page=await browser.newPage({viewport:{width,height:844}});await page.goto('http://127.0.0.1:'+server.address().port);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`No horizontal scroll at ${width}`);
  const qty=await page.locator('.farm-quantity-row').first().boundingBox();assert.ok(qty&&qty.width<=width-24);
  assert.equal(await page.locator('.farm-payment-options button').count(),3);
+ assert.equal(await page.locator('.farm-payment-options button svg').count(),3,'Cash, Bank and Credit have icons');
  for(const box of await page.locator('.farm-payment-options button,.farm-save').all()){const r=await box.boundingBox();assert.ok(r.height>=44,'Large payment/save tap targets');}
  await page.locator('.farm-adjustments').evaluate(el=>el.open=true);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Expanded adjustments fit');
  await page.screenshot({path:path.join(path.dirname(process.env.FARM_LAYOUT_HTML),`farm-${width}.png`),fullPage:true});await page.close();}
