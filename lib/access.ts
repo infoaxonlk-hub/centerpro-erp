@@ -2,10 +2,10 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { requireAuthenticatedProfile, readBusinessAccess, AccessError } from "@/lib/business-access";
 import { moduleEnabled, moduleForPath } from "@/lib/business-modules";
-export const allPermissions=["dashboard","sales","purchases","stock","manufacturing","cash","payment_reports","centers","users","masters","product_create","product_edit","stock_adjustment","labor","audit"] as const;
+export const allPermissions=["dashboard","farm_services","farm_services_manage","sales","purchases","stock","manufacturing","cash","payment_reports","centers","users","masters","product_create","product_edit","stock_adjustment","labor","audit"] as const;
 export type AppPermission=typeof allPermissions[number];
 const permissionModule: Record<AppPermission,string> = {
- dashboard:"dashboard",sales:"sales",purchases:"purchases",stock:"inventory",manufacturing:"manufacturing",cash:"cash",
+ farm_services:"farm_services",farm_services_manage:"farm_services",dashboard:"dashboard",sales:"sales",purchases:"purchases",stock:"inventory",manufacturing:"manufacturing",cash:"cash",
  payment_reports:"payment_reports",centers:"centers",users:"users",masters:"masters",
  product_create:"masters",product_edit:"masters",stock_adjustment:"stock_adjustments",labor:"labor",audit:"audit",
 };

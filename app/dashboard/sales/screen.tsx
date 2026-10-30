@@ -16,10 +16,10 @@ export async function SalesScreen({start="history"}:{start?:"history"|"new"|"cus
   loaded=await Promise.all([
    rows("centers","id,code,name,is_active,allow_multiple_locations,locations(id,name,is_default,is_active)"),
    rows("customers","id,center_id,name,phone,address"),
-   rows("products","id,code,name,category,unit_of_measure,can_be_sold,can_be_purchased,can_be_manufactured,tracks_sacks,default_sales_price,is_active,product_qualities(id,name,is_active)"),
+   rows("products","id,code,name,category,unit_of_measure,product_type,can_be_sold,can_be_purchased,can_be_manufactured,tracks_sacks,default_sales_price,is_active,product_qualities(id,name,is_active)"),
    rows("sales_prices","center_id,quality_id,price"),
    rows("bank_accounts","id,account_number,branch_name,branch_code,is_active,payment_banks(name,is_active)"),
-   start==="new"?Promise.resolve([]):rows("sales_orders","id,center_id,customer_id,customer_name,sale_number,status,total_amount,paid_amount,credit_balance,payment_status,confirmed_at,sales_order_lines(product_name,quality_name,unit,quantity,unit_price,line_total),sales_payments(method,amount)")
+   start==="new"?Promise.resolve([]):rows("sales_orders","id,center_id,customer_id,customer_name,sale_number,order_source,status,total_amount,paid_amount,credit_balance,payment_status,confirmed_at,sales_order_lines(product_name,quality_name,unit,quantity,unit_price,line_total),sales_payments(method,amount)")
   ]);
  }catch(error){console.error(error);}
  if(!loaded)return <section className="panel"><h1>Sales unavailable</h1><p>Sales data could not be loaded. Confirm migrations 017 and 018 have both been applied, then refresh. No incomplete totals are displayed.</p></section>;
@@ -30,7 +30,7 @@ export async function SalesScreen({start="history"}:{start?:"history"|"new"|"cus
   const {data:laborSessions}=profile.role==="admin"||profile.role==="super_admin"||(profile.permissions??[]).includes("labor")
    ? await s.from("labor_sessions").select("id,center_id,title,operation,session_date").eq("status","open").in("operation",["sales","both"]).order("session_date",{ascending:false})
    : {data:[]};
-  return <SalesPOS organizationId={profile.organization_id} scopeId={profile.id} organizationName={organization?.name??"CenterPro"} userName={profile.full_name} centers={(centers as (Center&{is_active:boolean})[]).filter(c=>c.is_active)} customers={customers as Customer[]} products={(products as (Product&{is_active:boolean})[]).filter(p=>p.is_active)} prices={prices as Price[]} banks={banks} laborSessions={laborSessions??[]}/>;
+  return <SalesPOS organizationId={profile.organization_id} scopeId={profile.id} organizationName={organization?.name??"CenterPro"} userName={profile.full_name} centers={(centers as (Center&{is_active:boolean})[]).filter(c=>c.is_active)} customers={customers as Customer[]} products={(products as (Product&{is_active:boolean})[]).filter(p=>p.is_active&&p.product_type!=="service")} prices={prices as Price[]} banks={banks} laborSessions={laborSessions??[]}/>;
  }
  return <SalesManager start={start} centers={(centers as (Center&{is_active:boolean})[]).filter(c=>c.is_active)} customers={customers as Customer[]} sales={sales as Sale[]}/>;
 }

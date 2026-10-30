@@ -55,7 +55,7 @@ for(const item of registry.businessModules){
  if("parent" in item)assert.equal(registry.moduleEnabled(item.key,["dashboard",item.key]),false);
 }
 const read=filename=>fs.readFileSync(path.resolve(root,filename),"utf8");
-const schema=read("supabase/migrations/045_business_access_schema.sql");
+const schema=["045_business_access_schema.sql","052_manufacturing_module.sql","058_farm_services.sql"].map(name=>read("supabase/migrations/"+name)).join("\n");
 for(const key of registry.moduleKeys)assert.ok(schema.includes("'"+key+"'"),"DB catalogue must contain "+key);
 assert.match(read("app/dashboard/restricted/page.tsx"),/Module Access Restricted/);
 assert.match(read("app/dashboard/restricted/page.tsx"),/This module is not available for your business\. Please contact InfoAxon to enable access\./);

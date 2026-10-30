@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { notify } from "@/components/feedback";
 
 type Process="milling"|"packing";
-export type Product={can_be_sold?:boolean;can_be_purchased?:boolean;can_be_manufactured?:boolean;id:string;code:string;name:string;category:string|null;unit_of_measure:string;tracks_sacks?:boolean;product_qualities:{id:string;name:string;default_price:number|string;is_active:boolean}[]};
+export type Product={product_type?:"stock"|"service";can_be_sold?:boolean;can_be_purchased?:boolean;can_be_manufactured?:boolean;id:string;code:string;name:string;category:string|null;unit_of_measure:string;tracks_sacks?:boolean;product_qualities:{id:string;name:string;default_price:number|string;is_active:boolean}[]};
 type Line={sack_count:string;key:string;input_kind:string;output_kind:string;product_id:string;quality_id:string;lot_id:string;quantity:string;package_size_kg:string;packaging_product_id:string;packaging_quality_id:string};
 export type Center={id:string;code:string;name:string;locations:{id:string;code:string;name:string;is_default:boolean;is_active:boolean}[]};
 export type Lot={center_id:string;location_id:string;product_id:string;quality_id:string;lot_id:string|null;lot_number:string;available_quantity:number|string};

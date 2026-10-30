@@ -27,8 +27,8 @@ export default async function NewPurchasePage() {
     s
       .from("products")
       .select(
-        "id,code,name,category,unit_of_measure,can_be_sold,can_be_purchased,can_be_manufactured,tracks_sacks,tracks_purchase_lots,product_qualities(id,name,default_price,is_active,is_base)",
-      )
+        "id,code,name,category,unit_of_measure,product_type,can_be_sold,can_be_purchased,can_be_manufactured,tracks_sacks,tracks_purchase_lots,product_qualities(id,name,default_price,is_active,is_base)",
+      ).eq("product_type","stock")
       .eq("is_active", true)
       .order("name"),
     s.from("center_prices").select("center_id,quality_id,price"),

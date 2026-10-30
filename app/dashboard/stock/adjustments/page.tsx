@@ -8,7 +8,7 @@ export default async function AdjustmentsPage(){
  const {supabase:s,profile}=await requirePermission("stock_adjustment");
  const [{data:centers,error:ce},{data:products,error:pe}]=await Promise.all([
   s.from("centers").select("id,code,name,locations(id,code,name,is_active)").eq("is_active",true).order("name"),
-  s.from("products").select("id,code,name,unit_of_measure,tracks_sacks,product_qualities(id,name,is_active)").eq("is_active",true).order("name")
+  s.from("products").select("id,code,name,unit_of_measure,tracks_sacks,product_qualities(id,name,is_active)").eq("product_type","stock").eq("is_active",true).order("name")
  ]);
  if(ce||pe)throw new Error(ce?.message??pe?.message);
  const rows:Awaited<ReturnType<typeof load>>["data"] extends (infer R)[]|null?R[]:never=[];

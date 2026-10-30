@@ -45,7 +45,8 @@ for (const name of (await readdir(new URL("../supabase/migrations/",import.meta.
  await db.exec(await readFile(new URL("../supabase/migrations/"+name,import.meta.url),"utf8"));
 }
 const allModules=(await db.query("select key from business_module_catalog order by key")).rows.map(r=>r.key);
-assert.equal(allModules.length,19);
+assert.equal(allModules.length,20);
+assert.ok(allModules.includes("farm_services"));
 assert.ok(allModules.includes('manufacturing'));
 assert.equal((await db.query("select count(*)::int n from business_module_entitlements where enabled")).rows[0].n,36);
 assert.equal((await db.query("select count(*)::int n from business_subscriptions where status='active' and expires_on is null")).rows[0].n,2);

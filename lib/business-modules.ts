@@ -2,6 +2,7 @@
 export const businessModules = [
   { key: "dashboard", name: "Dashboard", href: "/dashboard", permissions: ["dashboard"], required: true },
   { key: "purchases", name: "Purchases", href: "/dashboard/purchases", permissions: ["purchases"] },
+  { key: "farm_services", name: "Farm Services", href: "/dashboard/farm-services", permissions: ["farm_services", "farm_services_manage"] },
   { key: "sales", name: "Sales", href: "/dashboard/sales", permissions: ["sales"] },
   { key: "inventory", name: "Inventory / Stock", href: "/dashboard/stock", permissions: ["stock"] },
   { key: "manufacturing", name: "Manufacturing", href: "/dashboard/manufacturing", permissions: ["manufacturing"], parent: "inventory" },

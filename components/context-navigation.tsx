@@ -10,6 +10,7 @@ const labels: Record<string, string> = {
   lots: "Lot receipts",
   sales: "Sales",
   stock: "Stock",
+  "farm-services": "Farm Services",
   manufacturing: "Manufacturing",
   orders: "Production orders",
   recipes: "Recipes / BoM",
