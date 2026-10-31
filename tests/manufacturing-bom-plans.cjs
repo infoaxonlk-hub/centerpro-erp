@@ -9,3 +9,16 @@ const pack=scale({...b,finished_product_id:'packed',finished_quantity:2,finished
 assert.equal(pack.inputs[0].quantity,20);assert.equal(pack.inputs[1].quantity,4);assert.equal(pack.outputs[0].quantity,4);
 assert.throws(()=>scale(b,0));assert.throws(()=>scale({...b,finished_product_id:null},12));
 console.log('PASS milling/packing BoM scaling, planned operations and by-products, destination retention, no template lots and exact KG/G normalization.');
+
+const{productionFromInputKg,millingInputComponents}=m.exports;
+b.process_type='milling';
+assert.equal(productionFromInputKg(b,'raw',20),12,'20 KG paddy at 10:6 BoM yield produces 12 KG rice');
+assert.equal(productionFromInputKg({...b,manufacturing_bom_components:[{...b.manufacturing_bom_components[0],quantity:10000,unit:'G'}]},'raw',20),12);
+assert.equal(productionFromInputKg(b,'raw',.123),.074,'Output respects existing 3 decimal precision');
+for(const value of [0,-1,NaN,Infinity])assert.throws(()=>productionFromInputKg(b,'raw',value));
+assert.throws(()=>productionFromInputKg(b,'missing',20));assert.throws(()=>productionFromInputKg({...b,process_type:'packing'},'raw',20));
+assert.throws(()=>productionFromInputKg({...b,finished_quantity:0},'raw',20));
+const second={...b.manufacturing_bom_components[0],id:'second',quantity:5,sequence:2};
+assert.equal(productionFromInputKg({...b,manufacturing_bom_components:[...b.manufacturing_bom_components,second]},'second',20),24,'Use the selected raw component ratio, not a sum of components');
+assert.equal(millingInputComponents({...b,manufacturing_bom_components:[second,{...second,id:'bags',input_kind:'packaging',unit:'UNIT'}]}).length,1);
+console.log('PASS input-first milling yield calculation, KG/G conversion, precision, multiple raw components and invalid input protection; packing unchanged.');

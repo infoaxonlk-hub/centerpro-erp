@@ -11,6 +11,17 @@ export type BomActualInput={bom_component_key:string;product_id:string;quality_i
 export type BomActualOutput={bom_output_key:string;product_id:string;quality_id:string;unit:string;planned_quantity:number;quantity:number;sack_count:number;destination_center_id:string;destination_location_id:string;cost_share_percent:number};
 export type BomActualOperation={bom_operation_key:string;name:string;planned_quantity:number;actual_quantity:number;cost_basis:BomOperation['cost_basis'];cost_rate:number;line_cost?:number|string};
 export const roundBom=(n:number,places=3)=>Math.round(n*10**places)/10**places;
+export function millingInputComponents(bom:ManufacturingBom|null|undefined){
+ return (bom?.manufacturing_bom_components??[]).filter(c=>c.input_kind==='raw_material'&&['KG','G'].includes(c.unit)&&Number.isFinite(Number(c.quantity))&&Number(c.quantity)>0).sort((a,b)=>(a.sequence??0)-(b.sequence??0)||a.id.localeCompare(b.id));
+}
+export function productionFromInputKg(bom:ManufacturingBom,componentId:string,inputKg:number){
+ const component=millingInputComponents(bom).find(c=>c.id===componentId);
+ if(bom.process_type!=='milling'||!component||!Number.isFinite(inputKg)||inputKg<=0||!Number.isFinite(Number(bom.finished_quantity))||Number(bom.finished_quantity)<=0)throw new Error('Choose a milling BoM, a weight-based raw component and a positive input quantity.');
+ const baseKg=Number(component.quantity)*(component.unit==='G'?.001:1);
+ const result=roundBom(inputKg/baseKg*Number(bom.finished_quantity));
+ if(!Number.isFinite(result)||result<=0)throw new Error('Input quantity is too small or too large for this BoM.');
+ return result;
+}
 export function scaleManufacturingBom(bom:ManufacturingBom,quantity:number){
  if(!bom.finished_product_id||!bom.finished_quality_id||!bom.production_center_id||!bom.source_location_id||!bom.destination_center_id||!bom.destination_location_id||!Number.isFinite(quantity)||quantity<=0||Number(bom.finished_quantity)<=0)throw new Error('Choose a complete BoM and a positive production quantity.');
  const factor=quantity/Number(bom.finished_quantity);

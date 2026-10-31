@@ -14,7 +14,7 @@ const lots=[{center_id:'c',location_id:'l',product_id:'raw',quality_id:'q-raw',l
  const props={initialProcess:'milling',products,centers,lots,boms:[bom,{...bom,id:'inactive',is_active:false},{...bom,id:'other',finished_product_id:'bran'}],suppliers:[],expenses:[]};
  const render=()=>elements(hooks.render(C,props));
  const field=(label)=>{const e=render().find(e=>e.type==='label'&&text(e).startsWith(label));assert.ok(e,label);return elements(e).find(x=>x.type==='input'||x.type==='select')};
- field('Finished product').props.onChange({target:{value:'rice'}});field('Quantity to produce').props.onChange({target:{value:'12'}});
+ field('Finished product').props.onChange({target:{value:'rice'}});field('Paddy / input quantity').props.onChange({target:{value:'20'}});assert.equal(field('Quantity to produce').props.value,'12');
  assert.equal(elements(field('Matching active BoM')).filter(e=>e.type==='option'&&e.props.value).length,1);
  render().find(e=>e.type==='button'&&text(e).includes('Load / replace')).props.onClick();
  assert.equal(render().find(e=>e.props['aria-label']==='Actual consumption component').props.value,20);
@@ -30,6 +30,8 @@ const lots=[{center_id:'c',location_id:'l',product_id:'raw',quality_id:'q-raw',l
  assert.ok(render().some(e=>e.props.className==='bom-stock-balance shortage'&&text(e).includes('2 KG short')));
  render().find(e=>e.props['aria-label']==='Actual consumption component').props.onChange({target:{value:'22'}});
  assert.ok(render().some(e=>text(e).includes('Destination')&&text(e).includes('By-product store')));
+ // Changing input KG updates the target but leaves actual entries intact until explicit reload.
+ field('Paddy / input quantity').props.onChange({target:{value:'30'}});assert.equal(field('Quantity to produce').props.value,'18');assert.equal(render().find(e=>e.props['aria-label']==='Actual consumption component').props.value,22);
  // Rerenders / a changed target must not silently replace actual values.
  field('Quantity to produce').props.onChange({target:{value:'18'}});await render().find(e=>e.type==='button'&&text(e)==='Save draft').props.onClick();assert.equal(calls.length,0);
  assert.equal(render().find(e=>e.props['aria-label']==='Actual consumption component').props.value,22);field('Quantity to produce').props.onChange({target:{value:'12'}});
@@ -39,6 +41,12 @@ const lots=[{center_id:'c',location_id:'l',product_id:'raw',quality_id:'q-raw',l
  assert.ok(render().some(e=>e.props.role==='alert'&&text(e).includes('Failed to fetch')),'Completion error must remain visible beside the action buttons');
  await render().find(e=>e.type==='button'&&text(e)==='Complete production').props.onClick();
  assert.equal(new Set(calls.filter(c=>c.name==='save_bom_manufacturing_order').map(c=>c.args.p_order_id)).size,1);assert.equal(completions,2);assert.ok(paths.at(-1).startsWith('/dashboard/manufacturing/orders/'));
+ const ph=harness(),PC=load('app/dashboard/manufacturing/bom-order-form.tsx',ph,{'next/navigation':{useRouter:()=>({})}}).BomManufacturingOrderForm;
+ assert.ok(!elements(ph.render(PC,{...props,initialProcess:'packing'})).some(e=>e.type==='label'&&text(e).startsWith('Paddy / input quantity')),'Packing retains the existing quantity-first UI');
+ const rh=harness(),RC=load('app/dashboard/manufacturing/bom-order-form.tsx',rh,{'next/navigation':{useRouter:()=>({})}}).BomManufacturingOrderForm;
+ const restored=elements(rh.render(RC,{...props,initialOrder:{id:'saved',bom_snapshot:bom,production_quantity:12,process_type:'milling',method:'own',order_date:'2026-10-31',notes:'Saved draft',operation_expense_id:null,external_expense_id:null,manufacturing_order_inputs:[{bom_component_key:'component',product_id:'raw',quality_id:'q-raw',input_kind:'raw_material',unit_of_measure:'KG',planned_quantity:20,quantity:22,source_selection:'lot',lot_id:'actual',sack_count:3}],manufacturing_order_outputs:[],manufacturing_order_operations:[]}}));
+ assert.equal(restored.find(e=>e.props['aria-label']==='Actual consumption component').props.value,22,'Opening an existing draft never recalculates actual consumption');
+ assert.equal(elements(restored.find(e=>e.type==='label'&&text(e).startsWith('Quantity to produce'))).find(e=>e.type==='input').props.value,'12');
  // The editor has planned components/operations/destinations, never source lots.
  const eh=harness(),editorCalls=[];
  const{ManufacturingBomManager:E}=load('app/dashboard/manufacturing/recipes/bom-editor.tsx',eh,{'next/navigation':{useRouter:()=>({refresh(){}})},'@/lib/supabase/client':{createClient:()=>({rpc:async(name,args)=>{editorCalls.push({name,args});return{data:bom}}})}});

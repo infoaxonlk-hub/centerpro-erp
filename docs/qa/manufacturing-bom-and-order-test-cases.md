@@ -26,3 +26,13 @@ Apply 057 after 056 in a test database. Use an active Manufacturing/Inventory bu
 | Existing behavior | Exercise manual legacy manufacturing, purchases with multiple weighings/one product lot, sales/offline retry, stock transfers, sacks and P&L. | Existing supported workflows still work without duplicate tables, receipts, expenses or valuations. |
 
 Automated tests use isolated PostgreSQL/hook fixtures. Real browser and authenticated Preview QA is separate and must be run after migration.
+
+
+### Milling entry from paddy/input KG
+
+- Configure a milling BoM with 10 KG raw paddy and 6 KG finished rice. Select that finished product/BoM on a new Manufacturing Order. Enter 20 in Paddy / input quantity (KG): Quantity to produce must become 12. Click Load / replace BoM plan: existing scaling creates 20 KG planned paddy, 12 KG rice, and the proportionally scaled by-products/operations.
+- Change input to 30 KG after recording actual consumption, source lot and actual operation values: target becomes 18 but actual entries stay unchanged; saving requires explicitly reloading the plan, with the existing replacement confirmation.
+- With multiple weight-based raw components, select the intended component and verify its own ratio is used. Packaging must never be a yield basis. A 10000 G component must behave like 10 KG.
+- Clear input, enter zero/negative values, and select a BoM without an eligible component: no invalid/Infinity output should be applied. Existing manual output entry remains available.
+- Reopen a saved draft: production quantity, actual inputs, lots, sacks, outputs and costs stay unchanged. Packing orders retain their existing quantity-first workflow.
+- No database migration or change to confirmation, stock posting or costing is required for this entry convenience. Actual production remains governed by the existing server checks.
