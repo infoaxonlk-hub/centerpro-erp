@@ -48,6 +48,7 @@ const labels: Record<string, string> = {
 };
 
 function parentHref(pathname: string) {
+  if (pathname.startsWith("/dashboard/farm-services/")) return "/dashboard/farm-services";
   if (pathname.startsWith("/dashboard/manufacturing/")) return "/dashboard/manufacturing";
   if (pathname.startsWith("/dashboard/labor/sessions/")) return "/dashboard/labor/sessions";
   if (/^\/dashboard\/purchases\/[^/]+$/.test(pathname)) return "/dashboard/purchases";
@@ -62,6 +63,7 @@ function parentHref(pathname: string) {
 
 function currentTitle(parts: string[]) {
   const last = parts.at(-1) ?? "dashboard";
+  if(parts.includes('farm-services'))return last==='new'?'New Bill':last==='accounts'?'Customer Accounts':last==='seasons'?'Seasons':last==='products'?'Service Products':last==='farm-services'?'Farm Services':'Service Bill';
   if (parts.includes("manufacturing") && parts.includes("orders")) return last==="new"?"New production order":"Production order";
   if (last === "new") return parts.includes("sales") ? "New Sale" : "New Purchase";
   if (parts.includes("labor") && parts.includes("sessions") && parts.length>3) return "Session details";

@@ -13,3 +13,8 @@ export function farmTotal(quantity:string|number,rate:string|number,adjustments:
 }
 export const farmMoney=(n:number)=>new Intl.NumberFormat('en-LK',{style:'currency',currency:'LKR'}).format(n);
 export const farmStorageKey=(organization:string,user:string)=>`centerpro:farm:${organization}:${user}`;
+export function farmNetworkFailure(error:unknown){
+ const value=error as {code?:string;message?:string};
+ if(value?.code&&['P0001','42501','22023','23505','23514','PGRST301','PGRST302'].includes(value.code))return false;
+ return /failed to fetch|network|timeout|load failed|gateway|502|503|504/i.test(value?.message??'');
+}

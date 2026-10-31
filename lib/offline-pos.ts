@@ -2,7 +2,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type OfflinePosKind = "sale" | "purchase";
+export type OfflinePosKind = "sale" | "purchase" | "farm_service";
 export type OfflinePosTask = {
   requestId: string;
   scopeId: string;
@@ -39,10 +39,12 @@ async function withStore<T>(store: string, mode: IDBTransactionMode, run: (objec
   return new Promise((resolve, reject) => {
     const tx = db.transaction(store, mode);
     const request = run(tx.objectStore(store));
-    request.onsuccess = () => resolve(request.result);
+    let value:T;
+    request.onsuccess = () => { value=request.result; };
     request.onerror = () => reject(request.error ?? new Error("Offline storage request failed."));
-    tx.oncomplete = () => db.close();
+    tx.oncomplete = () => { db.close(); resolve(value); };
     tx.onerror = () => { db.close(); reject(tx.error ?? new Error("Offline storage transaction failed.")); };
+    tx.onabort = () => { db.close(); reject(tx.error ?? new Error("Offline storage transaction was aborted.")); };
   });
 }
 
@@ -83,7 +85,16 @@ export async function syncPosTasks(client: SupabaseClient, scopeId: string, kind
     let needsCorrection = false;
     try {
       const p = task.payload;
-      const result = task.kind === "sale"
+      if(task.kind==='farm_service'&&p.editing)continue;
+      if(task.kind==='farm_service'){
+        const {data:{user},error:authError}=await client.auth.getUser();
+        if(authError||!user||user.id!==p.userId||task.scopeId!==`centerpro:farm:${p.organizationId}:${user.id}`)throw new Error('Sign in to the original business account before syncing these service bills.');
+        const access=await client.rpc('current_business_access');
+        if(access.error||!access.data||access.data.organizationId!==p.organizationId||!access.data.operational||!access.data.enabledModules?.includes('farm_services')||!(access.data.userRole==='super_admin'||access.data.userPermissions?.includes('farm_services')))throw new Error('Farm Services access could not be verified. Restore business/module access before syncing.');
+      }
+      const result = task.kind === "farm_service"
+        ? await client.rpc('confirm_farm_sale',{p_request:task.requestId,p_center:p.centerId,p_data:p.data})
+        : task.kind === "sale"
         ? await client.rpc("confirm_center_sale_with_labor", {
             p_request: task.requestId,
             p_center: p.centerId,
@@ -108,9 +119,10 @@ export async function syncPosTasks(client: SupabaseClient, scopeId: string, kind
             use_cash_farmer: Boolean(p.useCashFarmer),
           });
       if (result.error) { needsCorrection = !/failed to fetch|network|timeout|load failed|gateway|502|503|504/i.test(result.error.message); throw new Error(result.error.message); }
-      const row = task.kind === "sale" ? null : Array.isArray(result.data) ? result.data[0] : result.data;
-      const id = task.kind === "sale" ? String(result.data) : String((row as { purchase_id?: string } | null)?.purchase_id ?? "");
-      if (!id || id === "undefined") throw new Error("Server did not return the posted bill ID.");
+      const row = task.kind !== "purchase" ? null : Array.isArray(result.data) ? result.data[0] : result.data;
+      const id = task.kind !== "purchase" ? String(result.data??'') : String((row as { purchase_id?: string } | null)?.purchase_id ?? "");
+      if (!id || id === "undefined"||id==='null') throw new Error("Server did not return the posted bill ID.");
+      if(task.kind==='farm_service')await savePosDraft(`farm-result:${task.scopeId}:${task.requestId}`,{id,requestId:task.requestId,display:p.display,language:p.language,createdAt:new Date().toISOString()});
       await deletePosTask(task.requestId);
       completed.push({ task, id });
       if(task.kind==="purchase"&&typeof window!=="undefined")window.dispatchEvent(new Event("centerpro-purchase-confirmed"));
