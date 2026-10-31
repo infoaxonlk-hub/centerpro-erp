@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import { AppShell } from "@/components/app-shell";
 import { allPermissions } from "@/lib/access";
 import { requireAuthenticatedProfile, readBusinessAccess,AccessError } from "@/lib/business-access";
-import { moduleEnabled, moduleForPath } from "@/lib/business-modules";
 import { BusinessAccessMonitor } from "@/components/business-access-monitor";
 import { FeedbackHost } from "@/components/feedback";
 import "@/app/module-access.css";
@@ -15,12 +14,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const business = await readBusinessAccess(supabase);
   const path = (await headers()).get("x-centerpro-path") ?? "/dashboard";
   const platformPath = /^\/dashboard\/businesses(\/|$)/.test(path) && profile.role==="super_admin";
-  const safePath = /^\/dashboard\/(account|restricted)(\/|$)/.test(path);
-  if (!platformPath && !safePath) {
-    if (!business.operational) redirect("/dashboard/account");
-    const key = moduleForPath(path);
-    if (key && !moduleEnabled(key,business.enabledModules)) redirect("/dashboard/restricted?module="+key);
-  }
+  // Shared layouts can retain an earlier request path during client navigation.
+  // Page/data guards enforce operational/module access; account and platform pages
+  // must render even when the current business subscription is unavailable.
   const permissions = profile.role==="super_admin" ? [...allPermissions] : [...(profile.permissions ?? [])];
   if (business.enabledModules.includes("manufacturing") && permissions.includes("stock") && !permissions.includes("manufacturing")) permissions.push("manufacturing");
   const isAdmin = ["super_admin","admin"].includes(profile.role);
