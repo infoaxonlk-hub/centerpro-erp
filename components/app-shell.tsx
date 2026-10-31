@@ -7,13 +7,14 @@ import { logout } from "@/app/login/actions";
 import { NotificationBell, type AdminNotification } from "@/components/notification-bell";
 import { SidebarNavigation } from "@/components/sidebar-navigation";
 import { ContextNavigation } from "@/components/context-navigation";
+import { CenterProLogo } from "@/components/centerpro-logo";
 
 export function AppShell({ children, companyName, name, role, permissions, notifications, isAdmin, assignedCenters, enabledModules, demoNotice }: { children: React.ReactNode; companyName?: string; name: string; role: string; permissions: string[]; notifications: AdminNotification[]; isAdmin: boolean; assignedCenters: string[]; enabledModules: string[]; demoNotice?: { endDate: string; message: string } | null }) {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Colombo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const daysLeft = demoNotice ? Math.round((Date.parse(`${demoNotice.endDate}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000) : 0;
   return <AppearanceShell enabledModules={enabledModules} isSuperAdmin={role === "super_admin"} permissions={permissions} isAdmin={isAdmin} companyName={companyName} centerNames={assignedCenters}>
     <aside className="sidebar">
-      <div className="logo"><span>CP</span><div><strong>CenterPro</strong><small>by InfoAxon</small></div></div>
+      <div className="logo centerpro-sidebar-brand"><div className="centerpro-sidebar-logo"><CenterProLogo sizes="(max-width: 1050px) 44px, 184px"/></div><small>by InfoAxon</small></div>
       <SidebarNavigation enabledModules={enabledModules} permissions={permissions} isAdmin={isAdmin} isSuperAdmin={role === "super_admin"} />
       <div className="sidebar-foot"><ReceiptText size={18}/><span>Pilot workspace</span></div>
     </aside>
