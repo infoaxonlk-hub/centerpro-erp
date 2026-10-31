@@ -15,5 +15,16 @@ const Layout=load('app/dashboard/layout.tsx',{'next/navigation':{redirect},'next
  let profile={role:'super_admin',is_active:true},failure=null,revalidations=0;const client={auth:{signInWithPassword:async()=>({data:{user:{id:'signed-user'}},error:failure})},from:()=>({select:()=>({eq:(_key,id)=>{assert.equal(id,'signed-user');return{maybeSingle:async()=>({data:profile,error:null})}}})})};
  const login=load('app/login/actions.ts',{'next/navigation':{redirect},'next/cache':{revalidatePath:()=>revalidations++},'@/lib/supabase/server':{createClient:async()=>client}}).login,form={get:key=>key==='email'?'admin@example.test':'test-password'};
  await assert.rejects(login(form),/REDIRECT \/dashboard\/businesses/);profile={role:'admin',is_active:true};await assert.rejects(login(form),/REDIRECT \/dashboard$/);profile.is_active=false;await assert.rejects(login(form),/inactive/);failure={message:'Wrong password'};await assert.rejects(login(form),/Wrong%20password/);assert.equal(revalidations,2);
- console.log('PASS missing/stale layout path cannot self-redirect account; expired subscription/module guards remain enforced; super admin login opens Businesses; regular and inactive login behavior');
+ const reason=load('lib/business-access-reason.ts',{'./business-modules':modules}).businessAccessMessage;
+ const snapshot={organizationId:'org',businessName:'Store',businessStatus:'active',enabledModules:['dashboard'],operational:false,reason:'subscription',subscription:{status:'active',plan:'Custom',starts_on:'2026-01-01',expires_on:null,trial_ends_on:null}};
+ const now=new Date('2026-10-31T06:00:00Z');
+ assert.match(reason({...snapshot,subscription:{...snapshot.subscription,expires_on:'2026-10-30'}},now),/expired on 2026-10-30/);
+ assert.match(reason({...snapshot,subscription:{...snapshot.subscription,starts_on:'2026-11-01'}},now),/starts on/);
+ assert.match(reason({...snapshot,subscription:{...snapshot.subscription,status:'trialing',trial_ends_on:'2026-10-30'}},now),/trial ended/);
+ assert.match(reason({...snapshot,subscription:{...snapshot.subscription,status:'trialing'}},now),/no end date/);
+ assert.match(reason(snapshot,now),/server has blocked/,'Diagnostics never override database denial for valid-looking dates');
+ assert.match(reason({...snapshot,operational:true},now),/account is active/);
+ let reads=0;const Entry=load('app/dashboard/businesses/own-workspace/page.tsx',{'next/navigation':{redirect},'@/lib/business-access':{...accessMock,requireSuperAdmin:async()=>{if(role!=='super_admin')throw new AccessError(403);return context()},readBusinessAccess:async()=>{reads++;return business()}}}).default;
+ role='super_admin';operational=false;await assert.rejects(Entry(),/REDIRECT \/dashboard\/account/);operational=true;await assert.rejects(Entry(),/REDIRECT \/dashboard$/);assert.equal(reads,2,'Fresh server access check on every workspace entry');role='admin';await assert.rejects(Entry(),/Access denied/);assert.equal(reads,2);
+ console.log('PASS fresh own-workspace entry and subscription date diagnostics; missing/stale layout path cannot self-redirect account; expired subscription/module guards remain enforced; super admin login opens Businesses; regular and inactive login behavior');
 })().catch(e=>{console.error(e);process.exitCode=1});
