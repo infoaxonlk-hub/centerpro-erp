@@ -52,6 +52,9 @@ await actor(admin);
 const season=await scalar("select save_farm_season(null,'Maha 2026/27',true,true) value");
 const service=await scalar("select save_farm_service(null,'PLOUGH','Ploughing','Acre',12000,true) value");
 const hour=await scalar("select save_farm_service(null,'HIRE','Tractor hire','Hour',3500,true) value");
+const kg=await scalar("select save_farm_service(null,'KG-SERVICE','Drying','KG',25,true) value");
+assert.equal(await scalar("select name value from business_module_catalog where key='farm_services'"),'Services');
+await assert.rejects(db.query("select save_farm_service(null,'BADUNIT','Invalid','INVALID',1,true)"),/unit required/);
 const customer=await scalar("select create_farm_customer($1,'Farmer','0771234567','Village') value",[center]);
 const base={customer_id:customer,season_id:season,service_id:service,quantity:'2.5',rate:'12000',payment:'credit',initial_paid:'0',adjustments:[]};
 async function sale(data=base,request=randomUUID(),c=center){return scalar('select confirm_farm_sale($1,$2,$3::jsonb) value',[request,c,JSON.stringify(data)]);}
@@ -108,7 +111,15 @@ await db.query("select set_config('test.user','',false)");await db.query("update
 assert.equal(Number(await scalar('select count(*) value from sales_invoices where customer_id=$1',[customer]))>0,true);
 await actor(admin);await db.query("select save_farm_service($1,'PLOUGH','New label','Hour',9000,true)",[service]);
 assert.equal(await scalar('select unit value from sales_order_lines where sales_order_id=$1',[first]),'Acre');assert.equal(await scalar('select product_name value from sales_order_lines where sales_order_id=$1',[first]),'Ploughing');assert.equal(Number(await scalar('select unit_price value from sales_order_lines where sales_order_id=$1',[first])),12000);
+const kgRequest=randomUUID(),kgSale=await sale({...base,service_id:kg,quantity:'12.345',rate:'25',payment:'cash'},kgRequest);
+assert.equal(await sale({...base,service_id:kg},kgRequest),kgSale);
+assert.equal(Number(await scalar('select total_amount value from sales_orders where id=$1',[kgSale])),308.63);
+assert.equal(await scalar('select unit value from sales_order_lines where sales_order_id=$1',[kgSale]),'KG');
+assert.equal(Number(await scalar('select count(*) value from sales_payments where sales_order_id=$1',[kgSale])),1);
+assert.equal(Number(await scalar('select count(*) value from stock_movements where reference_id=$1',[kgSale])),0);
+await db.query("select save_farm_service($1,'KG-SERVICE','Drying','Hour',30,true)",[kg]);
+assert.equal(await scalar('select unit value from sales_order_lines where sales_order_id=$1',[kgSale]),'KG','Historical unit stays immutable after product edit');
 await db.query("select save_farm_season($1,'Archived Maha',false,false)",[season]);assert.equal(await scalar('select season_name value from sales_orders where id=$1',[first]),'Maha 2026/27');await assert.rejects(sale(),/active season/);assert.equal(await sale(base,request),first);
 await db.exec('reset role');await db.query("select set_config('test.user','',false)");await db.query("update organizations set business_status='suspended' where id=$1",[org]);await actor(worker);await assert.rejects(sale(),/suspended|operational|subscription|access/i);
 if(process.env.FARM_TEST_MAIN_BASELINE==='1'){await db.exec('reset role');assert.equal(Number(await scalar('select coalesce(sum(cogs_value),0) value from sales_order_lines where sales_order_id in ($1,$2)',[first,second])),0);}
-await db.close();console.log('PASS Farm Services PostgreSQL: shared invoices/receivables, decimal totals, adjustments, initial/later payments, bank/cash once, credit no cash, no inventory, retry, cancellation, tenant/module/role boundaries and farm-only operation.');
+await db.close();console.log('PASS Services PostgreSQL: KG create/edit, decimal billing and historical unit preservation; shared invoices/receivables, decimal totals, adjustments, initial/later payments, bank/cash once, credit no cash, no inventory, retry, cancellation, tenant/module/role boundaries and farm-only operation.');

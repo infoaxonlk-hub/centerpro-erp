@@ -3,7 +3,7 @@ import { permissionsForModules } from "@/lib/business-modules";
 
 type Administrator = { id:string;full_name:string;email:string;role?:string;is_active:boolean;permissions?:string[] };
 const permissionLabels:Record<string,string>={
- dashboard:"Dashboard",purchases:"Purchases",sales:"Sales",stock:"Inventory / Stock",stock_adjustment:"Stock adjustments",manufacturing:"Manufacturing",farm_services:"Farm Services",farm_services_manage:"Manage service products",
+ dashboard:"Dashboard",purchases:"Purchases",sales:"Sales",stock:"Inventory / Stock",stock_adjustment:"Stock adjustments",manufacturing:"Manufacturing",farm_services:"Services",farm_services_manage:"Manage service products",
  labor:"Labor & Sessions",cash:"Cash, bank and expenses",payment_reports:"Payment reports",centers:"Centers & Locations",
  masters:"Products & Suppliers",product_create:"Create products",product_edit:"Edit products",users:"Users & Access",audit:"Audit Log",
 };

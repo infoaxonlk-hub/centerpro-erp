@@ -90,7 +90,7 @@ export async function syncPosTasks(client: SupabaseClient, scopeId: string, kind
         const {data:{user},error:authError}=await client.auth.getUser();
         if(authError||!user||user.id!==p.userId||task.scopeId!==`centerpro:farm:${p.organizationId}:${user.id}`)throw new Error('Sign in to the original business account before syncing these service bills.');
         const access=await client.rpc('current_business_access');
-        if(access.error||!access.data||access.data.organizationId!==p.organizationId||!access.data.operational||!access.data.enabledModules?.includes('farm_services')||!(access.data.userRole==='super_admin'||access.data.userPermissions?.includes('farm_services')))throw new Error('Farm Services access could not be verified. Restore business/module access before syncing.');
+        if(access.error||!access.data||access.data.organizationId!==p.organizationId||!access.data.operational||!access.data.enabledModules?.includes('farm_services')||!(access.data.userRole==='super_admin'||access.data.userPermissions?.includes('farm_services')))throw new Error('Services access could not be verified. Restore business/module access before syncing.');
       }
       const result = task.kind === "farm_service"
         ? await client.rpc('confirm_farm_sale',{p_request:task.requestId,p_center:p.centerId,p_data:p.data})

@@ -79,7 +79,7 @@ export const sections: NavSection[] = [
         { href: "/dashboard/stock/movements", label: "Product movements", permission: "stock" },
         { href: "/dashboard/stock/scrap", label: "Scrap stock", centerUserOrStock: true },
       ] },
-      {href:"/dashboard/farm-services",label:"Farm Services",permission:"farm_services",icon:Building2,children:[{href:"/dashboard/farm-services/new",label:"New Bill"},{href:"/dashboard/farm-services",label:"Service Orders"},{href:"/dashboard/farm-services/products",label:"Service Products"},{href:"/dashboard/farm-services/seasons",label:"Seasons"},{href:"/dashboard/farm-services/accounts",label:"Customer Accounts"}]},
+      {href:"/dashboard/farm-services",label:"Services",permission:"farm_services",icon:Building2,children:[{href:"/dashboard/farm-services/new",label:"New Bill"},{href:"/dashboard/farm-services",label:"Service Orders"},{href:"/dashboard/farm-services/products",label:"Service Products"},{href:"/dashboard/farm-services/seasons",label:"Seasons"},{href:"/dashboard/farm-services/accounts",label:"Customer Accounts"}]},
       { href: "/dashboard/labor", label: "Labor & Sessions", permission: "labor", icon: UsersRound, children: [{href:"/dashboard/labor/laborers",label:"Laborers"},{href:"/dashboard/labor/sessions",label:"Sessions"}] },
       { href: "/dashboard/manufacturing", label: "Manufacturing", permission: "manufacturing", icon: Factory, children: [
         { href: "/dashboard/manufacturing", label: "Production orders", permission: "manufacturing" },

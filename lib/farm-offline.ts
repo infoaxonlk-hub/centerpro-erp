@@ -34,7 +34,7 @@ export async function loadFarmOfflineOptions():Promise<FarmBillFormProps>{
  if(navigator.onLine){
   const {data:{user},error}=await client.auth.getUser();const access=await client.rpc('current_business_access');
   if(error||!user||user.id!==session.user.id||access.error)throw new Error('Access verification is unavailable. Reconnect and retry.');
-  if(access.data?.organizationId!==org||!access.data.operational||!access.data.enabledModules?.includes('farm_services')||!(access.data.userRole==='super_admin'||access.data.userPermissions?.includes('farm_services'))){await clearPosDraft(key);localStorage.removeItem('centerpro:farm:active:'+session.user.id);throw new Error('Farm Services is no longer available to this account.');}
+  if(access.data?.organizationId!==org||!access.data.operational||!access.data.enabledModules?.includes('farm_services')||!(access.data.userRole==='super_admin'||access.data.userPermissions?.includes('farm_services'))){await clearPosDraft(key);localStorage.removeItem('centerpro:farm:active:'+session.user.id);throw new Error('Services is no longer available to this account.');}
  }
  return snapshot.options;
 }

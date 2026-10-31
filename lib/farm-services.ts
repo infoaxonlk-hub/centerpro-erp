@@ -1,6 +1,6 @@
 export type FarmAdjustment={kind:'charge'|'deduction';description:string;amount:string|number};
 export type FarmSeason={id:string;name:string;is_active:boolean;is_default:boolean};
-export type FarmService={id:string;code:string;name:string;unit_of_measure:'Acre'|'Hour';default_sales_price:number|string;is_active:boolean};
+export type FarmService={id:string;code:string;name:string;unit_of_measure:'Acre'|'Hour'|'KG';default_sales_price:number|string;is_active:boolean};
 export function farmTotal(quantity:string|number,rate:string|number,adjustments:FarmAdjustment[]){
  const finite=(v:string|number,decimals:number)=>{const n=Number(v);if(String(v).trim()===''||!Number.isFinite(n)||n<0||n>=1e9||Math.abs(n*10**decimals-Math.round(n*10**decimals))>1e-5)throw new Error('Enter valid quantities (3 decimals) and amounts (2 decimals).');return n;};
  const q=finite(quantity,3),r=finite(rate,2);if(q<=0)throw new Error('Quantity must be positive.');
