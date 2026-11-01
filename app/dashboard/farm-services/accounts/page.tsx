@@ -1,3 +1,4 @@
+import {LegalMasterLink} from '@/components/legal-master-link';
 import {requirePermission} from '@/lib/access';
 import {readAll} from '@/lib/read-all';
 import {CreditLedger,type CreditRow} from '@/components/credit-ledger';
@@ -11,5 +12,5 @@ export default async function Page(){
  readAll<{id:string;order_source:string}>(s,'sales_orders','id,order_source',profile.organization_id),creditBanks(s)]);
  const originals=new Map(receivables.filter(r=>!r.is_void).map(r=>[r.sales_order_id,Number(r.original_amount)])),farmIds=new Set(orders.filter(o=>o.order_source==='farm_services').map(o=>o.id));
  const rows:CreditRow[]=invoices.filter(i=>i.status!=='cancelled'&&originals.has(i.sales_order_id)).map(i=>({id:i.id,customerId:i.customer_id,billId:i.sales_order_id,number:i.invoice_number,date:i.created_at,center:[i.centers?.code,i.centers?.name].filter(Boolean).join(' / '),party:i.customers?.name??'Customer',phone:i.customers?.phone??'',total:Number(i.total_amount),original:originals.get(i.sales_order_id)!,outstanding:Number(i.outstanding_amount),status:i.status,orderSource:farmIds.has(i.sales_order_id)?'farm_services':'stock'}));
- return <><p className="farm-account-note">Shared customer receivables: normal credit sales and Services bills are included once. Balances below cover all matching bills, not just one service.</p><CreditLedger key={profile.organization_id+":"+profile.id} type="receivable" rows={rows} banks={banks} farmScope={profile.organization_id+':'+profile.id}/></>;
+ return <><LegalMasterLink href="/dashboard/farm-services/customers"/><p className="farm-account-note">Shared customer receivables: normal credit sales and Services bills are included once. Balances below cover all matching bills, not just one service.</p><CreditLedger key={profile.organization_id+":"+profile.id} type="receivable" rows={rows} banks={banks} farmScope={profile.organization_id+':'+profile.id}/></>;
 }
