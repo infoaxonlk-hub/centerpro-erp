@@ -26,7 +26,7 @@ alter default privileges in schema public grant all on tables to service_role;
 alter default privileges in schema public grant usage,select on sequences to service_role;
 `);
 for (const name of (await readdir(new URL("../supabase/migrations/",import.meta.url)))
-  .filter(name=>name.endsWith(".sql")&&!name.includes("verify")&&!/^06[23]_/.test(name)).sort()) {
+  .filter(name=>name.endsWith(".sql")&&!name.includes("verify")&&!/^06[234]_/.test(name)).sort()) {
   const sql=(await readFile(new URL("../supabase/migrations/"+name,import.meta.url),"utf8"))
     .replace("create extension if not exists pgcrypto;","");
   try { await db.exec(sql); } catch(error) { throw new Error("Migration "+name+": "+error.message); }

@@ -25,7 +25,7 @@ alter default privileges in schema public grant all on tables to service_role;
 alter default privileges in schema public grant usage,select on sequences to service_role;
 `);
 const legacyOrg=randomUUID(),legacyActor=randomUUID(),legacyCenter=randomUUID(),legacyCustomer=randomUUID(),legacySupplier=randomUUID(),legacySale=randomUUID(),legacyPurchase=randomUUID();
-const newKeys=['registered_name','trading_name','legal_email','business_registration_number','tin','payment_terms_days','payment_terms_note','legal_revision','party_classification'];
+const newKeys=['registered_name','trading_name','legal_email','business_registration_number','tin','payment_terms_days','payment_terms_note','legal_revision','party_classification','nic'];
 async function legacyState(){const result={};for(const table of ['organizations','customers','suppliers','sales_orders','sales_invoices','customer_receivables','purchase_orders','supplier_payables'])result[table]=(await db.query(`select to_jsonb(t)-$1::text[] row from ${table} t order by id`,[newKeys])).rows;return result;}
 let beforeMigration;
 for (const name of (await readdir(new URL("../supabase/migrations/",import.meta.url)))
@@ -43,6 +43,7 @@ for (const name of (await readdir(new URL("../supabase/migrations/",import.meta.
    await db.query("insert into supplier_payables(organization_id,center_id,supplier_id,purchase_order_id,original_amount,outstanding_amount,created_by) values($1,$2,$3,$4,200,200,$5)",[legacyOrg,legacyCenter,legacySupplier,legacyPurchase,legacyActor]);
    beforeMigration=await legacyState();
   }
+  if(name.startsWith('064_')){await db.exec('alter table customers add column nic text');await db.query("update customers set nic='  legacy-value  ' where id=$1",[legacyCustomer]);}
   const sql=(await readFile(new URL("../supabase/migrations/"+name,import.meta.url),"utf8"))
     .replace("create extension if not exists pgcrypto;","");
   try { await db.exec(sql); } catch(error) { throw new Error("Migration "+name+": "+error.message); }
@@ -129,9 +130,28 @@ const supplierData=await scalar('select read_party_master($1,$2) value',['suppli
 await scalar('select save_party_master($1,$2,$3::jsonb) value',['supplier',supplier,JSON.stringify({...supplierData,phone:'0111234',nic_or_registration:'NIC1',notes:'Note',bank_details:'Private bank',party_classification:'company'})]);
 assert.equal((await scalar('select read_party_master($1,$2) value',['supplier',supplier])).bank_details,'Private bank');
 assert.ok(!JSON.stringify(await snapshot('supplier',supplier)).includes('Private bank'),'private supplier basic data must not enter snapshots');
+// NIC is detail-only optional text. New/changed values validate atomically.
+async function party(id=customer){return scalar("select read_party_master('customer',$1) value",[id]);}
+async function saveNic(nic){const row=await party();return scalar("select save_party_master('customer',$1,$2::jsonb) value",[customer,JSON.stringify({...row,nic})]);}
+assert.equal((await party()).nic,null,'new customer NIC is optional and never copied from a supplier');
+for(const [input,expected] of [[' 001234567v ','001234567V'],['\t001234567x\n','001234567X'],['\u00a0001234567v\ufeff','001234567V'],['001234567890','001234567890'],[null,null],['   ',null]]){
+ await saveNic(input);assert.equal((await party()).nic,expected,'fresh master RPC read retains normalized text and leading zeros');
+}
+await saveNic('001234567X');
+for(const invalid of ['123','0123456789','0123456789012','123456789A','123456789Vextra',200012345678,{value:'001234567X'}]){
+ await assert.rejects(saveNic(invalid),/party.invalid_nic/);assert.equal((await party()).nic,'001234567X','invalid saves roll back the whole master');
+}
+assert.ok(!Object.hasOwn((await snapshot('customer',customer)).party,'nic'),'snapshots and receipts do not acquire NIC');
+const nicAudit=await scalar("select jsonb_agg(after_data) value from audit_logs where entity_id=$1",[customer]);assert.ok(!JSON.stringify(nicAudit).includes('001234567X'),'audit payloads omit NIC');
+await db.exec('reset role');await db.query("select set_config('test.user','',false)");
+assert.equal((await db.query('select nic from customers where id=$1',[legacyCustomer])).rows[0].nic,'  legacy-value  ','064 does not modify legacy values');
+await db.query("update profiles set permissions=array['sales'] where id=$1",[legacyActor]);await actor(legacyActor);
+const legacy=await party(legacyCustomer);await scalar("select save_party_master('customer',$1,$2::jsonb) value",[legacyCustomer,JSON.stringify({...legacy,name:'Legacy unchanged NIC'})]);assert.equal((await party(legacyCustomer)).nic,'  legacy-value  ','unrelated saves preserve invalid legacy text exactly');
+await actor(admin);
 await actor(worker);await assert.rejects(scalar('select save_party_master($1,$2,$3::jsonb) value',['customer',customer,JSON.stringify(unified)]),/legal.access_denied/);
+await assert.rejects(scalar("select save_party_master('customer',$1,$2::jsonb) value",[customer,JSON.stringify({...unified,nic:'001234567V'})]),/legal.access_denied/);
 await assert.rejects(scalar('select read_party_master($1,$2) value',['customer',hiddenCustomer]),/legal.access_denied/);
 await actor(outsider);await assert.rejects(scalar('select read_party_master($1,$2) value',['supplier',supplier]),/legal.access_denied/);
 await db.exec('reset role');await db.query("select set_config('test.user','',false)");
 await db.query("update business_module_entitlements set enabled=false where organization_id=$1 and module_key in ('sales','farm_services')",[org]);await actor(admin);await assert.rejects(read('customer',customer),/legal.access_denied/);
-await db.close();console.log('PASS isolated replay through 062; unified basic/legal save, classification, tenant/center/module/edit isolation, VAT boundaries, address defaults, rollback, stale revisions, frozen snapshots and unchanged posting counts.');
+await db.close();console.log('PASS replay through 064; NIC normalization, leading zeros, optional blank, legacy preservation, atomic invalid-value rollback, private snapshots/audit, unified saves and tenant/center/permission checks.');
