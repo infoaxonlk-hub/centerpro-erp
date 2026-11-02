@@ -1,3 +1,3 @@
-import {PartyDirectoryScreen} from "@/components/party-directory-screen";
-import {LegalMasterLink} from "@/components/legal-master-link";
-export default function Page(){return <><LegalMasterLink href="/dashboard/purchases/suppliers/legal"/><PartyDirectoryScreen kind="supplier"/></>}
+import {PartyDirectoryScreen} from '@/components/party-directory-screen';
+import {partyRecordId,type PartySearch} from '@/lib/party-routes';
+export default async function Page({searchParams}:{searchParams:Promise<PartySearch>}){return <PartyDirectoryScreen kind="supplier" initialId={partyRecordId(await searchParams)}/>;}

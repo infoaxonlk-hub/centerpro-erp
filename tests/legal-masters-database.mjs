@@ -25,7 +25,7 @@ alter default privileges in schema public grant all on tables to service_role;
 alter default privileges in schema public grant usage,select on sequences to service_role;
 `);
 const legacyOrg=randomUUID(),legacyActor=randomUUID(),legacyCenter=randomUUID(),legacyCustomer=randomUUID(),legacySupplier=randomUUID(),legacySale=randomUUID(),legacyPurchase=randomUUID();
-const newKeys=['registered_name','trading_name','legal_email','business_registration_number','tin','payment_terms_days','payment_terms_note','legal_revision'];
+const newKeys=['registered_name','trading_name','legal_email','business_registration_number','tin','payment_terms_days','payment_terms_note','legal_revision','party_classification'];
 async function legacyState(){const result={};for(const table of ['organizations','customers','suppliers','sales_orders','sales_invoices','customer_receivables','purchase_orders','supplier_payables'])result[table]=(await db.query(`select to_jsonb(t)-$1::text[] row from ${table} t order by id`,[newKeys])).rows;return result;}
 let beforeMigration;
 for (const name of (await readdir(new URL("../supabase/migrations/",import.meta.url)))
@@ -117,5 +117,21 @@ await assert.rejects(db.query("insert into legal_addresses(organization_id,custo
 await actor(admin);
 const audit=await scalar("select jsonb_agg(after_data) value from audit_logs where action in ('legal_master_saved','legal_fields_changed')");assert.ok(audit.length>0);assert.ok(!JSON.stringify(audit).includes('VAT-1'));assert.ok(!JSON.stringify(audit).includes('123456789'));assert.ok(!JSON.stringify(audit).includes('Main street'));
 await db.exec('reset role');await db.query("select set_config('test.user','',false)");assert.deepEqual((await db.query('select (select count(*) from stock_movements where organization_id=$1) stock,(select count(*) from sales_orders where organization_id=$1) sales,(select count(*) from purchase_orders where organization_id=$1) purchases,(select count(*) from payments where organization_id=$1) payments',[org])).rows,counts.rows);
+await actor(admin);
+const beforeUnified=await read('customer',customer);
+const unifiedId=await scalar('select save_party_master($1,$2,$3::jsonb,$4) value',['customer',customer,JSON.stringify({...beforeUnified,phone:'0771234',address:'Existing contact address',party_classification:'individual'}),center]);
+assert.equal(unifiedId,customer);
+const unified=await scalar('select read_party_master($1,$2) value',['customer',customer]);
+assert.equal(unified.phone,'0771234');assert.equal(unified.address,'Existing contact address');assert.equal(unified.party_classification,'individual');assert.equal(unified.vat_registrations[0].status,'registered','Individual does not imply a VAT status');
+await assert.rejects(scalar('select save_party_master($1,$2,$3::jsonb) value',['customer',customer,JSON.stringify({...unified,party_classification:'vat_registered',phone:'Should roll back'})]),/check constraint/);
+assert.equal((await scalar('select read_party_master($1,$2) value',['customer',customer])).phone,'0771234');
+const supplierData=await scalar('select read_party_master($1,$2) value',['supplier',supplier]);
+await scalar('select save_party_master($1,$2,$3::jsonb) value',['supplier',supplier,JSON.stringify({...supplierData,phone:'0111234',nic_or_registration:'NIC1',notes:'Note',bank_details:'Private bank',party_classification:'company'})]);
+assert.equal((await scalar('select read_party_master($1,$2) value',['supplier',supplier])).bank_details,'Private bank');
+assert.ok(!JSON.stringify(await snapshot('supplier',supplier)).includes('Private bank'),'private supplier basic data must not enter snapshots');
+await actor(worker);await assert.rejects(scalar('select save_party_master($1,$2,$3::jsonb) value',['customer',customer,JSON.stringify(unified)]),/legal.access_denied/);
+await assert.rejects(scalar('select read_party_master($1,$2) value',['customer',hiddenCustomer]),/legal.access_denied/);
+await actor(outsider);await assert.rejects(scalar('select read_party_master($1,$2) value',['supplier',supplier]),/legal.access_denied/);
+await db.exec('reset role');await db.query("select set_config('test.user','',false)");
 await db.query("update business_module_entitlements set enabled=false where organization_id=$1 and module_key in ('sales','farm_services')",[org]);await actor(admin);await assert.rejects(read('customer',customer),/legal.access_denied/);
-await db.close();console.log('PASS 001–061 isolated replay; tenant/center/module/edit isolation, Services and Sales quick creation, VAT boundaries/overlap, deterministic addresses, atomic rollback, revision conflicts, frozen snapshots, redacted audit and unchanged posting counts.');
+await db.close();console.log('PASS isolated replay through 062; unified basic/legal save, classification, tenant/center/module/edit isolation, VAT boundaries, address defaults, rollback, stale revisions, frozen snapshots and unchanged posting counts.');
