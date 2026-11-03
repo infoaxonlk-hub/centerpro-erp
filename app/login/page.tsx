@@ -13,7 +13,7 @@ export default async function LoginPage({searchParams}:{searchParams:Promise<{er
   <section className="login-panel login-brand" aria-label="CenterPro">
    <div className="login-brand-logo"><CenterProLogo sizes="190px" priority/></div>
    <div className="login-brand-copy"><span className="login-eyebrow">BUILT FOR YOUR BUSINESS</span><h1>One workspace.<br/>Your entire<br/><span>business.</span></h1><p>Keep your operations connected.<br/>Work with clarity, every day.</p><div className="login-brand-pills"><span><Check size={13} aria-hidden="true"/>Sales &amp; purchases</span><span><Check size={13} aria-hidden="true"/>Stock &amp; finance</span></div></div>
-   <p className="login-brand-provider">CENTERPRO / BY INFOAXON</p><div className="login-orb login-orb-one" aria-hidden="true"/><div className="login-orb login-orb-two" aria-hidden="true"/>
+   <p className="login-brand-provider">CENTERPRO / BIY NFOAXON</p><div className="login-orb login-orb-one" aria-hidden="true"/><div className="login-orb login-orb-two" aria-hidden="true"/>
   </section>
   <section className="login-panel login-form-panel">
    <header className="mobile-login-brand"><div className="mobile-login-logo"><CenterProLogo sizes="170px" priority/></div><span>YOUR BUSINESS, CONNECTED.</span></header>
