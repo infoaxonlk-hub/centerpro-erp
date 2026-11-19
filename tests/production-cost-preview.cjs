@@ -19,3 +19,15 @@ assert.equal(stock([row(1)],lots,'another-center','l')[0].shortage,1);
 assert.equal(stock([{...row(1),source_selection:'legacy'}],lots,'c','l')[0].available,0);
 assert.equal(stock([row(1)],[{...lots[0],inventory_value:undefined}],'c','l')[0].available,10);
 console.log('PASS component stock availability, shortage, repeated rows, location/lot/Legacy scoping and quantity independent of valuation.');
+
+const allocation=moduleBox.exports.productionAllocationPreview;
+const pool=(id,date,quantity=2,value=20)=>({center_id:'c',location_id:'l',product_id:'p',quality_id:'q',lot_id:id,lot_number:id??'Unassigned / Legacy',received_at:date,available_quantity:quantity,inventory_value:value});
+const details=allocation([row(4),row(2)],[pool('new','2026-01-02'),pool('old','2026-01-01'),pool(null,'-infinity',1,3)],'c','l');
+assert.equal(JSON.stringify(details[0].allocations.map(a=>[a.lot_id,a.quantity,a.inventory_value])),JSON.stringify([[null,1,3],['old',2,20],['new',1,10]]));
+assert.equal(details[1].shortage,1);assert.equal(details[1].allocations[0].quantity,1);
+const instant=allocation([row(1)],[pool('a','2026-01-01T00:00:00Z'),pool('b','2026-01-01T01:00:00+02:00')],'c','l');assert.equal(instant[0].allocations[0].lot_id,'b');
+const tie=allocation([row(1)],[pool('b','2026-01-01T00:00:00Z'),pool('a','2026-01-01T02:00:00+02:00')],'c','l');assert.equal(tie[0].allocations[0].lot_id,'a');
+const micros=allocation([row(1)],[pool('a','2026-01-01T00:00:00.000002Z'),pool('b','2026-01-01T00:00:00.000001Z')],'c','l');assert.equal(micros[0].allocations[0].lot_id,'b');
+const missing=allocation([row(1)],[{...pool('a','2026-01-01'),inventory_value:undefined}],'c','l');assert.equal(missing[0].shortage,0);assert.equal(missing[0].allocations[0].inventory_value,null);
+assert.equal(allocation([{...row(1),source_selection:'legacy'}],[pool('a','2026-01-01')],'c','l')[0].shortage,1);
+console.log('PASS read-only allocation splits, Legacy-first, repeated components, shortages, missing value, UTC offsets, equal instants and microsecond FIFO ordering.');
