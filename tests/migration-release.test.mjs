@@ -73,6 +73,10 @@ test('ledger must be an exact checksum and ordinal prefix', () => {
 
 test('target rejects wrong projects, transaction poolers, TLS overrides and absent authorization', () => {
   assert.equal(target(env, true).ssl.rejectUnauthorized, true);
+  const sampleCa = '-----BEGIN CERTIFICATE-----\\nZm9v\\n-----END CERTIFICATE-----';
+  assert.equal(target({ ...env, CENTERPRO_RELEASE_CA_CERT: sampleCa }, true).ssl.ca, sampleCa.replaceAll('\\n', '\n'));
+  assert.equal(target({ ...env, CENTERPRO_RELEASE_CA_CERT: sampleCa.replaceAll('\\n', '\n') }, true).ssl.rejectUnauthorized, true);
+  assert.throws(() => target({ ...env, CENTERPRO_RELEASE_CA_CERT: 'not a certificate' }, true), /Invalid Supabase CA certificate/);
   const readDirect = { ...env, CENTERPRO_RELEASE_DATABASE_URL: `postgres://centerpro_release_verifier@db.${ref}.supabase.co:5432/postgres` };
   const readPooler = { ...env, CENTERPRO_RELEASE_DATABASE_URL: `postgres://centerpro_release_verifier.${ref}@aws.pooler.supabase.com:5432/postgres` };
   assert.equal(target(readDirect).ssl.rejectUnauthorized, true);
