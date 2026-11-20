@@ -23,6 +23,8 @@ The new build command runs a read-only release-ledger check before Next.js **onl
 5. Use a verified TLS direct connection on 5432 or session pooler on 5432. Transaction poolers, URL parameters and disabled certificate validation are rejected. Supply trusted CA configuration through your runtime trust store if necessary, never disable TLS verification. Direct connections may require IPv6. The target reference is a trusted operator allowlist, not an autodetected project name.
 6. Reconcile production history and rehearse recovery before enabling writes. This requires new authorization to inspect production and later to record a baseline. A workflow dispatch alone must not substitute for review.
 
+The read-only verification URL must authenticate as the dedicated `centerpro_release_verifier` Postgres role, never `postgres`. Use `centerpro_release_verifier.<project-ref>` as the username with the Supavisor **session pooler on port 5432**, or `centerpro_release_verifier` with the direct host if IPv6 is available. Give the role `CONNECT`, private-schema `USAGE`, ledger `SELECT`, and an explicit RLS `SELECT` policy for that role only. The application build gate rejects privileged logins. The write runner separately requires the `postgres` role and explicit authorization.
+
 ## Commands and guarantees
 
 Run `npm run db:plan:release` without credentials. This validates local filenames, ordering, classifications and SHA-256 checksums and prints the manifest digest and identities. It does not parse/execute SQL or report remote pending status. Plan output is safe to retain; it contains no database state or secrets.
