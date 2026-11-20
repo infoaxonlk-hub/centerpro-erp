@@ -84,9 +84,11 @@ export function target(env, write = false) {
   let url;
   try { url = new URL(env.CENTERPRO_RELEASE_DATABASE_URL); } catch { throw new Error('Release connection configuration required'); }
   assert(['postgres:', 'postgresql:'].includes(url.protocol), 'Invalid connection protocol');
-  const direct = url.hostname === `db.${ref}.supabase.co` && (url.port === '' || url.port === '5432');
-  const session = url.hostname.endsWith('.pooler.supabase.com') && url.port === '5432' && decodeURIComponent(url.username) === `postgres.${ref}`;
-  assert(direct || session, 'Expected direct or session-pooler target required');
+  const username = decodeURIComponent(url.username);
+  const expectedRole = write ? 'postgres' : 'centerpro_release_verifier';
+  const direct = url.hostname === `db.${ref}.supabase.co` && (url.port === '' || url.port === '5432') && username === expectedRole;
+  const session = url.hostname.endsWith('.pooler.supabase.com') && url.port === '5432' && username === `${expectedRole}.${ref}`;
+  assert(direct || session, 'Expected target and least-privilege database role required');
   assert(!url.search, 'Connection URL parameters forbidden; TLS verification is enforced');
   if (write) assert(env.CENTERPRO_RELEASE_WRITE === 'approved-production-release', 'Write authorization required');
   return { connectionString: url.toString(), ssl: { rejectUnauthorized: true }, connectionTimeoutMillis: 15000, application_name: 'centerpro-release' };

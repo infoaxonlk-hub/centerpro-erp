@@ -73,6 +73,13 @@ test('ledger must be an exact checksum and ordinal prefix', () => {
 
 test('target rejects wrong projects, transaction poolers, TLS overrides and absent authorization', () => {
   assert.equal(target(env, true).ssl.rejectUnauthorized, true);
+  const readDirect = { ...env, CENTERPRO_RELEASE_DATABASE_URL: `postgres://centerpro_release_verifier@db.${ref}.supabase.co:5432/postgres` };
+  const readPooler = { ...env, CENTERPRO_RELEASE_DATABASE_URL: `postgres://centerpro_release_verifier.${ref}@aws.pooler.supabase.com:5432/postgres` };
+  assert.equal(target(readDirect).ssl.rejectUnauthorized, true);
+  assert.equal(target(readPooler).ssl.rejectUnauthorized, true);
+  assert.throws(() => target(env), /least-privilege/);
+  assert.throws(() => target(readDirect, true), /least-privilege/);
+  assert.throws(() => target({ ...env, CENTERPRO_RELEASE_DATABASE_URL: `postgres://postgres.${ref}@aws.pooler.supabase.com:5432/postgres` }), /least-privilege/);
   for (const url of [`postgres://postgres@localhost/db`, `postgres://postgres.${ref}@aws.pooler.supabase.com:6543/db`, env.CENTERPRO_RELEASE_DATABASE_URL + '?sslmode=disable']) {
     assert.throws(() => target({ ...env, CENTERPRO_RELEASE_DATABASE_URL: url }));
   }
