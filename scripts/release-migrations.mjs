@@ -91,7 +91,9 @@ export function target(env, write = false) {
   assert(direct || session, 'Expected target and least-privilege database role required');
   assert(!url.search, 'Connection URL parameters forbidden; TLS verification is enforced');
   if (write) assert(env.CENTERPRO_RELEASE_WRITE === 'approved-production-release', 'Write authorization required');
-  return { connectionString: url.toString(), ssl: { rejectUnauthorized: true }, connectionTimeoutMillis: 15000, application_name: 'centerpro-release' };
+  const cert = env.CENTERPRO_RELEASE_CA_CERT?.replace(/\\n/g, '\n').trim();
+  if (cert) assert(cert.startsWith('-----BEGIN CERTIFICATE-----') && cert.endsWith('-----END CERTIFICATE-----') && cert.length < 12000, 'Invalid Supabase CA certificate');
+  return { connectionString: url.toString(), ssl: { rejectUnauthorized: true, ...(cert ? { ca: cert } : {}) }, connectionTimeoutMillis: 15000, application_name: 'centerpro-release' };
 }
 
 export async function history(db) {
