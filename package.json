@@ -7,7 +7,12 @@
     "dev": "next dev",
     "db:plan:dev": "node scripts/dev-db-setup.mjs --plan",
     "db:setup:dev": "node scripts/dev-db-setup.mjs --apply",
-    "build": "next build",
+    "build": "node scripts/production-build-gate.mjs && next build",
+    "db:plan:release": "node scripts/release-migrations.mjs plan",
+    "db:verify:release": "node scripts/release-migrations.mjs verify",
+    "db:baseline:release": "node scripts/release-migrations.mjs baseline",
+    "db:apply:release": "node scripts/release-migrations.mjs apply",
+    "test:migration-release": "node --test tests/migration-release.test.mjs",
     "start": "next start",
     "lint": "eslint ."
   },

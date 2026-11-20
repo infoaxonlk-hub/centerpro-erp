@@ -1,0 +1,321 @@
+{
+  "version": 1,
+  "checksum": "sha256-utf8-lf",
+  "files": [
+    {
+      "file_name": "001_initial_schema.sql",
+      "sha256": "3412c1a49845e7701e4b2ecba7125248ffeeb6aee822645dd1cbbc07e628ac1f",
+      "kind": "migration"
+    },
+    {
+      "file_name": "002_admin_operations.sql",
+      "sha256": "554f847abcd290f74b62a83ba097eb466efb13facd8afbc856a0affb309d1b08",
+      "kind": "migration"
+    },
+    {
+      "file_name": "003_purchase_entry.sql",
+      "sha256": "9d2c685b6ebcd74cddce9073c5f8f8006d42534ec3d13e0ca3ae3982e62067de",
+      "kind": "migration"
+    },
+    {
+      "file_name": "004_collectpro_branding.sql",
+      "sha256": "e252dfd680091f5abf83610175d7b2a6a25fb1e961fb411467e08744588a4f14",
+      "kind": "migration"
+    },
+    {
+      "file_name": "005_optional_quality_product_pricing.sql",
+      "sha256": "90b6eeda4e379d4e9322f341e0d2c62c37b7a4ccbf1ae020a90f30871437d26a",
+      "kind": "migration"
+    },
+    {
+      "file_name": "006_user_permissions.sql",
+      "sha256": "84237414386eca47af19939963b02f79a8efd47831e48323e9b5b2b065871bbd",
+      "kind": "migration"
+    },
+    {
+      "file_name": "007_fix_purchase_quality_ambiguity.sql",
+      "sha256": "a7513242c74600582e9eb3d00ae87ae022fe4975b16e3941778fa85cc593882a",
+      "kind": "migration"
+    },
+    {
+      "file_name": "008a_add_credit_payment_method.sql",
+      "sha256": "1072e14ef2b88dc9fe74437772518b1b621dad5974a80244aa26ca8b1d23d034",
+      "kind": "migration"
+    },
+    {
+      "file_name": "008b_payment_details.sql",
+      "sha256": "d683222dcd85c8b2f87d5a403a60d391425f9a887378618422ce3bff3e9b77e6",
+      "kind": "migration"
+    },
+    {
+      "file_name": "009_bank_accounts.sql",
+      "sha256": "2e1a2f2070c3a768a6655e3683a590d2413c669645319560e7cc5dce7b158a16",
+      "kind": "migration"
+    },
+    {
+      "file_name": "010_split_purchase_payments.sql",
+      "sha256": "798149611ae8e30759b7018c338bcad8cbababf26dab13856b29a73065cbdcb7",
+      "kind": "migration"
+    },
+    {
+      "file_name": "011_payment_reports_permission.sql",
+      "sha256": "73455fbadf2d93ac7e286bab898e90838108e919291b449cc8913f47f1dd48fe",
+      "kind": "migration"
+    },
+    {
+      "file_name": "012_cheque_management.sql",
+      "sha256": "cf9b94121a1036c76e8efd6987e9b7d7a1392713afecc48dceb341e1947b1d4b",
+      "kind": "migration"
+    },
+    {
+      "file_name": "013_cash_handover_approval.sql",
+      "sha256": "ce107ed0b98f20448bb17210583ae36e03345508543b236fee158add335a8395",
+      "kind": "migration"
+    },
+    {
+      "file_name": "014_center_cash_notifications.sql",
+      "sha256": "f29da62a65ba90091b8f344671297e84cf549ebe51792be7b80b62ec01840c18",
+      "kind": "migration"
+    },
+    {
+      "file_name": "015_expense_management.sql",
+      "sha256": "582097b1b8cd3195d525f03982ac8e1b2147fb9b38a640e40ad9c4fd9db38be1",
+      "kind": "migration"
+    },
+    {
+      "file_name": "016_centerpro_branding.sql",
+      "sha256": "b766d224898343c4b9feeca4b4bc7c84f3b4b8f8d8f636d7f37eff7bbd2c0f57",
+      "kind": "migration"
+    },
+    {
+      "file_name": "017_sales_module.sql",
+      "sha256": "c081e73e63cc93b546d62714c9898fa714417860ebbdaabeffe65bf3771be84e",
+      "kind": "migration"
+    },
+    {
+      "file_name": "018_sales_workflow.sql",
+      "sha256": "af9631d40ce8071ac2fa1f14cf71aeac3d5e31ed07b06fef9e97ceb25c43f20f",
+      "kind": "migration"
+    },
+    {
+      "file_name": "019_sale_entered_prices.sql",
+      "sha256": "fadad0de0d7e31ea4060ea796aca780f273b9e564cd34133417d012036c97e7f",
+      "kind": "migration"
+    },
+    {
+      "file_name": "020_remember_last_sales_price.sql",
+      "sha256": "4bf5c0dcfefe434b93795c3165f1b4d67bb71cec9851841e6a709b2d4c54e744",
+      "kind": "migration"
+    },
+    {
+      "file_name": "021_product_csv_import.sql",
+      "sha256": "8a48e602d76c0d87c8621a150897d4312f383a8f3e410b5efec29156fa2f0e31",
+      "kind": "migration"
+    },
+    {
+      "file_name": "024_credit_bills_cash_and_cancellation.sql",
+      "sha256": "f2e8e5d5bb4ffd6b1f5fb0aa060e58454705d68f53dfb48004da79ccaaa3bab4",
+      "kind": "migration"
+    },
+    {
+      "file_name": "025_cash_only_purchase_optional_supplier.sql",
+      "sha256": "58737f72e8b734fd0b2c3ffe5447329ec557e9c7c0c270519c58a1aabc983238",
+      "kind": "migration"
+    },
+    {
+      "file_name": "026_organization_receipt_name.sql",
+      "sha256": "03b3e7af6ef7584f198a1c4e3d8bc135d88fcea748011ee74981cb7ca83dc47c",
+      "kind": "migration"
+    },
+    {
+      "file_name": "027_offline_pos_purchase_idempotency.sql",
+      "sha256": "9cf339c19e8df693a561cf59242235a01a7e8fa9bbe6009c89199795b1f97a76",
+      "kind": "migration"
+    },
+    {
+      "file_name": "028_sales_purchase_returns.sql",
+      "sha256": "8a765f447390cc392f6f316211d8aa1a705fa5edb2b102cafc05690fbbc3ab29",
+      "kind": "migration"
+    },
+    {
+      "file_name": "029_internal_stock_transfers.sql",
+      "sha256": "013e66cead34ccd10f1f43a4536858e13072c19de638f25fa1218705b2190f9f",
+      "kind": "migration"
+    },
+    {
+      "file_name": "030_stock_scrap.sql",
+      "sha256": "5f7ebc125421f23625283fe12fa01b8f2fca772596e8d9b26bb901407fedc9b6",
+      "kind": "migration"
+    },
+    {
+      "file_name": "031_unified_cash_float.sql",
+      "sha256": "17bd19bfc97c9c4c2885bd30e8a6dcd6521b99765a395a582ad89af621c08489",
+      "kind": "migration"
+    },
+    {
+      "file_name": "032_stock_adjustments.sql",
+      "sha256": "f4ce7dc535a358831dd920c78edf26d28f37ad8fbea75ec0d941c44a0d216fca",
+      "kind": "migration"
+    },
+    {
+      "file_name": "033_granular_inventory_user_access.sql",
+      "sha256": "695967ad36369bd61f273847e175060be113b34a5ae5034518659ed87d7fe034",
+      "kind": "migration"
+    },
+    {
+      "file_name": "034_company_profile.sql",
+      "sha256": "f1f9e32b9dffcf9938291957c24c953958d5f9e9c9713f1d731b1e3cf63d3e58",
+      "kind": "migration"
+    },
+    {
+      "file_name": "035_detailed_purchase_weight_entries.sql",
+      "sha256": "5bd232312947275350cb769c7ae65fc5e42c083526b50c70d68e635389a3cdcd",
+      "kind": "migration"
+    },
+    {
+      "file_name": "036_labor_sessions.sql",
+      "sha256": "4d89bb031d130e2e234b4a8341d3ef9e177c8e970756995e8d9f65b7d9b20b64",
+      "kind": "migration"
+    },
+    {
+      "file_name": "037_labor_partial_payments_open_session.sql",
+      "sha256": "f5f2979c1bff300bf1b62b618c3cc57f876aee6007ab8d15092b3181e6b871bb",
+      "kind": "migration"
+    },
+    {
+      "file_name": "038_product_images.sql",
+      "sha256": "fa9e19795497c267784c8cd8b4ee66900d308380ef0562a22238ba1c042a454a",
+      "kind": "migration"
+    },
+    {
+      "file_name": "039_cash_accounts_double_entry.sql",
+      "sha256": "dbef6473787a424f598c53ffea44ad66080a5ff36f01c47ed78d1a597b4ef4ea",
+      "kind": "migration"
+    },
+    {
+      "file_name": "042_center_cash_ledger_readonly.sql",
+      "sha256": "e7c4b71ec2f05e4562a79ed4c3996586a00b5757fa5038fc950482a98e219490",
+      "kind": "migration"
+    },
+    {
+      "file_name": "043_bank_management_and_statement.sql",
+      "sha256": "86e8197ceb406fb8464e5c0ec1941d8958f12f98cafab12ca8a07f01aeba1be5",
+      "kind": "migration"
+    },
+    {
+      "file_name": "043_verify_bank_management.sql",
+      "sha256": "a67dfad248224b9ea332bc0b3375772f7a569f0439d2c9d29e0ce1609c8de34c",
+      "kind": "verification"
+    },
+    {
+      "file_name": "044_multi_tenant_businesses.sql",
+      "sha256": "a1a23ae89e94a7ff90ef19d4c2cb23e498a00fdc3547ee0a2034ff4804f6832e",
+      "kind": "migration"
+    },
+    {
+      "file_name": "045_business_access_schema.sql",
+      "sha256": "4742043094d3e88a34b6728458ff3c1718f78a7bb63d4eb5823fc95b8aa3d885",
+      "kind": "migration"
+    },
+    {
+      "file_name": "046_business_access_enforcement.sql",
+      "sha256": "2cd5fd13e3b4417ea33b4d52feac3bbdb0a32d556a4d4f5fb95be428429c9451",
+      "kind": "migration"
+    },
+    {
+      "file_name": "047_platform_business_management.sql",
+      "sha256": "cc6c5d1d8d37becba02e33361f9636ecb4439679e7cb28dd6a574c25178c5b0b",
+      "kind": "migration"
+    },
+    {
+      "file_name": "048_business_admin_module_permissions.sql",
+      "sha256": "1aa513b3fbef1e51a27fa8b85285d719dcbf048c942d4c980c9276787205f714",
+      "kind": "migration"
+    },
+    {
+      "file_name": "049_product_sack_tracking.sql",
+      "sha256": "3a67f364e1040a7511aa20bab572ec5892191038b73b01250f791e57ceb916d8",
+      "kind": "migration"
+    },
+    {
+      "file_name": "050_purchase_lots.sql",
+      "sha256": "b58668f765d127e80b10f393a441e7e1dfbff6ece4029a3b7dec3c2b3d5f36de",
+      "kind": "migration"
+    },
+    {
+      "file_name": "051_product_defaults_and_lot_balances.sql",
+      "sha256": "eee04db4ab57bfb4cb1ef6a6fc465322bb3a157fe2f2f2fa593898d9737f8a31",
+      "kind": "migration"
+    },
+    {
+      "file_name": "052_manufacturing_module.sql",
+      "sha256": "4c9bbcebf11fd565530528e8e4baa550820df4cd095d46eda58e16d41632972f",
+      "kind": "migration"
+    },
+    {
+      "file_name": "053_manufacturing_integration_fixes.sql",
+      "sha256": "24086abd50d3a7f70ea63d08352cb9fbd5cddf0747bc4da55655905cd980ac08",
+      "kind": "migration"
+    },
+    {
+      "file_name": "054_product_process_and_single_purchase_receipt.sql",
+      "sha256": "888bcf3e9dd490f0f595aa0618c6749548f12cb256eaf3be1d56ee9d9ce38084",
+      "kind": "migration"
+    },
+    {
+      "file_name": "055_purchase_multiple_weighings_single_lot.sql",
+      "sha256": "434247c374856fc090a2f46257ac3da74ad48236cc40b304a9cf80c5524fc9f2",
+      "kind": "migration"
+    },
+    {
+      "file_name": "056_production_valuation_and_profit_loss.sql",
+      "sha256": "043d144074c4465667d541993c5412b883ae8b7bb9f4ca270a69135696f96598",
+      "kind": "migration"
+    },
+    {
+      "file_name": "057_manufacturing_boms_and_planned_orders.sql",
+      "sha256": "a88cefd61adeccd5c8ec815acf0af99b367d72c02433c95a5741e229b509c90b",
+      "kind": "migration"
+    },
+    {
+      "file_name": "058_farm_services.sql",
+      "sha256": "28a8646c68f5da5a105fc4088cc465cbdac722dd817bec8efa04eef8f05ffa8e",
+      "kind": "migration"
+    },
+    {
+      "file_name": "059_platform_module_save_repair.sql",
+      "sha256": "9c47616658dbd0467ff6b40f22018937f887bc8432172277ae95042c03d1b4ec",
+      "kind": "migration"
+    },
+    {
+      "file_name": "060_services_name_and_kilogram_unit.sql",
+      "sha256": "f547f150fa71c63862abdca891daae77021f03ce19d839ea07551b0bd6ec7a3b",
+      "kind": "migration"
+    },
+    {
+      "file_name": "061_legal_masters.sql",
+      "sha256": "aa42c8a7c921072af7c4d39abb7521f411bb07df53751d8073be8c0b3e455deb",
+      "kind": "migration"
+    },
+    {
+      "file_name": "062_unified_party_masters.sql",
+      "sha256": "cc59da1b255a200f559ede87595786f8a4cc54945837d9e39d85df0819faa3e8",
+      "kind": "migration"
+    },
+    {
+      "file_name": "063_unified_party_master_repair.sql",
+      "sha256": "dac00e3bcea5769e9ebbf566a10931180b2d22779b4ff89096a1f9465cf76944",
+      "kind": "migration"
+    },
+    {
+      "file_name": "064_customer_nic.sql",
+      "sha256": "b4cf56750e39ddeac9a7c7f070446af2f15e0b866eb43acfc177bdb067a0fc26",
+      "kind": "migration"
+    },
+    {
+      "file_name": "065_milling_fifo_auto_consumption.sql",
+      "sha256": "96314aabe9a425de51173d9723add89768b54fca69c076358862d4db34e65c96",
+      "kind": "migration"
+    }
+  ]
+}
