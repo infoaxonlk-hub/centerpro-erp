@@ -1,0 +1,54 @@
+name: Approved production migration operation
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Baseline records reviewed history only; apply executes approved pending SQL
+        type: choice
+        options: [apply, baseline]
+        required: true
+      approval_json:
+        description: Non-secret reviewed approval JSON for this exact main commit (never include credentials)
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: centerpro-production-migrations
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    environment: production-migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:migration-release
+      - name: Store approved evidence outside checkout
+        env:
+          APPROVAL_JSON: ${{ inputs.approval_json }}
+        run: |
+          umask 077
+          printf '%s' "$APPROVAL_JSON" > "$RUNNER_TEMP/approval.json"
+      - name: Run explicitly approved operation
+        env:
+          OPERATION: ${{ inputs.operation }}
+          CENTERPRO_RELEASE_PROJECT_REF: ${{ vars.CENTERPRO_RELEASE_PROJECT_REF }}
+          CENTERPRO_RELEASE_DATABASE_URL: ${{ secrets.CENTERPRO_RELEASE_DATABASE_URL }}
+          CENTERPRO_RELEASE_WRITE: approved-production-release
+        run: node scripts/release-migrations.mjs "$OPERATION" "$RUNNER_TEMP/approval.json"
+      - name: Verify required release history (read-only)
+        if: inputs.operation == 'apply'
+        env:
+          CENTERPRO_RELEASE_PROJECT_REF: ${{ vars.CENTERPRO_RELEASE_PROJECT_REF }}
+          CENTERPRO_RELEASE_DATABASE_URL: ${{ secrets.CENTERPRO_RELEASE_READONLY_DATABASE_URL }}
+        run: npm run db:verify:release
+      # Deliberately no deployment/promotion; operator reviews database checks first.

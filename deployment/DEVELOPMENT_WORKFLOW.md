@@ -1,5 +1,7 @@
 # Development, Preview and production
 
+For database-dependent production releases, follow [Production migration releases](PRODUCTION_MIGRATION_RELEASE.md) first. A main merge must not publish dependent code before its approved SQL and release verification succeed. The historical merge instructions below do not replace that publication gate. Preview must use centerpro_staging; local testing uses its separate development setup database.
+
 Use `development` for application changes. Keep `main` as the Vercel production branch.
 
 ## Vercel setup

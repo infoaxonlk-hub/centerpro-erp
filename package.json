@@ -3,8 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/dev-db-setup.mjs --predev",
     "dev": "next dev",
-    "build": "next build",
+    "db:plan:dev": "node scripts/dev-db-setup.mjs --plan",
+    "db:setup:dev": "node scripts/dev-db-setup.mjs --apply",
+    "build": "node scripts/production-build-gate.mjs && next build",
+    "db:plan:release": "node scripts/release-migrations.mjs plan",
+    "db:verify:release": "node scripts/release-migrations.mjs verify",
+    "db:baseline:release": "node scripts/release-migrations.mjs baseline",
+    "db:apply:release": "node scripts/release-migrations.mjs apply",
+    "test:migration-release": "node --test tests/migration-release.test.mjs",
     "start": "next start",
     "lint": "eslint ."
   },
@@ -21,8 +29,10 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "dotenv": "17.2.3",
     "eslint": "latest",
     "eslint-config-next": "16.4.3",
+    "pg": "8.16.3",
     "typescript": "latest"
   }
 }

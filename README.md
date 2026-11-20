@@ -28,4 +28,6 @@ Never expose the service-role key in browser code or commit `.env.local`.
 
 ## Business management and access control
 
+Production SQL releases use a separate reviewed workflow: [production migration release runbook](deployment/PRODUCTION_MIGRATION_RELEASE.md). Start with `npm run db:plan:release` for offline validation. Production history reconciliation, backups, approvals and hosted publication gates are required before activation; neither development auto-setup nor a Git merge applies production SQL.
+
 See [the implementation and deployment guide](deployment/BUSINESS_MANAGEMENT_MODULE_ACCESS_GUIDE.md) for business subscriptions, module entitlements, suspension, read-only support inspection, ordered migrations 045–047, tests and rollback instructions.

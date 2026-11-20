@@ -19,7 +19,7 @@ const lots=[{center_id:'c',location_id:'l',product_id:'raw',quality_id:'q-raw',l
  render().find(e=>e.type==='button'&&text(e).includes('Load / replace')).props.onClick();
  assert.equal(render().find(e=>e.props['aria-label']==='Actual consumption component').props.value,20);
  render().find(e=>e.props['aria-label']==='Actual consumption component').props.onChange({target:{value:'22'}});
- const selector=render().find(e=>e.props['aria-label']==='Source lot component');assert.ok(!text(selector).includes('FOREIGN SOURCE'));selector.props.onChange({target:{value:'actual'}});
+ assert.ok(!render().some(e=>e.props['aria-label']==='Source lot component'));const allocation=render().find(e=>e.props['aria-label']==='FIFO allocation component');assert.ok(text(allocation).includes('ACTUAL'));assert.ok(!text(allocation).includes('FOREIGN SOURCE'));assert.ok(text(allocation).includes('220.000000'));
  render().find(e=>e.props['aria-label']==='Actual operation hours').props.onChange({target:{value:'3'}});
  render().find(e=>e.props['aria-label']==='Actual output byproduct').props.onChange({target:{value:'3.5'}});
  assert.ok(render().some(e=>e.type==='strong'&&text(e).includes('257.00')));
@@ -36,7 +36,7 @@ const lots=[{center_id:'c',location_id:'l',product_id:'raw',quality_id:'q-raw',l
  field('Quantity to produce').props.onChange({target:{value:'18'}});await render().find(e=>e.type==='button'&&text(e)==='Save draft').props.onClick();assert.equal(calls.length,0);
  assert.equal(render().find(e=>e.props['aria-label']==='Actual consumption component').props.value,22);field('Quantity to produce').props.onChange({target:{value:'12'}});
  await render().find(e=>e.type==='button'&&text(e)==='Save draft').props.onClick();
- const sent=calls[0].args.p_data;assert.equal(sent.bom_revision,1);assert.equal(sent.production_quantity,12);assert.equal(sent.inputs[0].quantity,22);assert.equal(sent.inputs[0].lot_id,'actual');assert.equal(sent.operations[0].actual_quantity,3);assert.equal(sent.operations[1].actual_quantity,22);assert.equal(sent.outputs[1].quantity,3.5);assert.equal(sent.outputs[0].destination_location_id,undefined);assert.equal(sent.operations[0].cost_rate,undefined);
+ const sent=calls[0].args.p_data;assert.equal(sent.bom_revision,1);assert.equal(sent.production_quantity,12);assert.equal(sent.inputs[0].quantity,22);assert.equal(sent.inputs[0].lot_id,null);assert.equal(sent.inputs[0].source_selection,'auto');assert.equal(sent.operations[0].actual_quantity,3);assert.equal(sent.operations[1].actual_quantity,22);assert.equal(sent.outputs[1].quantity,3.5);assert.equal(sent.outputs[0].destination_location_id,undefined);assert.equal(sent.operations[0].cost_rate,undefined);
  await render().find(e=>e.type==='button'&&text(e)==='Complete production').props.onClick();
  assert.ok(render().some(e=>e.props.role==='alert'&&text(e).includes('Failed to fetch')),'Completion error must remain visible beside the action buttons');
  await render().find(e=>e.type==='button'&&text(e)==='Complete production').props.onClick();
@@ -47,6 +47,10 @@ const lots=[{center_id:'c',location_id:'l',product_id:'raw',quality_id:'q-raw',l
  const restored=elements(rh.render(RC,{...props,initialOrder:{id:'saved',bom_snapshot:bom,production_quantity:12,process_type:'milling',method:'own',order_date:'2026-10-31',notes:'Saved draft',operation_expense_id:null,external_expense_id:null,manufacturing_order_inputs:[{bom_component_key:'component',product_id:'raw',quality_id:'q-raw',input_kind:'raw_material',unit_of_measure:'KG',planned_quantity:20,quantity:22,source_selection:'lot',lot_id:'actual',sack_count:3}],manufacturing_order_outputs:[],manufacturing_order_operations:[]}}));
  assert.equal(restored.find(e=>e.props['aria-label']==='Actual consumption component').props.value,22,'Opening an existing draft never recalculates actual consumption');
  assert.equal(elements(restored.find(e=>e.type==='label'&&text(e).startsWith('Quantity to produce'))).find(e=>e.type==='input').props.value,'12');
+ const review=load('app/dashboard/manufacturing/production-cost-breakdown.tsx',rh).ProductionCostBreakdown;
+ const audit=elements(review({entries:[{id:'entry',kind:'material',amount:12.123456,quantity:3,rate:4.041152,source:'stock_valuation',expense_id:null,stock_movement_id:'movement',input_id:'input',snapshot:{allocations:[{lot_id:'depleted',quantity:-2,value:-10.123456},{lot_id:null,quantity:-1,value:-2}]}}],outputs:[],method:'FIFO',lotNumbers:{depleted:'EXHAUSTED-LOT'}}));
+ assert.ok(audit.some(e=>e.type==='td'&&text(e)==='EXHAUSTED-LOT'));assert.ok(audit.some(e=>e.type==='td'&&text(e)==='10.123456'));assert.ok(audit.some(e=>e.type==='td'&&text(e)==='Unassigned / Legacy'));
+ assert.ok(!restored.some(e=>e.props['aria-label']==='Source lot component'),'Milling drafts use automatic sources without changing saved historical records');
  // The editor has planned components/operations/destinations, never source lots.
  const eh=harness(),editorCalls=[];
  const{ManufacturingBomManager:E}=load('app/dashboard/manufacturing/recipes/bom-editor.tsx',eh,{'next/navigation':{useRouter:()=>({refresh(){}})},'@/lib/supabase/client':{createClient:()=>({rpc:async(name,args)=>{editorCalls.push({name,args});return{data:bom}}})}});
