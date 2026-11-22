@@ -316,6 +316,11 @@
       "file_name": "065_milling_fifo_auto_consumption.sql",
       "sha256": "96314aabe9a425de51173d9723add89768b54fca69c076358862d4db34e65c96",
       "kind": "migration"
+    },
+    {
+      "file_name": "066_super_admin_business_archive_restore.sql",
+      "sha256": "5f50c54565cf9c0ad291e86f8de6529adcd219381f522196ffffb758b0155e4b",
+      "kind": "migration"
     }
   ]
 }
