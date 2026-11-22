@@ -38,6 +38,6 @@ export async function POST(request: Request, context: Context) {
       throw platformRpcError(error.code, "Business restore");
     }
     const restored = await readPlatformBusiness(id);
-    return Response.json({ ok: true, business: archived }, { headers: { "Cache-Control": "private, no-store" } });
+    return Response.json({ ok: true, business: restored }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) { return platformFailure(error); }
 }
