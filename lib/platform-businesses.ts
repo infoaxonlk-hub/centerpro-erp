@@ -70,7 +70,7 @@ export function platformFailure(error: unknown): Response {
 export function provisionPermissions(modules: readonly string[]) {
   return permissionsForModules(modules);
 }
-export const businessSelect = "id,name,business_status,receipt_address,receipt_phone,receipt_email,created_at,updated_at,profiles(id,full_name,email,role,is_active,permissions),business_subscriptions(organization_id,plan,status,starts_on,expires_on,trial_ends_on,admin_notes,updated_at),business_module_entitlements(module_key,enabled)";
+export const businessSelect = "id,name,business_status,archived_at,archived_by,archive_reason,pre_archive_status,receipt_address,receipt_phone,receipt_email,created_at,updated_at,profiles(id,full_name,email,role,is_active,permissions),business_subscriptions(organization_id,plan,status,starts_on,expires_on,trial_ends_on,admin_notes,updated_at),business_module_entitlements(module_key,enabled)";
 export async function readPlatformBusiness(id: string) {
   const admin = createAdminClient();
   const { data, error } = await admin.from("organizations").select(businessSelect).eq("id", id).single();
