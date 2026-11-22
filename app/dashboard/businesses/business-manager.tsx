@@ -146,7 +146,7 @@ export function BusinessManager({actorId,ownOrganizationId}:{actorId?:string;own
    <header><div><h2>{editor.id?draft.details.name:"Create business"}</h2><p>{editor.id??"Create the workspace and its first administrator."}</p></div><button className="ghost" aria-label="Close business details" disabled={busy} onClick={()=>{setEditor(null);setDraft(emptyDraft());}}><X size={18}/></button></header>
    {error&&<p className="alert error" role="alert">{error}</p>}
    {success&&<p className="business-success" role="status">{success}</p>}
-   {editor.readOnly&&<p className="alert" role="status">This view is read-only. <button type="button" className="ghost" disabled={busy} onClick={()=>setEditor({...editor,readOnly:false})}>Enable editing</button></p>}
+   {editor.readOnly&&<p className="alert" role="status">{selected?.business_status==="archived"?"Archived businesses are read-only. Restore the business before making configuration changes.":"This view is read-only."} {selected?.business_status!=="archived"&&<button type="button" className="ghost" disabled={busy} onClick={()=>setEditor({...editor,readOnly:false})}>Enable editing</button>}</p>}
    <nav className="business-tabs" aria-label="Business sections">{["information","subscription","modules","activity"].map(tab=><button type="button" key={tab} className={editor.tab===tab?"primary":"ghost"} onClick={()=>setEditor({...editor,tab})}>{tab==="information"?"Business information":tab==="modules"?"Module Access":tab==="activity"?"Administrators & history":"Subscription"}</button>)}</nav>
    <form noValidate onSubmit={save}><fieldset disabled={busy||editor.readOnly}>
     <div hidden={editor.tab!=="information"}><h3>Business information</h3><div className="company-profile-grid">
