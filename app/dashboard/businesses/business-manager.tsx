@@ -5,7 +5,7 @@ import { Building2, MoreHorizontal, Plus, Search, X } from "lucide-react";
 import { ModuleAccessChecklist } from "@/components/module-access-checklist";
 import { BusinessAdminAccess } from "@/components/business-admin-access";
 import type { BusinessModuleKey } from "@/lib/business-modules";
-import type { BusinessRecord, Subscription, SubscriptionHistory } from "@/lib/business-types";
+import type { BusinessLifecycleAudit, BusinessRecord, Subscription, SubscriptionHistory } from "@/lib/business-types";
 type Draft = {details:{name:string;status:"active"|"suspended";address:string;phone:string;email:string};subscription:Subscription;modules:BusinessModuleKey[];adminName:string;adminEmail:string;password:string};
 const today = () => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Colombo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 const emptyDraft=():Draft=>({details:{name:"",status:"active",address:"",phone:"",email:""},subscription:{plan:"Custom",status:"active",starts_on:today(),expires_on:null,trial_ends_on:null,admin_notes:""},modules:["dashboard"],adminName:"",adminEmail:"",password:""});
@@ -20,7 +20,7 @@ export function BusinessManager({actorId,ownOrganizationId}:{actorId?:string;own
  const dialogRef=useRef<HTMLElement>(null);
  const [businesses,setBusinesses]=useState<BusinessRecord[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
  const [error,setError]=useState(""),[success,setSuccess]=useState(""),[search,setSearch]=useState(""),[filter,setFilter]=useState("all");
- const [editor,setEditor]=useState<{id:string|null;readOnly:boolean;tab:string}|null>(null),[draft,setDraft]=useState<Draft>(emptyDraft),[history,setHistory]=useState<SubscriptionHistory[]>([]);
+ const [editor,setEditor]=useState<{id:string|null;readOnly:boolean;tab:string}|null>(null),[draft,setDraft]=useState<Draft>(emptyDraft),[history,setHistory]=useState<SubscriptionHistory[]>([]),[lifecycleHistory,setLifecycleHistory]=useState<BusinessLifecycleAudit[]>([]);\n const [lifecycle,setLifecycle]=useState<{business:BusinessRecord;action:"archive"|"restore"}|null>(null),[lifecycleName,setLifecycleName]=useState(""),[lifecycleReason,setLifecycleReason]=useState("");
  useEffect(()=>{let active=true;jsonRequest("/api/admin/businesses").then(data=>{if(active)setBusinesses(data);}).catch(error=>{if(active)setError(error.message);}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[]);
  async function refresh(){setBusinesses(await jsonRequest("/api/admin/businesses"));}
  async function open(business:BusinessRecord,tab="information",readOnly=false) {
@@ -31,7 +31,7 @@ export function BusinessManager({actorId,ownOrganizationId}:{actorId?:string;own
      setBusinesses(old=>old.map(item=>item.id===current.id?current:item));
      setDraft({details:{name:current.name,status:current.business_status==="active"?"active":"suspended",address:current.receipt_address??"",phone:current.receipt_phone??"",email:current.receipt_email??""},subscription:current.business_subscriptions??emptyDraft().subscription,
        modules:current.business_module_entitlements.filter(m=>m.enabled).map(m=>m.module_key),adminName:"",adminEmail:"",password:""});
-     setHistory(result.history??[]);setEditor({id:current.id,tab,readOnly});
+     setHistory(result.history??[]);setLifecycleHistory(result.lifecycleHistory??[]);setEditor({id:current.id,tab,readOnly:readOnly||current.business_status==="archived"});
    } catch(error){setError(error instanceof Error?error.message:"Unable to open business.");}finally{setBusy(false);}
  }
  async function save(event:React.FormEvent) {
@@ -52,7 +52,7 @@ export function BusinessManager({actorId,ownOrganizationId}:{actorId?:string;own
    }catch(error){setError(error instanceof Error?error.message:"Unable to save business.");}finally{setBusy(false);}
  }
  async function changeStatus(business:BusinessRecord) {
-   const status=business.business_status==="active"?"suspended":"active";
+   if(business.business_status==="archived")return;\n   const status=business.business_status==="active"?"suspended":"active";
    if(status==="suspended"&&!window.confirm("Suspend "+business.name+"? Users will lose operational access. Existing data will be kept."))return;
    setBusy(true);setError("");setSuccess("");
    try{
@@ -106,27 +106,42 @@ export function BusinessManager({actorId,ownOrganizationId}:{actorId?:string;own
   {ownBusiness&&<section className="panel business-own-workspace"><div><h2>Your ERP workspace: {ownBusiness.name}</h2><p>Your Super Admin role has all user permissions. Business modules and subscription settings still apply to this workspace. Other businesses open in read-only inspection.</p><p>{ownBusiness.access_summary?.operational?"Workspace active":"Check this workspace's status and subscription before operating."}</p></div><div className="business-buttons"><a className="primary" href="/dashboard/businesses/own-workspace">Open my ERP workspace</a><button type="button" className="ghost" disabled={busy} onClick={()=>void open(ownBusiness,"modules")}>Manage my modules</button></div></section>}
   <div className="metric-grid"><article className="metric"><span>Total businesses</span><strong>{businesses.length}</strong></article>
    <article className="metric"><span>Active businesses</span><strong>{businesses.filter(b=>b.business_status==="active").length}</strong></article>
-   <article className="metric"><span>Suspended</span><strong>{businesses.filter(b=>b.business_status==="suspended").length}</strong></article>
+   <article className="metric"><span>Suspended</span><strong>{businesses.filter(b=>b.business_status==="suspended").length}</strong></article><article className="metric"><span>Archived</span><strong>{businesses.filter(b=>b.business_status==="archived").length}</strong></article>
    <article className="metric"><span>Expiring within 30 days</span><strong>{businesses.filter(b=>b.access_summary?.expiry==="expiring").length}</strong></article></div>
   <section className="panel"><div className="business-toolbar"><label className="business-search"><Search size={17}/><input aria-label="Search businesses" placeholder="Search business, ID or administrator" value={search} onChange={e=>setSearch(e.target.value)}/></label>
-   <label>Filter<select aria-label="Filter businesses" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All businesses</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="expired">Expired subscriptions</option><option value="expiring">Expiring soon</option><option value="past_due">Past due</option></select></label></div>
+   <label>Filter<select aria-label="Filter businesses" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All businesses</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="archived">Archived</option><option value="expired">Expired subscriptions</option><option value="expiring">Expiring soon</option><option value="past_due">Past due</option></select></label></div>
    {loading?<p role="status">Loading businesses...</p>:<div className="business-table-wrap"><table className="business-table"><thead><tr><th>Business</th><th>Administrator</th><th>Status</th><th>Subscription</th><th>Expires</th><th>Modules</th><th>Created</th><th>Actions</th></tr></thead>
     <tbody>{visible.map(b=><tr key={b.id}><td><strong>{b.name}</strong><small className="business-id">{b.id}</small></td>
      <td>{b.profiles.filter(p=>p.role==="admin").map(p=><div className="business-admin" key={p.id}><strong>{p.full_name}</strong><span>{p.email}</span>{!p.is_active&&<small>Inactive administrator</small>}</div>)}</td>
-     <td><span className={"status "+(b.business_status==="active"?"active":"inactive")}>{b.business_status}</span></td>
+     <td><span className={"status "+(b.business_status==="active"?"active":"inactive")}>{b.business_status}</span>{b.archived_at&&<small>Archived {formatDate(b.archived_at)}</small>}</td>
      <td><strong>{b.business_subscriptions?.plan??"Not configured"}</strong><small className="business-sub-status">{b.access_summary?.effectiveStatus??b.business_subscriptions?.status}</small></td>
      <td>{formatDate(b.business_subscriptions?.expires_on??null)}{b.access_summary?.expiry==="expiring"&&<small>Expiring soon</small>}</td>
      <td>{b.business_module_entitlements.filter(m=>m.enabled).length}</td><td>{formatDate(b.created_at)}</td>
      <td><details className="business-actions"><summary aria-label={"Actions for "+b.name}><MoreHorizontal size={20}/></summary><div>
       <button disabled={busy} onClick={()=>void open(b,"information",true)}>View details</button>
+      {b.business_status==="archived" ? <button disabled={busy||b.id===ownOrganizationId} onClick={()=>{setLifecycle({business:b,action:"restore"});setLifecycleName("");setLifecycleReason("");}}>Restore business</button> : <>
       <button disabled={busy} onClick={()=>void open(b)}>Edit business</button>
       <button disabled={busy} onClick={()=>void open(b,"subscription")}>Manage subscription</button>
       <button disabled={busy} onClick={()=>void open(b,"modules")}>Manage modules</button>
       <button disabled={busy} onClick={()=>void open(b,"activity")}>Administrator access</button>
       <button disabled={busy} onClick={()=>void changeStatus(b)}>{b.business_status==="active"?"Suspend business":"Activate / Reactivate"}</button>
-      <Link href={"/dashboard/businesses/"+b.id+"/workspace"}>Open Workspace</Link></div></details></td></tr>)}</tbody></table>
+      <button disabled={busy||b.id===ownOrganizationId||b.profiles.some(p=>p.role==="super_admin")} onClick={()=>{setLifecycle({business:b,action:"archive"});setLifecycleName("");setLifecycleReason("");}}>Archive business</button>
+      {b.id!==ownOrganizationId&&<Link href={"/dashboard/businesses/"+b.id+"/workspace"}>Open Workspace</Link>}</>}</div></details></td></tr>)}</tbody></table>
      {!visible.length&&<div className="empty-state"><Building2/><h3>No matching businesses</h3><p>Create a business or change your search.</p></div>}</div>}
   </section>
+  {lifecycle&&<div className="business-dialog-backdrop"><section className="business-dialog lifecycle-dialog" role="dialog" aria-modal="true" aria-labelledby="lifecycle-title">
+   <header><div><h2 id="lifecycle-title">{lifecycle.action==="archive"?"Archive business":"Restore business"}</h2><p>{lifecycle.business.name}</p></div><button type="button" className="ghost" disabled={busy} onClick={()=>setLifecycle(null)}><X size={18}/></button></header>
+   <p className="alert">{lifecycle.action==="archive"?"Archiving blocks this business from ERP operations. All stock, sales, purchase, manufacturing, accounting, profile and image data will be retained. This does not reduce database storage.":"Restoring only returns the business to Suspended. A Super Admin must review subscription and explicitly reactivate it later."}</p>
+   <label>Type the exact business name<input value={lifecycleName} onChange={e=>setLifecycleName(e.target.value)} autoComplete="off"/></label>
+   <label>{lifecycle.action==="archive"?"Reason for archiving":"Reason for restoring"}<textarea rows={4} minLength={10} maxLength={500} value={lifecycleReason} onChange={e=>setLifecycleReason(e.target.value)} placeholder="Enter at least 10 characters"/></label>
+   <footer><button type="button" className="ghost" disabled={busy} onClick={()=>setLifecycle(null)}>Cancel</button>
+    <button type="button" className="primary" disabled={busy||lifecycleName!==lifecycle.business.name||lifecycleReason.trim().length<10} onClick={async()=>{
+      setBusy(true);setError("");setSuccess("");
+      try{await jsonRequest("/api/admin/businesses/"+lifecycle.business.id+"/"+lifecycle.action,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({confirmationName:lifecycleName,reason:lifecycleReason.trim()})});
+       setSuccess(lifecycle.action==="archive"?"Business archived. All business data has been retained.":"Business restored to Suspended status.");setLifecycle(null);await refresh();
+      }catch(error){setError(error instanceof Error?error.message:"Lifecycle action failed.");}finally{setBusy(false);}
+    }}>{busy?"Processing...":lifecycle.action==="archive"?"Confirm archive":"Confirm restore"}</button></footer>
+  </section></div>}
   {editor&&<div className="business-dialog-backdrop"><section ref={dialogRef} onKeyDown={dialogKey} role="dialog" aria-modal="true" aria-label={editor.id?"Business details":"Create business"} className="business-dialog">
    <header><div><h2>{editor.id?draft.details.name:"Create business"}</h2><p>{editor.id??"Create the workspace and its first administrator."}</p></div><button className="ghost" aria-label="Close business details" disabled={busy} onClick={()=>{setEditor(null);setDraft(emptyDraft());}}><X size={18}/></button></header>
    {error&&<p className="alert error" role="alert">{error}</p>}
@@ -162,7 +177,7 @@ export function BusinessManager({actorId,ownOrganizationId}:{actorId?:string;own
       disabled={busy||editor.readOnly||moduleChangesPending} onGrant={admin=>void grantAdminAccess(admin)}/>}
     {!editor.id&&<p>The administrator will be created when you save.</p>}
     {editor.id&&<p><Link className="ghost" href={"/dashboard/businesses/"+editor.id+"/workspace"}>Open Workspace — read-only</Link></p>}
-    <h3>Subscription history</h3>{history.map(item=><article className="business-history" key={item.id}><strong>{formatDate(item.created_at)}</strong><p>{item.before_data?.plan??"Initial"} → {item.after_data.plan} · {item.after_data.status}</p><small>Start: {item.after_data.starts_on} · Expiration: {item.after_data.expires_on??"No expiry"} · Trial end: {item.after_data.trial_ends_on??"None"}</small>{item.after_data.admin_notes&&<p>{item.after_data.admin_notes}</p>}</article>)}{!history.length&&<p>No subscription changes recorded.</p>}</div>
+    <h3>Business lifecycle history</h3>{lifecycleHistory.map(item=><article className="business-history" key={item.id}><strong>{item.action==="archived"?"Archived":"Restored"} · {formatDate(item.created_at)}</strong><p>{item.actor_name} · {item.before_status} → {item.after_status}</p><small>{item.reason}</small></article>)}{!lifecycleHistory.length&&<p>No archive or restore actions recorded.</p>}<h3>Subscription history</h3>{history.map(item=><article className="business-history" key={item.id}><strong>{formatDate(item.created_at)}</strong><p>{item.before_data?.plan??"Initial"} → {item.after_data.plan} · {item.after_data.status}</p><small>Start: {item.after_data.starts_on} · Expiration: {item.after_data.expires_on??"No expiry"} · Trial end: {item.after_data.trial_ends_on??"None"}</small>{item.after_data.admin_notes&&<p>{item.after_data.admin_notes}</p>}</article>)}{!history.length&&<p>No subscription changes recorded.</p>}</div>
    <footer><button className="ghost" type="button" disabled={busy} onClick={()=>{setEditor(null);setDraft(emptyDraft());}}>Close</button>{!editor.readOnly&&<button type="submit" className="primary" disabled={busy}>{busy?"Saving...":editor.id?"Save changes":"Create business & admin"}</button>}</footer>
    </form></section></div>}
  </div>;
