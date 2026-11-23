@@ -45,53 +45,7 @@ for (const name of (await readdir(new URL("../supabase/migrations/",import.meta.
  await db.exec(await readFile(new URL("../supabase/migrations/"+name,import.meta.url),"utf8"));
 }
 
--- Phase 1 business archive/restore: access is blocked while all tenant rows and Auth identities survive.
-await service();
-const archiveRequest=randomUUID();
-const beforeArchive={
- organizations:(await db.query("select count(*)::int n from organizations where id=$1",[orgB])).rows[0].n,
- profiles:(await db.query("select count(*)::int n from profiles where organization_id=$1",[orgB])).rows[0].n,
- entitlements:(await db.query("select count(*)::int n from business_module_entitlements where organization_id=$1",[orgB])).rows[0].n,
- subscription:(await db.query("select count(*)::int n from business_subscriptions where organization_id=$1",[orgB])).rows[0].n
-};
-await db.query("select platform_archive_business($1,$2,'Legacy B','Customer requested closure after migration to another platform',$3)",[superId,orgB,archiveRequest]);
-const archived=(await db.query("select business_status,archived_at,archived_by,archive_reason,pre_archive_status from organizations where id=$1",[orgB])).rows[0];
-assert.equal(archived.business_status,"archived");
-assert.ok(archived.archived_at);
-assert.equal(archived.archived_by,superId);
-assert.equal(archived.pre_archive_status,"active");
-assert.equal((await db.query("select count(*)::int n from platform_business_lifecycle_audit where business_id=$1 and action='archived'",[orgB])).rows[0].n,1);
-assert.equal((await db.query("select count(*)::int n from organizations where id=$1",[orgB])).rows[0].n,beforeArchive.organizations);
-assert.equal((await db.query("select count(*)::int n from profiles where organization_id=$1",[orgB])).rows[0].n,beforeArchive.profiles);
-assert.equal((await db.query("select count(*)::int n from business_module_entitlements where organization_id=$1",[orgB])).rows[0].n,beforeArchive.entitlements);
-assert.equal((await db.query("select count(*)::int n from business_subscriptions where organization_id=$1",[orgB])).rows[0].n,beforeArchive.subscription);
-assert.equal((await db.query("select count(*)::int n from auth.users where id=$1",[otherId])).rows[0].n,1);
-await assert.rejects(()=>db.query("select platform_save_business($1,$2,$3::jsonb,$4::jsonb,$5)",[
- superId,orgB,JSON.stringify({name:"Legacy B",status:"active",address:"",phone:"",email:""}),JSON.stringify(baseSubscription),["dashboard"]
-]),/Archived business/);
-await actor(otherId);
-assert.equal((await db.query("select current_business_access() access")).rows[0].access.reason,"archived");
-assert.equal((await db.query("select current_business_access() access")).rows[0].access.operational,false);
-await denied("select test_business_definer($1)",[product]);
-await denied("select sales_stock($1)",[center]);
-await service();
-await assert.rejects(()=>db.query("select platform_archive_business($1,$2,'Legacy B','Duplicate archive attempt is blocked',$3)",[superId,orgB,randomUUID()]),/Only active or suspended/);
-await assert.rejects(()=>db.query("select platform_archive_business($1,$2,'Wrong name','This request should be rejected',$3)",[superId,orgA,randomUUID()]),/confirmation/);
-await assert.rejects(()=>db.query("select platform_archive_business($1,$2,'Legacy B','Too short',$3)",[superId,orgB,randomUUID()]),/reason/);
-await db.query("select platform_restore_business($1,$2,'Legacy B','Customer has confirmed the workspace needs to be restored',$3)",[superId,orgB,randomUUID()]);
-const restored=(await db.query("select business_status,archived_at,archived_by,archive_reason,pre_archive_status from organizations where id=$1",[orgB])).rows[0];
-assert.equal(restored.business_status,"suspended");
-assert.equal(restored.archived_at,null);
-assert.equal(restored.archived_by,null);
-assert.equal(restored.archive_reason,null);
-assert.equal(restored.pre_archive_status,null);
-assert.equal((await db.query("select count(*)::int n from platform_business_lifecycle_audit where business_id=$1 and action='restored'",[orgB])).rows[0].n,1);
-await actor(otherId);
-assert.equal((await db.query("select current_business_access() access")).rows[0].access.reason,"suspended");
-await service();
-await assert.rejects(()=>db.query("update platform_business_lifecycle_audit set reason='tampered' where business_id=$1",[orgB]),/append-only/);
-await assert.rejects(()=>db.query("delete from platform_business_lifecycle_audit where business_id=$1",[orgB]),/append-only/);
-console.log("PASS business archive blocks existing sessions, preserves tenant and Auth rows, rejects generic reactivation, audits transitions, and restores only to suspended");
+
 
 const allModules=(await db.query("select key from business_module_catalog order by key")).rows.map(r=>r.key);
 assert.equal(allModules.length,20);
@@ -125,6 +79,55 @@ async function configure({org=orgA,status="active",modules=allModules,subscripti
 async function denied(sql,values=[],pattern=/access|restricted|permission|policy|platform|denied/i){
  await assert.rejects(()=>db.query(sql,values),pattern);
 }
+-- Phase 1 business archive/restore: access is blocked while all tenant rows and Auth identities survive.
+await service();
+const archiveRequest=randomUUID();
+const beforeArchive={
+ organizations:(await db.query("select count(*)::int n from organizations where id=$1",[orgB])).rows[0].n,
+ profiles:(await db.query("select count(*)::int n from profiles where organization_id=$1",[orgB])).rows[0].n,
+ entitlements:(await db.query("select count(*)::int n from business_module_entitlements where organization_id=$1",[orgB])).rows[0].n,
+ subscription:(await db.query("select count(*)::int n from business_subscriptions where organization_id=$1",[orgB])).rows[0].n
+};
+await db.query("select platform_archive_business($1,$2,'Legacy B','Customer requested closure after migration to another platform',$3)",[superId,orgB,archiveRequest]);
+const archived=(await db.query("select business_status,archived_at,archived_by,archive_reason,pre_archive_status from organizations where id=$1",[orgB])).rows[0];
+assert.equal(archived.business_status,"archived");
+assert.ok(archived.archived_at);
+assert.equal(archived.archived_by,superId);
+assert.equal(archived.pre_archive_status,"active");
+assert.equal((await db.query("select count(*)::int n from platform_business_lifecycle_audit where business_id=$1 and action='archived'",[orgB])).rows[0].n,1);
+assert.equal((await db.query("select count(*)::int n from organizations where id=$1",[orgB])).rows[0].n,beforeArchive.organizations);
+assert.equal((await db.query("select count(*)::int n from profiles where organization_id=$1",[orgB])).rows[0].n,beforeArchive.profiles);
+assert.equal((await db.query("select count(*)::int n from business_module_entitlements where organization_id=$1",[orgB])).rows[0].n,beforeArchive.entitlements);
+assert.equal((await db.query("select count(*)::int n from business_subscriptions where organization_id=$1",[orgB])).rows[0].n,beforeArchive.subscription);
+assert.equal((await db.query("select count(*)::int n from auth.users where id=$1",[otherId])).rows[0].n,1);
+await assert.rejects(()=>db.query("select platform_save_business($1,$2,$3::jsonb,$4::jsonb,$5)",[
+ superId,orgB,JSON.stringify({name:"Legacy B",status:"active",address:"",phone:"",email:""}),JSON.stringify(baseSubscription),["dashboard"]
+]),/Archived business status can only change/);
+await assert.rejects(()=>db.query("update organizations set name='Tampered archived business' where id=$1",[orgB]),/Archived business is read-only/);
+await actor(otherId);
+assert.equal((await db.query("select current_business_access() access")).rows[0].access.businessStatus,"archived");
+assert.equal((await db.query("select current_business_access() access")).rows[0].access.operational,false);
+await denied("select test_business_definer($1)",[product]);
+await denied("select sales_stock($1)",[center]);
+await service();
+await assert.rejects(()=>db.query("select platform_archive_business($1,$2,'Legacy B','Duplicate archive attempt is blocked',$3)",[superId,orgB,randomUUID()]),/Only active or suspended/);
+await assert.rejects(()=>db.query("select platform_archive_business($1,$2,'Wrong name','This request should be rejected',$3)",[superId,orgA,randomUUID()]),/confirmation/);
+await assert.rejects(()=>db.query("select platform_archive_business($1,$2,'Legacy B','Too short',$3)",[superId,orgB,randomUUID()]),/reason/);
+await db.query("select platform_restore_business($1,$2,'Legacy B','Customer has confirmed the workspace needs to be restored',$3)",[superId,orgB,randomUUID()]);
+const restored=(await db.query("select business_status,archived_at,archived_by,archive_reason,pre_archive_status from organizations where id=$1",[orgB])).rows[0];
+assert.equal(restored.business_status,"suspended");
+assert.equal(restored.archived_at,null);
+assert.equal(restored.archived_by,null);
+assert.equal(restored.archive_reason,null);
+assert.equal(restored.pre_archive_status,null);
+assert.equal((await db.query("select count(*)::int n from platform_business_lifecycle_audit where business_id=$1 and action='restored'",[orgB])).rows[0].n,1);
+await actor(otherId);
+assert.equal((await db.query("select current_business_access() access")).rows[0].access.businessStatus,"suspended");
+await actor(null);
+await assert.rejects(()=>db.query("update platform_business_lifecycle_audit set reason='tampered' where business_id=$1",[orgB]),/append-only/);
+await assert.rejects(()=>db.query("delete from platform_business_lifecycle_audit where business_id=$1",[orgB]),/append-only/);
+console.log("PASS business archive blocks existing sessions, preserves tenant and Auth rows, rejects generic reactivation, audits transitions, and restores only to suspended");
+
 await actor(adminId);
 assert.equal((await db.query("select current_business_access() access")).rows[0].access.operational,true);
 assert.ok(!JSON.stringify((await db.query("select current_business_access() access")).rows[0]).includes("admin_notes"));
