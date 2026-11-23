@@ -20,7 +20,8 @@ export function BusinessManager({actorId,ownOrganizationId}:{actorId?:string;own
  const dialogRef=useRef<HTMLElement>(null);
  const [businesses,setBusinesses]=useState<BusinessRecord[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
  const [error,setError]=useState(""),[success,setSuccess]=useState(""),[search,setSearch]=useState(""),[filter,setFilter]=useState("all");
- const [editor,setEditor]=useState<{id:string|null;readOnly:boolean;tab:string}|null>(null),[draft,setDraft]=useState<Draft>(emptyDraft),[history,setHistory]=useState<SubscriptionHistory[]>([]),[lifecycleHistory,setLifecycleHistory]=useState<BusinessLifecycleAudit[]>([]);\n const [lifecycle,setLifecycle]=useState<{business:BusinessRecord;action:"archive"|"restore"}|null>(null),[lifecycleName,setLifecycleName]=useState(""),[lifecycleReason,setLifecycleReason]=useState("");
+ const [editor,setEditor]=useState<{id:string|null;readOnly:boolean;tab:string}|null>(null),[draft,setDraft]=useState<Draft>(emptyDraft),[history,setHistory]=useState<SubscriptionHistory[]>([]),[lifecycleHistory,setLifecycleHistory]=useState<BusinessLifecycleAudit[]>([]);
+ const [lifecycle,setLifecycle]=useState<{business:BusinessRecord;action:"archive"|"restore"}|null>(null),[lifecycleName,setLifecycleName]=useState(""),[lifecycleReason,setLifecycleReason]=useState("");
  useEffect(()=>{let active=true;jsonRequest("/api/admin/businesses").then(data=>{if(active)setBusinesses(data);}).catch(error=>{if(active)setError(error.message);}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[]);
  async function refresh(){setBusinesses(await jsonRequest("/api/admin/businesses"));}
  async function open(business:BusinessRecord,tab="information",readOnly=false) {
@@ -52,7 +53,8 @@ export function BusinessManager({actorId,ownOrganizationId}:{actorId?:string;own
    }catch(error){setError(error instanceof Error?error.message:"Unable to save business.");}finally{setBusy(false);}
  }
  async function changeStatus(business:BusinessRecord) {
-   if(business.business_status==="archived")return;\n   const status=business.business_status==="active"?"suspended":"active";
+   if(business.business_status==="archived")return;
+   const status=business.business_status==="active"?"suspended":"active";
    if(status==="suspended"&&!window.confirm("Suspend "+business.name+"? Users will lose operational access. Existing data will be kept."))return;
    setBusy(true);setError("");setSuccess("");
    try{
