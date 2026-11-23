@@ -116,135 +116,48 @@ for each row execute function public.guard_business_lifecycle_status();
 
 revoke all on function public.guard_business_lifecycle_status() from public, anon, authenticated;
 
--- Keep the generic configuration RPC from editing an archived tenant.
--- CREATE OR REPLACE preserves the existing service_role-only execute grants.
-create or replace function public.platform_save_business(
-  p_actor uuid,
-  p_org uuid,
-  p_details jsonb,
-  p_subscription jsonb,
-  p_modules text[]
-)
-returns uuid
+-- Archived organization rows are immutable. The dedicated restore RPC may only
+-- clear archive metadata and return the status to suspended; it cannot edit
+-- the business name, contact details, or any unrelated organization fields.
+create function public.guard_archived_business_mutation()
+returns trigger
 language plpgsql
 security definer
-set search_path = public
-as $$
-declare
-  before_org jsonb;
-  before_sub jsonb;
-  after_sub jsonb;
-  before_modules jsonb;
-  selected text[];
+set search_path = pg_catalog
+as $
+declare lifecycle_action text;
 begin
-  perform public.platform_assert_actor(p_actor);
-
-  select to_jsonb(o) into before_org
-  from public.organizations o
-  where id = p_org
-  for update;
-
-  if before_org is null then
-    raise exception 'Business not found' using errcode = 'P0002';
+  if old.business_status <> 'archived' then
+    return new;
   end if;
 
-  if before_org->>'business_status' = 'archived' then
-    raise exception 'Archived business must be restored before configuration changes'
-      using errcode = '55000';
+  lifecycle_action := current_setting('centerpro.business_lifecycle_action', true);
+
+  if lifecycle_action = 'restore'
+     and new.business_status = 'suspended'
+     and (to_jsonb(new) - array[
+       'business_status', 'archived_at', 'archived_by',
+       'archive_reason', 'pre_archive_status', 'updated_at'
+     ]::text[])
+       is not distinct from
+     (to_jsonb(old) - array[
+       'business_status', 'archived_at', 'archived_by',
+       'archive_reason', 'pre_archive_status', 'updated_at'
+     ]::text[]) then
+    return new;
   end if;
 
-  selected := array(
-    select distinct unnest(array_append(coalesce(p_modules, '{}'::text[]), 'dashboard'))
-  );
-
-  if exists (
-    select 1 from unnest(selected) k
-    where not exists(select 1 from public.business_module_catalog where key = k)
-  ) then
-    raise exception 'Invalid module selection' using errcode = '22023';
-  end if;
-
-  if exists (
-    select 1 from public.business_module_catalog
-    where key = any(selected)
-      and parent_key is not null
-      and not (parent_key = any(selected))
-  ) then
-    raise exception 'Required parent module must be enabled' using errcode = '22023';
-  end if;
-
-  if length(trim(p_details->>'name')) not between 2 and 120
-     or p_details->>'status' not in ('active', 'suspended') then
-    raise exception 'Invalid business details' using errcode = '22023';
-  end if;
-
-  if p_subscription->>'status' = 'trialing'
-     and nullif(p_subscription->>'trial_ends_on', '') is null then
-    raise exception 'Trial end date required' using errcode = '22023';
-  end if;
-
-  select to_jsonb(s)-'updated_at' into before_sub
-  from public.business_subscriptions s
-  where organization_id = p_org;
-
-  select jsonb_agg(module_key order by module_key) into before_modules
-  from public.business_module_entitlements
-  where organization_id = p_org and enabled;
-
-  update public.organizations
-  set name = trim(p_details->>'name'),
-      business_status = p_details->>'status',
-      receipt_address = nullif(trim(p_details->>'address'), ''),
-      receipt_phone = nullif(trim(p_details->>'phone'), ''),
-      receipt_email = nullif(trim(p_details->>'email'), ''),
-      updated_at = now()
-  where id = p_org;
-
-  update public.business_subscriptions
-  set plan = p_subscription->>'plan',
-      status = p_subscription->>'status',
-      starts_on = (p_subscription->>'starts_on')::date,
-      expires_on = nullif(p_subscription->>'expires_on', '')::date,
-      trial_ends_on = nullif(p_subscription->>'trial_ends_on', '')::date,
-      admin_notes = coalesce(p_subscription->>'admin_notes', ''),
-      updated_at = now()
-  where organization_id = p_org;
-
-  update public.business_module_entitlements
-  set enabled = (module_key = any(selected)), updated_at = now()
-  where organization_id = p_org;
-
-  select to_jsonb(s)-'updated_at' into after_sub
-  from public.business_subscriptions s
-  where organization_id = p_org;
-
-  if before_sub is distinct from after_sub then
-    insert into public.business_subscription_history(
-      organization_id, actor_id, before_data, after_data
-    ) values (p_org, p_actor, before_sub, after_sub);
-  end if;
-
-  insert into public.audit_logs(
-    organization_id, actor_id, action, entity_type, entity_id, before_data, after_data
-  ) values (
-    p_org, p_actor, 'business_configuration_updated', 'organization', p_org::text,
-    jsonb_build_object(
-      'name', before_org->>'name',
-      'status', before_org->>'business_status',
-      'modules', before_modules,
-      'subscription', before_sub-'admin_notes'
-    ),
-    jsonb_build_object(
-      'name', trim(p_details->>'name'),
-      'status', p_details->>'status',
-      'modules', selected,
-      'subscription', after_sub-'admin_notes'
-    )
-  );
-
-  return p_org;
+  raise exception 'Archived business is read-only; restore it before making changes'
+    using errcode = '55000';
 end;
-$$;
+$;
+
+create trigger organizations_archived_business_read_only
+before update on public.organizations
+for each row execute function public.guard_archived_business_mutation();
+
+revoke all on function public.guard_archived_business_mutation() from public, anon, authenticated;
+
 
 create function public.platform_archive_business(
   p_actor uuid,
@@ -417,58 +330,6 @@ begin
   );
 
   return p_org;
-end;
-$$;
-
--- A tenant's existing session now reports an explicit archive reason.
-create or replace function public.current_business_access()
-returns jsonb
-language plpgsql
-stable
-security definer
-set search_path = public
-as $$
-declare
-  p public.profiles;
-  o public.organizations;
-  s public.business_subscriptions;
-  modules jsonb;
-begin
-  p := public.current_profile();
-
-  if not coalesce(p.is_active, false) then
-    raise exception 'Account access denied' using errcode = '42501';
-  end if;
-
-  select * into o from public.organizations where id = p.organization_id;
-  select * into s from public.business_subscriptions where organization_id = p.organization_id;
-
-  select coalesce(jsonb_agg(module_key order by module_key), '[]'::jsonb)
-    into modules
-  from public.business_module_entitlements
-  where organization_id = p.organization_id and enabled;
-
-  return jsonb_build_object(
-    'organizationId', o.id,
-    'businessName', o.name,
-    'businessStatus', o.business_status,
-    'operational', public.business_operational(o.id),
-    'reason',
-      case
-        when o.business_status = 'archived' then 'archived'
-        when o.business_status <> 'active' then 'suspended'
-        when not public.business_operational(o.id) then 'subscription'
-        else null
-      end,
-    'enabledModules', modules,
-    'subscription', jsonb_build_object(
-      'plan', s.plan,
-      'status', s.status,
-      'starts_on', s.starts_on,
-      'expires_on', s.expires_on,
-      'trial_ends_on', s.trial_ends_on
-    )
-  );
 end;
 $$;
 
