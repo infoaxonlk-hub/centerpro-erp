@@ -82,6 +82,9 @@ async function denied(sql,values=[],pattern=/access|restricted|permission|policy
 // Phase 1 business archive/restore: access is blocked while all tenant rows and Auth identities survive.
 await service();
 const archiveRequest=randomUUID();
+const archivedCenter=randomUUID(),archivedProduct=randomUUID();
+await db.query("insert into centers(id,organization_id,code,name) values($1,$2,'ARCHIVE','Archived center')",[archivedCenter,orgB]);
+await db.query("insert into products(id,organization_id,code,name) values($1,$2,'ARCHIVE','Archived product')",[archivedProduct,orgB]);
 const beforeArchive={
  organizations:(await db.query("select count(*)::int n from organizations where id=$1",[orgB])).rows[0].n,
  profiles:(await db.query("select count(*)::int n from profiles where organization_id=$1",[orgB])).rows[0].n,
@@ -107,8 +110,8 @@ await assert.rejects(()=>db.query("update organizations set name='Tampered archi
 await actor(otherId);
 assert.equal((await db.query("select current_business_access() access")).rows[0].access.businessStatus,"archived");
 assert.equal((await db.query("select current_business_access() access")).rows[0].access.operational,false);
-await denied("select test_business_definer($1)",[product]);
-await denied("select sales_stock($1)",[center]);
+await denied("select test_business_definer($1)",[archivedProduct]);
+await denied("select sales_stock($1)",[archivedCenter]);
 await service();
 await assert.rejects(()=>db.query("select platform_archive_business($1,$2,'Legacy B','Duplicate archive attempt is blocked',$3)",[superId,orgB,randomUUID()]),/Only active or suspended/);
 await assert.rejects(()=>db.query("select platform_archive_business($1,$2,'Wrong name','This request should be rejected',$3)",[superId,orgA,randomUUID()]),/confirmation/);
