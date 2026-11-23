@@ -1,5 +1,5 @@
 # CenterPro ERP — Super Admin Business Safe Deletion
-**Status:** Design proposal only. No application code or schema changes in this PR. **Do not merge as a finished feature.**
+**Status:** Phase 1 Archive/Restore implementation is present on `feature/super-admin-business-safe-deletion` and remains under review. Phase 2 permanent purge is design-only and is not implemented. Do not merge or apply migration 066 until CI, SQL review, and staging validation are complete.
 
 ## Goal
 
@@ -43,7 +43,7 @@ purge_requested -> purge_approved -> purge_running -> purged
 3. **Restore** returns the tenant to **suspended**, not active, so the operator explicitly reviews subscription, balance/retention concerns and module access before reactivation. Restore is only possible before purging.
 4. **Purge** is a deliberately separate, multi-step administrative workflow. Never implement as a generic `DELETE /businesses/:id` or `ON DELETE CASCADE` across ERP tables.
 
-## Phase 1: safe Archive / Restore (first implementation PR)
+## Phase 1: safe Archive / Restore (implementation under review)
 
 **Database:** append-only migration after 065. Add `archived_at`, `archived_by`, `archive_reason`, and optionally `pre_archive_status` to `organizations` (default NULL for existing tenants). Use `business_status='archived'` consistently with `business_operational()`, and database guards so generic `platform_save_business` cannot unarchive a tenant. Separate `platform_archive_business` / `platform_restore_business` functions, restricted to `service_role`, lock the tenant row and write lifecycle audit records atomically. Never archive the actor's own organization or any platform-operator organization. Do not permit archived business admins to edit subscriptions, grant permissions, or generate invoices.
 
