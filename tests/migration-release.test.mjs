@@ -40,7 +40,7 @@ test('repository manifest covers every SQL including legacy duplicate prefixes',
   assert(all.some(f => f.file_name.startsWith('008a')));
   assert.equal(all.filter(f => f.file_name.startsWith('043')).length, 2);
   assert.equal(all.find(f => f.file_name.includes('verify')).kind, 'verification');
-  assert.equal(all.at(-1).file_name, '065_milling_fifo_auto_consumption.sql');
+  assert.equal(all.at(-1).file_name, '066_super_admin_business_archive_restore.sql');
   assert.equal(hash(canonical('a\r\nb')), hash('a\nb'));
 });
 
