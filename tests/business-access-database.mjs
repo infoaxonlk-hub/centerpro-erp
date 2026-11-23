@@ -79,7 +79,7 @@ async function configure({org=orgA,status="active",modules=allModules,subscripti
 async function denied(sql,values=[],pattern=/access|restricted|permission|policy|platform|denied/i){
  await assert.rejects(()=>db.query(sql,values),pattern);
 }
--- Phase 1 business archive/restore: access is blocked while all tenant rows and Auth identities survive.
+// Phase 1 business archive/restore: access is blocked while all tenant rows and Auth identities survive.
 await service();
 const archiveRequest=randomUUID();
 const beforeArchive={
