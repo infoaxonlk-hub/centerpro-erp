@@ -319,7 +319,7 @@
     },
     {
       "file_name": "066_super_admin_business_archive_restore.sql",
-      "sha256": "626ab604ffab90a7b093c73e657e0e024fd26b8b2f594091e140a73faa7ca664",
+      "sha256": "a03048c54c0d18072f76c20ba3090512189f02d3174edf897b0759f4d50c6a04",
       "kind": "migration"
     }
   ]
