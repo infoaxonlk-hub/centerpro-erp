@@ -124,7 +124,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = pg_catalog
-as $
+as $$
 declare lifecycle_action text;
 begin
   if old.business_status <> 'archived' then
@@ -150,7 +150,7 @@ begin
   raise exception 'Archived business is read-only; restore it before making changes'
     using errcode = '55000';
 end;
-$;
+$$;
 
 create trigger organizations_archived_business_read_only
 before update on public.organizations
