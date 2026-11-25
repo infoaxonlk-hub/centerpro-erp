@@ -4,7 +4,7 @@
  * Database schema history is recorded in centerpro_setup.applied_migrations.
  */
 import { readFileSync, readdirSync } from "node:fs";
-import { createHash } from "node:crypto";
+import { hash } from "./migration-checksum.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { config as dotenvConfig } from "dotenv";
@@ -17,7 +17,6 @@ const migrationDir = path.join(root, "supabase", "migrations");
 const adminEmail = "admin@gmail.com";
 
 function fail(message) { throw new Error(message); }
-function hash(s) { return createHash("sha256").update(s).digest("hex"); }
 function readMigrations() {
   return readdirSync(migrationDir).filter(x => x.endsWith(".sql"))
     .sort((a,b) => a.localeCompare(b,"en",{numeric:false}))

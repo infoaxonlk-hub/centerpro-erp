@@ -42,6 +42,7 @@ test('repository manifest covers every SQL including legacy duplicate prefixes',
   assert.equal(all.find(f => f.file_name.includes('verify')).kind, 'verification');
   assert.equal(all.at(-1).file_name, '065_milling_fifo_auto_consumption.sql');
   assert.equal(hash(canonical('a\r\nb')), hash('a\nb'));
+  assert.equal(hash('a\r\nb'), hash('a\nb')); // Shared dev/release checksum helper normalizes CRLF.
 });
 
 test('catalog rejects changed SQL, missing files, new files and reordered manifests', () => {
