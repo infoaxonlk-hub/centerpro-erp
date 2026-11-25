@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { canonical, hash } from './migration-checksum.mjs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -7,8 +7,7 @@ import path from 'node:path';
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const schema = 'centerpro_release';
 const lock = 82910404;
-export const hash = value => createHash('sha256').update(value).digest('hex');
-export const canonical = value => value.replace(/\r\n/g, '\n');
+export { canonical, hash };
 export function assert(ok, message) { if (!ok) throw new Error(message); }
 export const readJson = file => JSON.parse(readFileSync(file, 'utf8'));
 export const identity = f => ({ file_name: f.file_name, sha256: f.sha256, kind: f.kind });
