@@ -5,6 +5,7 @@ export const businessModules = [
   { key: "farm_services", name: "Services", href: "/dashboard/farm-services", permissions: ["farm_services", "farm_services_manage"] },
   { key: "sales", name: "Sales", href: "/dashboard/sales", permissions: ["sales"] },
   { key: "inventory", name: "Inventory / Stock", href: "/dashboard/stock", permissions: ["stock"] },
+  { key: "water_treatment", name: "Water Treatment", href: "/dashboard/water-treatment", permissions: ["water_treatment"], parent: "inventory" },
   { key: "manufacturing", name: "Manufacturing", href: "/dashboard/manufacturing", permissions: ["manufacturing"], parent: "inventory" },
   { key: "stock_transfers", name: "Stock Transfers", href: "/dashboard/stock/transfers", permissions: ["stock"], parent: "inventory" },
   { key: "stock_adjustments", name: "Stock Adjustments", href: "/dashboard/stock/adjustments", permissions: ["stock_adjustment"], parent: "inventory" },

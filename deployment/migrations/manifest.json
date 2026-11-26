@@ -316,6 +316,21 @@
       "file_name": "065_milling_fifo_auto_consumption.sql",
       "sha256": "96314aabe9a425de51173d9723add89768b54fca69c076358862d4db34e65c96",
       "kind": "migration"
+    },
+    {
+      "file_name": "066_water_treatment_module.sql",
+      "sha256": "2c2f316baa9d9f624fe6f0b51bf5015459e7b3bbaaac118862fa5e48da0842eb",
+      "kind": "migration"
+    },
+    {
+      "file_name": "067_water_treatment_plants.sql",
+      "sha256": "4feaf8e2da13936185a89fd7ded570150c3c9ea7748bb905f87241a26dee124e",
+      "kind": "migration"
+    },
+    {
+      "file_name": "068_water_treatment_rls_access_fix.sql",
+      "sha256": "8edaae221e2d6100fed785a2a22e0932321cfffd123817101bb8dfd3f48d4ae6",
+      "kind": "migration"
     }
   ]
 }

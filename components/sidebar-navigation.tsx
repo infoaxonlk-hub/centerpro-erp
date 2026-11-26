@@ -11,6 +11,7 @@ import {
   Building2,
   CircleDollarSign,
   ClipboardList,
+  Droplets,
   FileCheck2,
   Factory,
   LayoutDashboard,
@@ -33,6 +34,7 @@ type NavItem = {
   permissionsAny?: string[];
   adminOnly?: boolean;
   centerUserOrStock?: boolean;
+  hideWhenDisabled?: boolean;
   icon: LucideIcon;
   children?: { href: string; label: string; permission?: string; centerUserOrStock?: boolean }[];
 };
@@ -80,6 +82,7 @@ export const sections: NavSection[] = [
         { href: "/dashboard/stock/scrap", label: "Scrap stock", centerUserOrStock: true },
       ] },
       {href:"/dashboard/farm-services",label:"Services",permission:"farm_services",icon:Building2,children:[{href:"/dashboard/farm-services/new",label:"New Bill"},{href:"/dashboard/farm-services",label:"Service Orders"},{href:"/dashboard/farm-services/products",label:"Service Products"},{href:"/dashboard/farm-services/seasons",label:"Seasons"},{href:"/dashboard/farm-services/accounts",label:"Customer Accounts"}]},
+      { href: "/dashboard/water-treatment", label: "Water Treatment", permission: "water_treatment", hideWhenDisabled: true, icon: Droplets },
       { href: "/dashboard/labor", label: "Labor & Sessions", permission: "labor", icon: UsersRound, children: [{href:"/dashboard/labor/laborers",label:"Laborers"},{href:"/dashboard/labor/sessions",label:"Sessions"}] },
       { href: "/dashboard/manufacturing", label: "Manufacturing", permission: "manufacturing", icon: Factory, children: [
         { href: "/dashboard/manufacturing", label: "Production orders", permission: "manufacturing" },
@@ -135,8 +138,8 @@ export const sections: NavSection[] = [
   },
 ];
 
-export function canSeeNavigation(item: {href?:string;permission?:string;permissionsAny?:string[];adminOnly?:boolean;centerUserOrStock?:boolean}, permissions:string[], isAdmin:boolean, enabledModules:readonly string[]=moduleKeys) {
-  if (item.href && routeLocked(item.href,enabledModules)) return true;
+export function canSeeNavigation(item: {href?:string;permission?:string;permissionsAny?:string[];adminOnly?:boolean;centerUserOrStock?:boolean;hideWhenDisabled?:boolean}, permissions:string[], isAdmin:boolean, enabledModules:readonly string[]=moduleKeys) {
+  if (item.href && routeLocked(item.href,enabledModules)) return !item.hideWhenDisabled;
   return (!item.adminOnly || isAdmin) && (item.centerUserOrStock ? (!isAdmin || permissions.includes("stock")) : item.permissionsAny ? item.permissionsAny.some(p=>permissions.includes(p)) : !item.permission || permissions.includes(item.permission));
 }
 export function activeNavigation(pathname:string, items:NavItem[]) {

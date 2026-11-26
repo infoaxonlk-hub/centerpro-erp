@@ -40,9 +40,81 @@ test('repository manifest covers every SQL including legacy duplicate prefixes',
   assert(all.some(f => f.file_name.startsWith('008a')));
   assert.equal(all.filter(f => f.file_name.startsWith('043')).length, 2);
   assert.equal(all.find(f => f.file_name.includes('verify')).kind, 'verification');
-  assert.equal(all.at(-1).file_name, '065_milling_fifo_auto_consumption.sql');
+  assert.equal(all.at(-1).file_name, '068_water_treatment_rls_access_fix.sql');
   assert.equal(hash(canonical('a\r\nb')), hash('a\nb'));
   assert.equal(hash('a\r\nb'), hash('a\nb')); // Shared dev/release checksum helper normalizes CRLF.
+});
+
+test('Water Treatment module is registered under Inventory and starts disabled', () => {
+  const migration = catalog().find(f => f.file_name === '066_water_treatment_module.sql').sql;
+  const modules = readFileSync(path.join(root, 'lib/business-modules.ts'), 'utf8');
+  const access = readFileSync(path.join(root, 'lib/access.ts'), 'utf8');
+  const navigation = readFileSync(path.join(root, 'components/sidebar-navigation.tsx'), 'utf8');
+  assert.ok(modules.includes('key: "water_treatment", name: "Water Treatment", href: "/dashboard/water-treatment", permissions: ["water_treatment"], parent: "inventory"'));
+  assert.ok(migration.includes("values('water_treatment','Water Treatment','inventory',false)"));
+  assert.ok(migration.includes("select id,'water_treatment',false from public.organizations\non conflict(organization_id,module_key) do nothing"));
+  assert.ok(migration.includes("key<>''water_treatment''"));
+  assert.ok(migration.includes("when ''water_treatment'' then ''water_treatment''=any(p.permissions)"));
+  assert.ok(migration.includes("when ''water_treatment'' then array[''water_treatment'']"));
+  assert.ok(access.includes('"water_treatment"') && access.includes('water_treatment:"water_treatment"'));
+  assert.ok(navigation.includes('label: "Water Treatment", permission: "water_treatment", hideWhenDisabled: true'));
+  assert.ok(navigation.includes('return !item.hideWhenDisabled'));
+});
+
+test('Water Treatment plant foundation enforces tenant, customer-center, module and append-only history rules', () => {
+  const migration = catalog().find(f => f.file_name === '067_water_treatment_plants.sql').sql;
+  assert.match(migration, /create table public\.water_treatment_plants/);
+  assert.match(migration, /create table public\.water_treatment_plant_history/);
+  assert.match(migration, /foreign key \(customer_id, organization_id, center_id\)[\s\S]*references public\.customers\(id, organization_id, center_id\)/);
+  assert.match(migration, /unique \(organization_id, plant_code\)/);
+  assert.match(migration, /create function public\.assign_water_treatment_plant_code/);
+  assert.match(migration, /create function public\.protect_water_treatment_plant_audit_fields/);
+  assert.match(migration, /new\.id is distinct from old\.id[\s\S]*new\.organization_id is distinct from old\.organization_id[\s\S]*new\.plant_code is distinct from old\.plant_code[\s\S]*new\.created_by is distinct from old\.created_by[\s\S]*new\.created_at is distinct from old\.created_at/);
+  assert.match(migration, /before update on public\.water_treatment_plants[\s\S]*execute function public\.protect_water_treatment_plant_audit_fields\(\)/);
+  assert.match(migration, /create function public\.set_water_treatment_plant_updated_at[\s\S]*new\.updated_at:=now\(\)/);
+  assert.match(migration, /before update on public\.water_treatment_plants[\s\S]*execute function public\.set_water_treatment_plant_updated_at\(\)/);
+  assert.match(migration, /before update or delete on public\.water_treatment_plant_history/);
+  assert.match(migration, /grant select,insert,update on public\.water_treatment_plants/);
+  assert.match(migration, /grant select,insert on public\.water_treatment_plant_history/);
+  assert.match(migration, /public\.business_module_enabled\(organization_id,'water_treatment'\)/);
+  assert.match(migration, /public\.can_access_center\(center_id\)/);
+  assert.match(migration, /create policy water_treatment_customer_read on public\.customers/);
+  assert.match(migration, /array\[''sales'',''farm_services'',''water_treatment''\]/);
+  assert.ok(migration.includes("case when p_write then array[''sales'',''farm_services''] else array[''sales'',''farm_services'',''water_treatment''] end"));
+  assert.match(migration, /create trigger tenant_write_guard/);
+  assert.match(migration, /create trigger business_operation_guard/);
+});
+
+test('Water Treatment RLS uses a restricted current-user module helper without changing other policy gates', () => {
+  const migration = catalog().find(f => f.file_name === '068_water_treatment_rls_access_fix.sql').sql;
+  assert.match(migration, /create or replace function public\.current_business_module_enabled\(p_module text\)\s+returns boolean\s+language sql stable security definer set search_path=public/);
+  assert.match(migration, /from public\.profiles p\s+where p\.id=auth\.uid\(\)\s+and p\.is_active\s+and p\.organization_id is not null/);
+  assert.match(migration, /select public\.business_module_enabled\(p\.organization_id,p_module\)/);
+  assert.match(migration, /revoke all on function public\.current_business_module_enabled\(text\) from public,anon,authenticated/);
+  assert.match(migration, /grant execute on function public\.current_business_module_enabled\(text\) to authenticated/);
+  assert.doesNotMatch(migration, /grant execute on function public\.business_module_enabled/);
+  assert.doesNotMatch(migration, /public\.business_module_enabled\(organization_id,'water_treatment'\)/);
+
+  const policies = [
+    ['water_treatment_plants_read', 'public.water_treatment_plants', 'using'],
+    ['water_treatment_plants_insert', 'public.water_treatment_plants', 'with check'],
+    ['water_treatment_plants_update', 'public.water_treatment_plants', 'using'],
+    ['water_treatment_plant_history_read', 'public.water_treatment_plant_history', 'using'],
+    ['water_treatment_plant_history_insert', 'public.water_treatment_plant_history', 'with check'],
+    ['water_treatment_customer_read', 'public.customers', 'using'],
+  ];
+  for (const [name, table, clause] of policies) {
+    const expression = new RegExp(`alter policy ${name} on ${table}[\\s\\S]*?${clause}\\s*\\(([\\s\\S]*?)\\);`);
+    const match = migration.match(expression);
+    assert.ok(match, `expected altered policy ${name}`);
+    assert.ok(match[1].includes("public.current_business_module_enabled('water_treatment')"));
+    assert.ok(match[1].includes('organization_id=(public.current_profile()).organization_id'));
+    assert.ok(match[1].includes("public.has_permission('water_treatment')"));
+    assert.ok(match[1].includes('public.can_access_center(center_id)'));
+  }
+  assert.match(migration, /created_by=auth\.uid\(\)/);
+  assert.match(migration, /recorded_by=auth\.uid\(\)/);
+  assert.doesNotMatch(migration, /alter policy (tenant_boundary|business_operation_boundary|business_delete_boundary)/);
 });
 
 test('catalog rejects changed SQL, missing files, new files and reordered manifests', () => {

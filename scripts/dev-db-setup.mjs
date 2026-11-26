@@ -4,7 +4,8 @@
  * Database schema history is recorded in centerpro_setup.applied_migrations.
  */
 import { readFileSync, readdirSync } from "node:fs";
-import { hash } from "./migration-checksum.mjs";
+import { hash, matchesAppliedMigrationChecksum } from "./migration-checksum.mjs";
+import { verifyMigrationHistory } from "./dev-db-verify.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { config as dotenvConfig } from "dotenv";
@@ -188,14 +189,43 @@ async function main() {
     return;
   }
   const files=readMigrations();
-  for (const f of files) unwrapTransaction(f.sql,f.name);
   if (argv.includes("--plan")) {
+    for (const f of files) unwrapTransaction(f.sql,f.name);
     console.log("Local read-only validation OK. Ordered SQL files: "+files.length);
     console.log("First: "+files[0]?.name+" | Last: "+files.at(-1)?.name);
     console.log("No remote changes performed.");
     return;
   }
-  if (!argv.includes("--apply") && !argv.includes("--predev")) fail("Pass --plan or --apply.");
+  if (argv.includes("--verify")) {
+    const target=verifyTarget();
+    const db=new pg.Client({connectionString:target.dbString,connectionTimeoutMillis:15000});
+    try {
+      await db.connect();
+      const result=await verifyMigrationHistory(db,files);
+      console.log("Applied and verified: "+result.appliedVerifiedCount);
+      console.log("Pending migrations: "+(result.pending.length?result.pending.join(", "):"none"));
+      console.log("Missing local files: "+(result.missingLocalFiles.length?result.missingLocalFiles.join(", "):"none"));
+      console.log("Checksum mismatches: "+(result.checksumMismatches.length?result.checksumMismatches.join(", "):"none"));
+      console.log("Overall: "+(result.pass?"PASS":"FAIL"));
+      if (!result.pass) process.exitCode=1;
+    } catch (error) {
+      console.log("Applied and verified: unavailable");
+      console.log("Pending migrations: unavailable");
+      console.log("Missing local files: unavailable");
+      console.log("Checksum mismatches: unavailable");
+      console.log("Overall: FAIL");
+      const message=error instanceof Error&&error.message==="Migration history table centerpro_setup.applied_migrations is missing."
+        ? error.message
+        : "Could not connect to or read the development migration history.";
+      console.error(message);
+      process.exitCode=1;
+    } finally {
+      await db.end().catch(()=>{});
+    }
+    return;
+  }
+  for (const f of files) unwrapTransaction(f.sql,f.name);
+  if (!argv.includes("--apply") && !argv.includes("--predev")) fail("Pass --plan, --verify, or --apply.");
   const target=verifyTarget();
   const db=new pg.Client({connectionString:target.dbString,connectionTimeoutMillis:15000});
   await db.connect();
@@ -229,7 +259,7 @@ async function main() {
     let applied=0;
     for (const f of files) {
       if (history.has(f.name)) {
-        if (history.get(f.name)!==f.sha256) fail("Applied migration changed: "+f.name);
+        if (!matchesAppliedMigrationChecksum(history.get(f.name),f.sql)) fail("Applied migration changed: "+f.name);
         continue;
       }
       await db.query("BEGIN");
