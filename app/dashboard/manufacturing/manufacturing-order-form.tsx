@@ -13,7 +13,7 @@ export type ProductionExpense={id:string;center_id:string;payee:string;amount:nu
 type Line={cost_share_percent:string;sack_count:string;key:string;input_kind:string;output_kind:string;product_id:string;quality_id:string;lot_id:string;quantity:string;package_size_kg:string;packaging_product_id:string;packaging_quality_id:string};
 export type Center={id:string;code:string;name:string;locations:{id:string;code:string;name:string;is_default:boolean;is_active:boolean}[]};
 export type Lot={center_id:string;location_id:string;product_id:string;quality_id:string;lot_id:string|null;lot_number:string;available_quantity:number|string;inventory_value?:number|string;received_at?:string;};
-export type Recipe={finished_product_id?:string|null;id:string;recipe_code:string;name:string;process_type:Process;rice_variety:string;operation_name:string;operation_cost_basis:string;operation_cost_rate:number|string;external_mill_fee_per_kg:number|string};
+export type Recipe={finished_product_id?:string|null;id:string;recipe_code:string;name:string;process_type:'milling'|'drying'|'packing';rice_variety:string;operation_name:string;operation_cost_basis:string;operation_cost_rate:number|string;external_mill_fee_per_kg:number|string};
 export type Supplier={id:string;name:string;phone:string|null};
 const newLine=(kind:string):Line=>({cost_share_percent:"0",sack_count:"0",key:crypto.randomUUID(),input_kind:kind,output_kind:kind==="packed"?"packed":"main",product_id:"",quality_id:"",lot_id:"",quantity:"",package_size_kg:"",packaging_product_id:"",packaging_quality_id:""});
 const today=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Colombo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());

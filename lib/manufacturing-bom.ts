@@ -1,7 +1,7 @@
 export type BomComponent={id:string;product_id:string;quality_id:string;quantity:number|string;unit:string;input_kind:'raw_material'|'bulk_rice'|'packaging';sequence:number;product_name?:string;quality_name?:string};
 export type BomByproduct={id:string;product_id:string;quality_id:string;quantity:number|string;unit:string;destination_center_id:string;destination_location_id:string;cost_share_percent:number|string;sequence:number;product_name?:string;quality_name?:string;destination_name?:string};
 export type BomOperation={id:string;name:string;planned_quantity:number|string;cost_basis:'per_kg'|'per_hour'|'per_batch';cost_rate:number|string;sequence:number};
-export type ManufacturingBom={id:string;recipe_code:string;name:string;process_type:'milling'|'packing';rice_variety:string;is_active:boolean;revision:number;
+export type ManufacturingBom={id:string;recipe_code:string;name:string;process_type:'milling'|'drying'|'packing';rice_variety:string;is_active:boolean;revision:number;
  finished_product_id:string|null;finished_quality_id:string|null;finished_quantity:number|string|null;finished_unit:string|null;finished_cost_share:number|string;
  production_center_id:string|null;source_location_id:string|null;destination_center_id:string|null;destination_location_id:string|null;package_size_kg:number|string|null;
  operation_name:string;operation_cost_basis:string;operation_cost_rate:number|string;external_mill_fee_per_kg:number|string;
@@ -14,9 +14,13 @@ export const roundBom=(n:number,places=3)=>Math.round(n*10**places)/10**places;
 export function millingInputComponents(bom:ManufacturingBom|null|undefined){
  return (bom?.manufacturing_bom_components??[]).filter(c=>c.input_kind==='raw_material'&&['KG','G'].includes(c.unit)&&Number.isFinite(Number(c.quantity))&&Number(c.quantity)>0).sort((a,b)=>(a.sequence??0)-(b.sequence??0)||a.id.localeCompare(b.id));
 }
+export function dryingInputComponents(bom:ManufacturingBom|null|undefined){
+ return (bom?.process_type==='drying'?(bom.manufacturing_bom_components??[]):[]).filter(c=>c.input_kind==='raw_material'&&['KG','G'].includes(c.unit)&&Number.isFinite(Number(c.quantity))&&Number(c.quantity)>0).sort((a,b)=>(a.sequence??0)-(b.sequence??0)||a.id.localeCompare(b.id));
+}
 export function productionFromInputKg(bom:ManufacturingBom,componentId:string,inputKg:number){
- const component=millingInputComponents(bom).find(c=>c.id===componentId);
- if(bom.process_type!=='milling'||!component||!Number.isFinite(inputKg)||inputKg<=0||!Number.isFinite(Number(bom.finished_quantity))||Number(bom.finished_quantity)<=0)throw new Error('Choose a milling BoM, a weight-based raw component and a positive input quantity.');
+ const components=bom.process_type==='milling'?millingInputComponents(bom):bom.process_type==='drying'?dryingInputComponents(bom):[];
+ const component=components.find(c=>c.id===componentId);
+ if(!component||!Number.isFinite(inputKg)||inputKg<=0||!Number.isFinite(Number(bom.finished_quantity))||Number(bom.finished_quantity)<=0)throw new Error('Choose a milling or drying BoM, a weight-based raw component and a positive input quantity.');
  const baseKg=Number(component.quantity)*(component.unit==='G'?.001:1);
  const result=roundBom(inputKg/baseKg*Number(bom.finished_quantity));
  if(!Number.isFinite(result)||result<=0)throw new Error('Input quantity is too small or too large for this BoM.');

@@ -136,6 +136,44 @@ const packOrder=(await db.query('select * from manufacturing_orders where id=$1'
 assert.equal((await db.query('select * from manufacturing_order_inputs where order_id=$1',[packSaved.order_id])).rows.length,2);
 assert.ok(Math.abs(Number(packOrder.total_cost)-(192.75/12*10.5+3*2+8))<0.000001);
 assert.equal((await db.query("select center_id,location_id from stock_movements where reference_id=$1 and movement_type='adjustment_in'",[packSaved.order_id])).rows[0].center_id,destinationCenter);
+
+// Drying reuses the structured Milling BOM, input scaling, operation costing,
+// lot consumption and finished-stock posting, while recording moisture loss.
+const dryPaddy=await product('DRY-PADDY');
+const dryRawLot=await buy(raw,100,11,'DRY-RAW');
+const dryingConfig={...config,recipe_code:'DRY-BOM',name:'Dry paddy BoM',process_type:'drying',
+ finished_product_id:dryPaddy.id,finished_quality_id:dryPaddy.quality,finished_quantity:88,finished_cost_share:100,
+ components:[{product_id:raw.id,quality_id:raw.quality,quantity:100,input_kind:'raw_material'}],
+ byproducts:[],operations:[{name:'Drying labor',planned_quantity:100,cost_basis:'per_kg',cost_rate:1}],external_mill_fee_per_kg:0};
+const dryingBom=await saveBom(dryingConfig);
+assert.equal(dryingBom.process_type,'drying');assert.equal(dryingBom.finished_unit,'KG');
+assert.equal(dryingBom.manufacturing_bom_components[0].unit,'KG');assert.equal(dryingBom.manufacturing_bom_byproducts.length,0);
+const dryingRequest=request(dryingBom,88);dryingRequest.inputs[0].lot_id=dryRawLot;dryingRequest.outputs[0].quantity=86;
+const dryingSaved=await saveOrder(dryingRequest);
+assert.equal((await db.query('select process_type,method from manufacturing_orders where id=$1',[dryingSaved.order_id])).rows[0].process_type,'drying');
+const dryingDone=await complete(dryingSaved.order_id);assert.equal(dryingDone.status,'completed');
+const dryingOrder=(await db.query('select process_loss_kg,material_cost,operation_cost from manufacturing_orders where id=$1',[dryingSaved.order_id])).rows[0];
+assert.equal(Number(dryingOrder.process_loss_kg),14,'100 KG raw paddy less 86 KG accepted dry paddy records 14 KG loss');
+assert.equal((await db.query('select count(*)::int n from manufacturing_order_outputs where order_id=$1',[dryingSaved.order_id])).rows[0].n,1);
+assert.equal((await db.query("select count(*)::int n from stock_movements where reference_id=$1 and movement_type='adjustment_out' and product_id=$2",[dryingSaved.order_id,raw.id])).rows[0].n,1);
+assert.equal((await db.query("select count(*)::int n from stock_movements where reference_id=$1 and movement_type='adjustment_in' and product_id=$2",[dryingSaved.order_id,dryPaddy.id])).rows[0].n,1);
+assert.equal((await db.query('select lot_id from manufacturing_order_inputs where order_id=$1',[dryingSaved.order_id])).rows[0].lot_id,dryRawLot);
+
+// Drying rules reject count-based products, by-products and non-weight inputs.
+const countProduct=await product('DRY-COUNT','UNIT');
+await assert.rejects(()=>saveBom({...dryingConfig,recipe_code:'DRY-COUNT-OUT',finished_product_id:countProduct.id,finished_quality_id:countProduct.quality}),/Drying requires a weight-based finished product/);
+await assert.rejects(()=>saveBom({...dryingConfig,recipe_code:'DRY-BYPRODUCT',byproducts:[{product_id:bran.id,quality_id:bran.quality,quantity:1,destination_center_id:destinationCenter,destination_location_id:destinationLocation,cost_share_percent:0}]}),/Drying requires a weight-based finished product and no by-products/);
+await assert.rejects(()=>saveBom({...dryingConfig,recipe_code:'DRY-COUNT-IN',components:[{product_id:bag.id,quality_id:bag.quality,quantity:1,input_kind:'raw_material'}]}),/Drying components must use KG or G/);
+const externalDrying=request(dryingBom,88);externalDrying.method='external';externalDrying.supplier_id=supplier;
+await assert.rejects(()=>saveOrder(externalDrying),/Only Milling supports external processing/);
+
+// An actual Drying output greater than its raw-paddy input must fail atomically.
+const dryBadLot=await buy(raw,100,12,'DRY-EXCESS');
+const excessDrying=request(dryingBom,88);excessDrying.inputs[0].lot_id=dryBadLot;excessDrying.outputs[0].quantity=101;
+const excessSaved=await saveOrder(excessDrying);const beforeExcess=await stockCount();
+await assert.rejects(()=>complete(excessSaved.order_id),/Drying output cannot exceed the accepted raw input weight/);
+assert.equal(await stockCount(),beforeExcess,'Rejected excess drying output leaves inventory movements unchanged');
+
 await saveBom({...config,recipe_code:legacyRecipe.recipe_code,name:'Converted legacy preset'},legacyRecipe.recipe_id);
 await db.query('select * from save_manufacturing_order($1,$2::jsonb)',[legacyDraft.order_id,JSON.stringify(legacyData)]);
 assert.equal(Number((await complete(legacyDraft.order_id)).total_cost),15);

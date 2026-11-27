@@ -26,6 +26,19 @@ Actual accepted finished/by-product quantities determine receipts. A zero actual
 
 Drafts neither reserve nor post stock/accounting. Completion locks all centers in stable order, rechecks source availability, locations and master data, then atomically posts actual components, outputs, sacks, lot links and costs through the existing 056 transaction. Retries reuse the same order ID. Completed orders and operation/cost snapshots remain immutable. Earlier completed orders are not revalued or assigned invented plans.
 
+## Drying process (069)
+
+Drying uses the same structured BoM, order snapshot, input-lot consumption, stock movement, valuation and operation-cost engine as Milling. It is a separate `drying` process type so the workspace and order history distinguish paddy drying from milling and packing.
+
+- Configure a raw paddy component in KG/G and a dry-paddy finished product in KG/G. Drying BoMs do not allow by-products or count-based products/components.
+- Enter the baseline conversion, for example 100 KG raw paddy → 88 KG dry paddy. The new Drying order screen accepts actual raw-paddy input KG and uses the same BoM ratio to calculate planned dry output.
+- Configure drying labor using the same operation bases as Milling: per actual input KG, per hour, or per batch. Its cost is capitalized into the dry-paddy output using the shared manufacturing costing flow.
+- Select the actual raw-paddy purchase lot on the order. Drafts do not post stock. Completion consumes the selected raw paddy, creates the dry-paddy stock lot, and records `process_loss_kg = actual input KG - accepted dry output KG`.
+- The accepted dried output cannot exceed raw-paddy input. Drying is an in-house process; external-mill processing remains Milling-only.
+- No separate drying production engine or by-product flow is introduced.
+
+Apply `supabase/migrations/069_drying_process_support.sql` after migrations through 068. The file is registered in `deployment/migrations/manifest.json`. Run `node tests/manufacturing-bom-plans.cjs`, `node tests/manufacturing-bom-database.mjs`, and `node tests/manufacturing-drying-ui.cjs` as part of regression testing.
+
 ## Boundaries
 
 - One shared component source location per BoM; stage materials from other locations using existing transfers. Each component row selects one source lot; repeated material rows may represent separate planned sources.
@@ -66,6 +79,6 @@ npm run build
 
 Database tests use isolated PGlite with auth/storage fixtures. UI tests exercise real handlers through the existing hook harness; they do not claim authenticated Preview/browser coverage. Run [manual QA](qa/manufacturing-bom-and-order-test-cases.md) with real authorized sessions after migration.
 
-## Verified results
+## Verification status
 
-All 17 test scripts listed above passed during implementation. The BoM database/UI and legacy manufacturing UI checks were rerun after the final legacy-draft compatibility correction and passed. The production build passed with TypeScript validation and 58 generated pages. Targeted ESLint passed with the existing `react-hooks/set-state-in-effect` rule excluded. No remote migration, authenticated browser/Preview test, push, deployment or merge was performed.
+The Drying test files are included, but the automated tests and production build have not yet been run against this branch in the current environment. Before deployment, run `node tests/manufacturing-bom-plans.cjs`, `node tests/manufacturing-bom-database.mjs`, `node tests/manufacturing-drying-ui.cjs`, the existing manufacturing regression tests, and `npm run build`. Perform authenticated Staging QA after applying migration 066 to the Staging database. No database migration has been applied as part of this branch preparation.
