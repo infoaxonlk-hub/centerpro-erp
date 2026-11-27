@@ -10,7 +10,7 @@ assert.equal(pack.inputs[0].quantity,20);assert.equal(pack.inputs[1].quantity,4)
 assert.throws(()=>scale(b,0));assert.throws(()=>scale({...b,finished_product_id:null},12));
 console.log('PASS milling/packing BoM scaling, planned operations and by-products, destination retention, no template lots and exact KG/G normalization.');
 
-const{productionFromInputKg,millingInputComponents}=m.exports;
+const{productionFromInputKg,millingInputComponents,dryingInputComponents}=m.exports;
 b.process_type='milling';
 assert.equal(productionFromInputKg(b,'raw',20),12,'20 KG paddy at 10:6 BoM yield produces 12 KG rice');
 assert.equal(productionFromInputKg({...b,manufacturing_bom_components:[{...b.manufacturing_bom_components[0],quantity:10000,unit:'G'}]},'raw',20),12);
@@ -22,3 +22,14 @@ const second={...b.manufacturing_bom_components[0],id:'second',quantity:5,sequen
 assert.equal(productionFromInputKg({...b,manufacturing_bom_components:[...b.manufacturing_bom_components,second]},'second',20),24,'Use the selected raw component ratio, not a sum of components');
 assert.equal(millingInputComponents({...b,manufacturing_bom_components:[second,{...second,id:'bags',input_kind:'packaging',unit:'UNIT'}]}).length,1);
 console.log('PASS input-first milling yield calculation, KG/G conversion, precision, multiple raw components and invalid input protection; packing unchanged.');
+
+const drying={...b,process_type:'drying',finished_product_id:'dry-paddy',finished_quantity:88,finished_unit:'KG',manufacturing_bom_byproducts:[],manufacturing_bom_components:[{...b.manufacturing_bom_components[0],id:'raw-drying',quantity:100,unit:'KG',input_kind:'raw_material'}]};
+assert.equal(dryingInputComponents(drying).length,1,'Drying accepts weight-based raw paddy inputs');
+assert.equal(productionFromInputKg(drying,'raw-drying',100),88,'100 KG raw paddy at 100:88 produces 88 KG dry paddy');
+assert.equal(productionFromInputKg(drying,'raw-drying',50),44,'Drying uses the same input-to-output BoM ratio');
+assert.equal(productionFromInputKg({...drying,manufacturing_bom_components:[{...drying.manufacturing_bom_components[0],unit:'G',quantity:100000}]},'raw-drying',100),88,'Drying normalizes grams to kilograms');
+assert.equal(dryingInputComponents({...drying,manufacturing_bom_components:[{...drying.manufacturing_bom_components[0],unit:'UNIT'}]}).length,0,'Drying excludes count-based inputs');
+assert.equal(dryingInputComponents({...drying,process_type:'milling'}).length,0,'Drying input selector is process-specific');
+for(const value of [0,-1,NaN,Infinity])assert.throws(()=>productionFromInputKg(drying,'raw-drying',value));
+assert.throws(()=>productionFromInputKg({...drying,finished_quantity:0},'raw-drying',100));
+console.log('PASS Drying BOM 100 KG raw paddy → 88 KG dry paddy, same ratio calculator, KG/G normalization and weight-unit validation.');

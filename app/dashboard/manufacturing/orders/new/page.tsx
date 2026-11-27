@@ -9,5 +9,5 @@ export default async function NewManufacturingOrderPage({searchParams}:{searchPa
  const options=await loadManufacturingOptions(supabase,profile.organization_id);
  if(params.legacy==='1')return <ManufacturingOrderForm initialProcess={requested==="packing"?"packing":"milling"} {...options}/>;
  const boms=await loadManufacturingBoms(supabase,profile.organization_id);
- return <BomManufacturingOrderForm initialProcess={requested==="packing"?"packing":"milling"} boms={boms} {...options}/>;
+ return <BomManufacturingOrderForm initialProcess={requested==="packing"?"packing":requested==="drying"?"drying":"milling"} boms={boms} {...options}/>;
 }

@@ -316,6 +316,11 @@
       "file_name": "065_milling_fifo_auto_consumption.sql",
       "sha256": "96314aabe9a425de51173d9723add89768b54fca69c076358862d4db34e65c96",
       "kind": "migration"
+    },
+    {
+      "file_name": "066_drying_process_support.sql",
+      "sha256": "f5e010698d8aea726003dc61729035ec7777c9abadb1329a3103482524919fd6",
+      "kind": "migration"
     }
   ]
 }
