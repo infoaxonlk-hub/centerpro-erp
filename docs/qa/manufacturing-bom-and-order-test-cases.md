@@ -28,6 +28,15 @@ Apply 057 after 056 in a test database. Use an active Manufacturing/Inventory bu
 Automated tests use isolated PostgreSQL/hook fixtures. Real browser and authenticated Preview QA is separate and must be run after migration.
 
 
+### Drying entry from raw paddy/input KG
+
+- Create a Drying BoM with 100 KG Raw Red Naadu Paddy as its raw-material input and 88 KG Dry Red Naadu as its finished output. Configure a Drying Labor operation at LKR 1 per input KG. Do not add by-products.
+- Open a New Drying Order and select Dry Red Naadu. Enter 100 KG Raw Paddy / input quantity: planned output must calculate to 88 KG. Load the BoM and confirm 100 KG planned raw input, 88 KG planned dry output and 100 KG planned per-KG labor consumption.
+- Select the actual raw-paddy purchase lot. Enter 86 KG accepted dry output: the screen must show 14 KG drying loss. Save draft and reopen; input lot, actual operation quantity and output quantity remain unchanged and stock is not posted.
+- Complete the order: the selected raw-paddy lot is consumed, one dry-paddy output lot is received, drying loss is stored as 14 KG, and input/labor costs are capitalized into the dry-paddy output. Existing Milling and Packing behavior remains unchanged.
+- Try a UNIT finished product, UNIT input, a by-product, external-mill method, and accepted dry output greater than raw input. Each must be rejected. For excess output, completion must roll back all stock movements and cost entries.
+- Test 100 KG input / 100 KG output: zero drying loss. Test 100 KG input / 86.5 KG output: 13.5 KG drying loss. Try G-based inputs/outputs and verify conversion to KG for input-first planning and loss calculation.
+
 ### Milling entry from paddy/input KG
 
 - Configure a milling BoM with 10 KG raw paddy and 6 KG finished rice. Select that finished product/BoM on a new Manufacturing Order. Enter 20 in Paddy / input quantity (KG): Quantity to produce must become 12. Click Load / replace BoM plan: existing scaling creates 20 KG planned paddy, 12 KG rice, and the proportionally scaled by-products/operations.
